@@ -17,6 +17,7 @@
             </div>
 
             <a class="menu-item" href="./admin.html" id="adminLink">管理者ページ</a>
+            <a class="menu-item" href="./team.html" id="teamLink">チームページ</a>
             <a class="menu-item" href="./index.html" data-title="トップ">トップ</a>
             <a class="menu-item" href="./match.html" data-title="対戦カード">対戦カード</a>
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
