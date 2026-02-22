@@ -1,0 +1,7 @@
+name = "othellonia-tournament-site"
+compatibility_date = "2026-02-22"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "othellonia_tournament_db"
+database_id = "f17f8050-dd79-4c1a-b18f-b226e7cd065c"
