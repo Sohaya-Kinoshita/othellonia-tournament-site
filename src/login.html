@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./images/oc_mark.png" type="image/png">
+    <title>ログイン | 隊抗戦ホームページ</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>ログイン</h1>
+
+            <div style="display:flex; flex-direction:column; gap:12px; max-width:420px;">
+                <label>
+                    ID
+                    <input id="userIdInput" type="text" autocomplete="username" placeholder="admin01" />
+                </label>
+
+                <label>
+                    パスワード
+                    <input id="passwordInput" type="password" autocomplete="current-password"
+                        placeholder="AdminPass123" />
+                </label>
+
+                <button id="loginButton" type="button">ログイン</button>
+
+                <div id="loginMessage" style="color:#b91c1c;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+
+    <script>
+        const loginButton = document.getElementById("loginButton");
+        const userIdInput = document.getElementById("userIdInput");
+        const passwordInput = document.getElementById("passwordInput");
+        const loginMessage = document.getElementById("loginMessage");
+
+        async function doLogin() {
+            loginMessage.textContent = "";
+
+            const userId = userIdInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!userId || !password) {
+                loginMessage.textContent = "IDとパスワードを入力してください．";
+                return;
+            }
+
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, password }),
+            });
+
+            const result = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                loginMessage.textContent = result?.message ?? "ログインに失敗しました．";
+                return;
+            }
+
+            // 成功したらトップへ
+            location.href = "./index.html";
+        }
+
+        loginButton.addEventListener("click", doLogin);
+
+        // Enterで送信できるように
+        passwordInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") doLogin();
+        });
+    </script>
+</body>
+
+</html>

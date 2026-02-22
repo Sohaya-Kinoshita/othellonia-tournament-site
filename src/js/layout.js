@@ -61,6 +61,44 @@ function setupMenu() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMenu();
   });
+
+  const loginLink = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+  const adminLink = document.getElementById("adminLink");
+
+  // 初期は両方隠して，状態が取れたら出す
+  if (loginLink) loginLink.style.display = "none";
+  if (logoutLink) logoutLink.style.display = "none";
+  if (adminLink) adminLink.style.display = "none";
+
+  // ログイン状態取得して出し分け
+  fetch("/api/me")
+    .then((response) => response.json())
+    .then((result) => {
+      const isLoggedIn = Boolean(result?.isLoggedIn);
+
+      if (loginLink) loginLink.style.display = isLoggedIn ? "none" : "block";
+      if (logoutLink) logoutLink.style.display = isLoggedIn ? "block" : "none";
+
+      if (adminLink) {
+        const isAdmin = result?.user?.role === "admin";
+        adminLink.style.display = isLoggedIn && isAdmin ? "block" : "none";
+      }
+    })
+    .catch(() => {
+      // 失敗したらログインリンクだけ見せる
+      if (loginLink) loginLink.style.display = "block";
+      if (logoutLink) logoutLink.style.display = "none";
+    });
+
+  // ログアウト押下
+  if (logoutLink) {
+    logoutLink.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await fetch("/api/logout", { method: "POST" }).catch(() => null);
+      location.href = "./index.html";
+    });
+  }
 }
 
 async function setupLayout() {
