@@ -48,7 +48,6 @@ function setupMenu() {
     if (href === `./${currentPath}`) {
       menuItemElement.classList.add("is-current");
       menuItemElement.setAttribute("aria-current", "page");
-      if (menuTitle && title) menuTitle.textContent = `現在：${title}`;
     }
   }
 
