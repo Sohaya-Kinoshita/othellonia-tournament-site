@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>チームページ</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>チームページ</h1>
+            <p id="teamMessage">確認中...</p>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+
+    <script>
+        async function checkTeam() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const teamMessage = document.getElementById("teamMessage");
+
+            if (!result.isLoggedIn) {
+                location.href = "./login.html";
+                return;
+            }
+
+            if (result.user.role !== "team") {
+                teamMessage.textContent = "あなたにはこのページの閲覧権限がありません．";
+                return;
+            }
+
+            const teamIdText = result.user.teamId ? `（teamId=${result.user.teamId}）` : "";
+            teamMessage.textContent = `チームとしてログインしています．${teamIdText}`;
+        }
+
+        checkTeam();
+    </script>
+</body>
+
+</html>
