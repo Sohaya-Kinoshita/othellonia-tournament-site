@@ -75,6 +75,7 @@ body.no-scroll {
 /* PC向けナビ（デフォルト） */
 .nav {
   display: flex;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -294,16 +295,21 @@ th {
 
     margin: -16px -16px 0 -16px;
     padding: 0 16px;
+    width: calc(100% + 32px);
     border-bottom: 1px solid var(--border);
   }
 
   .menu-title {
     margin: 0;
+    text-align: left;
   }
 
   .menu-item {
-    display: block;
-    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: var(--header-height);
     padding: 10px 8px;
   }
 }
@@ -329,6 +335,13 @@ th {
   color: var(--link);
   text-decoration: none;
   font-weight: 700;
+}
+
+/* PC版のみ中央揃え */
+@media (min-width: 769px) {
+  .menu-item {
+    justify-content: center;
+  }
 }
 
 .menu-item:hover {

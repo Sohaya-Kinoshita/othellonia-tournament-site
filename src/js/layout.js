@@ -79,21 +79,21 @@ function setupMenu() {
     .then((result) => {
       const isLoggedIn = Boolean(result?.isLoggedIn);
 
-      if (loginLink) loginLink.style.display = isLoggedIn ? "none" : "block";
-      if (logoutLink) logoutLink.style.display = isLoggedIn ? "block" : "none";
+      if (loginLink) loginLink.style.display = isLoggedIn ? "none" : "flex";
+      if (logoutLink) logoutLink.style.display = isLoggedIn ? "flex" : "none";
 
       if (adminLink) {
         const isAdmin = result?.user?.role === "admin";
-        adminLink.style.display = isLoggedIn && isAdmin ? "block" : "none";
+        adminLink.style.display = isLoggedIn && isAdmin ? "flex" : "none";
       }
       if (teamLink) {
         const isTeam = result?.user?.role === "team";
-        teamLink.style.display = isLoggedIn && isTeam ? "block" : "none";
+        teamLink.style.display = isLoggedIn && isTeam ? "flex" : "none";
       }
     })
     .catch(() => {
       // 失敗したらログインリンクだけ見せる
-      if (loginLink) loginLink.style.display = "block";
+      if (loginLink) loginLink.style.display = "flex";
       if (logoutLink) logoutLink.style.display = "none";
     });
 
