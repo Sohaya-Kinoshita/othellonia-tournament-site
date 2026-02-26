@@ -80,6 +80,9 @@ body.no-scroll {
 }
 
 .nav a {
+  display: flex;
+  align-items: center;
+  height: var(--header-height);
   color: var(--link);
   text-decoration: none;
   font-weight: 600;
@@ -297,11 +300,17 @@ th {
   .menu-title {
     margin: 0;
   }
+
+  .menu-item {
+    display: block;
+    height: auto;
+    padding: 10px 8px;
+  }
 }
 
 .menu-title {
   font-size: 14px;
-  color: var(--muted);
+  color: var(--text);
   font-weight: 700;
 }
 
@@ -312,7 +321,9 @@ th {
 }
 
 .menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  height: var(--header-height);
   padding: 10px 8px;
   border-radius: 10px;
   color: var(--link);
