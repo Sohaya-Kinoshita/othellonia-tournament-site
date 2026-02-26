@@ -12,25 +12,51 @@
 <body>
     <div id="headerSlot"></div>
 
-    <main class="container">
-        <div class="card">
-            <h1>ログイン</h1>
+    <main class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <p class="auth-eyebrow">オセロニアクランバトル</p>
+                <h1>ログイン</h1>
+                <p class="auth-lead">大会運営向けのログイン画面です。IDとパスワードを入力してください。</p>
+            </div>
 
-            <div style="display:flex; flex-direction:column; gap:12px; max-width:420px;">
-                <label>
-                    ID
-                    <input id="userIdInput" type="text" autocomplete="username" placeholder="admin01" />
-                </label>
+            <div class="auth-grid">
+                <section class="auth-form">
+                    <label class="auth-field">
+                        <span>ID</span>
+                        <div class="auth-input-row">
+                            <input id="userIdInput" class="auth-input" type="text" autocomplete="username"
+                                placeholder="admin01" />
+                            <span class="auth-spacer" aria-hidden="true"></span>
+                        </div>
+                    </label>
 
-                <label>
-                    パスワード
-                    <input id="passwordInput" type="password" autocomplete="current-password"
-                        placeholder="AdminPass123" />
-                </label>
+                    <label class="auth-field">
+                        <span>パスワード</span>
+                        <div class="auth-password">
+                            <input id="passwordInput" class="auth-input" type="password" autocomplete="current-password"
+                                placeholder="AdminPass123" />
+                            <button id="passwordToggle" class="auth-toggle" type="button" aria-pressed="false">
+                                表示
+                            </button>
+                        </div>
+                    </label>
 
-                <button id="loginButton" type="button">ログイン</button>
+                    <button id="loginButton" class="auth-button" type="button">ログインする</button>
 
-                <div id="loginMessage" style="color:#b91c1c;"></div>
+                    <div id="loginMessage" class="auth-message"></div>
+                </section>
+
+                <aside class="auth-side">
+                    <div class="auth-side-card">
+                        <h2>初めての方へ</h2>
+                        <p>運営側でID発行を行っています。参加登録やID発行のご相談は公式アカウントへ。</p>
+                        <a class="auth-cta" href="https://x.com/OCB_othello" target="_blank" rel="noreferrer">
+                            公式Xを開く
+                        </a>
+                        <p class="auth-help">※ 連絡の際は大会名とユーザー名をお知らせください。</p>
+                    </div>
+                </aside>
             </div>
         </div>
     </main>
@@ -44,6 +70,7 @@
         const userIdInput = document.getElementById("userIdInput");
         const passwordInput = document.getElementById("passwordInput");
         const loginMessage = document.getElementById("loginMessage");
+        const passwordToggle = document.getElementById("passwordToggle");
 
         async function doLogin() {
             loginMessage.textContent = "";
@@ -74,6 +101,13 @@
         }
 
         loginButton.addEventListener("click", doLogin);
+
+        passwordToggle.addEventListener("click", () => {
+            const isVisible = passwordInput.type === "text";
+            passwordInput.type = isVisible ? "password" : "text";
+            passwordToggle.textContent = isVisible ? "表示" : "非表示";
+            passwordToggle.setAttribute("aria-pressed", (!isVisible).toString());
+        });
 
         // Enterで送信できるように
         passwordInput.addEventListener("keydown", (event) => {
