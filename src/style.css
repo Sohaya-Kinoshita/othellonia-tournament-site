@@ -23,7 +23,7 @@ body {
     "Segoe UI",
     sans-serif;
   color: var(--text);
-  background: var(--bg);
+  background: url("./images/white_00028.jpg") repeat;
   line-height: 1.6;
 }
 
