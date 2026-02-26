@@ -158,6 +158,48 @@ th {
   font-weight: 700;
 }
 
+/* 運営者セクション */
+.organizer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.organizer:last-child {
+  margin-bottom: 0;
+}
+
+.organizer-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.organizer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.organizer-name {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.organizer-info a {
+  color: var(--link);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.organizer-info a:hover {
+  text-decoration: underline;
+}
+
 /* フッター */
 .footer {
   margin-top: 24px;
