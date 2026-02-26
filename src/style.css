@@ -17,6 +17,7 @@
 
 body {
   margin: 0;
+  padding-top: var(--header-height);
   font-family:
     system-ui,
     -apple-system,
@@ -41,8 +42,13 @@ body.no-scroll {
 
 /* ヘッダー */
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--card);
   border-bottom: 1px solid var(--border);
+  z-index: 1000;
 }
 
 .header-inner {
