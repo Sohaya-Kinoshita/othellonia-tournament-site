@@ -18,11 +18,7 @@
 
             <form id="loginForm" class="login-form">
                 <div class="form-group">
-                    <input type="text" id="userId" name="userId" placeholder="ユーザーID" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" id="password" name="password" placeholder="パスワード" required>
+                    <input type="text" id="playerId" name="playerId" placeholder="プレイヤーID" required>
                 </div>
 
                 <button type="submit" class="login-btn">ログインする</button>
@@ -31,12 +27,8 @@
             <div id="errorMessage" class="error-message" style="display: none;"></div>
 
             <div class="login-footer">
-                <p class="signup-prompt">ユーザーIDをまだお持ちでない方は</p>
+                <p class="signup-prompt">プレイヤーIDをまだお持ちでない方は</p>
                 <a href="#" class="signup-link">新規登録する</a>
-            </div>
-
-            <div class="login-links">
-                <a href="#" class="forgot-link">ユーザーID・パスワードを忘れた方はこちら</a>
             </div>
         </div>
     </main>
@@ -51,8 +43,7 @@
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const userId = document.getElementById('userId').value;
-            const password = document.getElementById('password').value;
+            const playerId = document.getElementById('playerId').value;
 
             try {
                 const response = await fetch('/api/login', {
@@ -60,7 +51,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ userId, password })
+                    body: JSON.stringify({ playerId })
                 });
 
                 const result = await response.json();
