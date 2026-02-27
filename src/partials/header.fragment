@@ -16,15 +16,10 @@
                 <div class="menu-title" id="menuTitle">メニュー</div>
             </div>
 
-            <a class="menu-item" href="./admin.html" id="adminLink">管理者ページ</a>
-            <a class="menu-item" href="./team.html" id="teamLink">チームページ</a>
             <a class="menu-item" href="./index.html" data-title="トップ">トップ</a>
             <a class="menu-item" href="./match.html" data-title="対戦カード">対戦カード</a>
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
             <a class="menu-item" href="./rules.html" data-title="大会ルール">大会ルール</a>
-
-            <a class="menu-item" href="./login.html" id="loginLink">ログイン</a>
-            <a class="menu-item" href="#" id="logoutLink">ログアウト</a>
         </nav>
     </div>
 </header>

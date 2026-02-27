@@ -61,50 +61,6 @@ function setupMenu() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMenu();
   });
-
-  const loginLink = document.getElementById("loginLink");
-  const logoutLink = document.getElementById("logoutLink");
-  const adminLink = document.getElementById("adminLink");
-  const teamLink = document.getElementById("teamLink");
-
-  // 初期は両方隠して，状態が取れたら出す
-  if (loginLink) loginLink.style.display = "none";
-  if (logoutLink) logoutLink.style.display = "none";
-  if (adminLink) adminLink.style.display = "none";
-  if (teamLink) teamLink.style.display = "none";
-
-  // ログイン状態取得して出し分け
-  fetch("/api/me")
-    .then((response) => response.json())
-    .then((result) => {
-      const isLoggedIn = Boolean(result?.isLoggedIn);
-
-      if (loginLink) loginLink.style.display = isLoggedIn ? "none" : "flex";
-      if (logoutLink) logoutLink.style.display = isLoggedIn ? "flex" : "none";
-
-      if (adminLink) {
-        const isAdmin = result?.user?.role === "admin";
-        adminLink.style.display = isLoggedIn && isAdmin ? "flex" : "none";
-      }
-      if (teamLink) {
-        const isTeam = result?.user?.role === "team";
-        teamLink.style.display = isLoggedIn && isTeam ? "flex" : "none";
-      }
-    })
-    .catch(() => {
-      // 失敗したらログインリンクだけ見せる
-      if (loginLink) loginLink.style.display = "flex";
-      if (logoutLink) logoutLink.style.display = "none";
-    });
-
-  // ログアウト押下
-  if (logoutLink) {
-    logoutLink.addEventListener("click", async (event) => {
-      event.preventDefault();
-      await fetch("/api/logout", { method: "POST" }).catch(() => null);
-      location.href = "./index.html";
-    });
-  }
 }
 
 async function setupLayout() {
