@@ -1,0 +1,43 @@
+import { onRequestPost as __api_admin_create_user_js_onRequestPost } from "C:\\Users\\izumi\\othellonia-tournament-site\\functions\\api\\admin\\create-user.js"
+import { onRequestGet as __api_admin_list_users_js_onRequestGet } from "C:\\Users\\izumi\\othellonia-tournament-site\\functions\\api\\admin\\list-users.js"
+import { onRequestPost as __api_login_js_onRequestPost } from "C:\\Users\\izumi\\othellonia-tournament-site\\functions\\api\\login.js"
+import { onRequestPost as __api_logout_js_onRequestPost } from "C:\\Users\\izumi\\othellonia-tournament-site\\functions\\api\\logout.js"
+import { onRequestGet as __api_me_js_onRequestGet } from "C:\\Users\\izumi\\othellonia-tournament-site\\functions\\api\\me.js"
+
+export const routes = [
+    {
+      routePath: "/api/admin/create-user",
+      mountPath: "/api/admin",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_admin_create_user_js_onRequestPost],
+    },
+  {
+      routePath: "/api/admin/list-users",
+      mountPath: "/api/admin",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_admin_list_users_js_onRequestGet],
+    },
+  {
+      routePath: "/api/login",
+      mountPath: "/api",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_login_js_onRequestPost],
+    },
+  {
+      routePath: "/api/logout",
+      mountPath: "/api",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_logout_js_onRequestPost],
+    },
+  {
+      routePath: "/api/me",
+      mountPath: "/api",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_me_js_onRequestGet],
+    },
+  ]
