@@ -7,24 +7,24 @@ IF NOT EXISTS teams
   leaderId TEXT NOT NULL,
   wins INTEGER NOT NULL DEFAULT 0,
   matches INTEGER NOT NULL DEFAULT 0,
-  createdAt TEXT NOT NULL DEFAULT datetime
-('now')
+  createdAt TEXT NOT NULL DEFAULT
+(datetime
+('now'))
 );
 
 -- プレイヤー（参加者）
 CREATE TABLE
 IF NOT EXISTS players
 (
-  playerId TEXT PRIMARY KEY CHECK
-(length
-(playerId) = 12),
+  playerId TEXT PRIMARY KEY,
   playerName TEXT NOT NULL,
   teamId1 TEXT,
   teamId2 TEXT,
   wins INTEGER NOT NULL DEFAULT 0,
   matches INTEGER NOT NULL DEFAULT 0,
-  createdAt TEXT NOT NULL DEFAULT datetime
-('now'),
+  createdAt TEXT NOT NULL DEFAULT
+(datetime
+('now')),
   FOREIGN KEY
 (teamId1) REFERENCES teams
 (teamId) ON
@@ -53,8 +53,9 @@ IF NOT EXISTS sessions
   sessionId TEXT PRIMARY KEY,
   playerId TEXT NOT NULL,
   expiresAt TEXT NOT NULL,
-  createdAt TEXT NOT NULL DEFAULT datetime
-('now'),
+  createdAt TEXT NOT NULL DEFAULT
+(datetime
+('now')),
   FOREIGN KEY
 (playerId) REFERENCES players
 (playerId) ON
@@ -67,4 +68,6 @@ IF NOT EXISTS idx_sessions_playerId ON sessions
 CREATE INDEX
 IF NOT EXISTS idx_sessions_expiresAt ON sessions
 (expiresAt);
+
+
 
