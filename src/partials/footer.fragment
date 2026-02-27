@@ -1,8 +1,34 @@
 <footer class="footer">
   <div class="footer-inner">
-    <div class="footer-text">
-      オセロ・Othelloは登録商標です．TM&© Othello,Co. and MegaHouse<br>
-      © 2016 DeNA Co.,Ltd.
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3 class="footer-title">隊抗戦</h3>
+        <p class="footer-description">
+          隊抗戦は、スマートフォンゲーム「オセロニア」の非公式大会です。
+          隊やチーム同士で競い合い、絆を深めることができます。
+        </p>
+      </div>
+
+      <div class="footer-section">
+        <h4 class="footer-heading">関連リンク</h4>
+        <ul class="footer-list">
+          <li><a href="https://othellonia.com/" target="_blank" rel="noopener">オセロニア公式サイト</a></li>
+          <li><a href="https://othellonia.com/special/commons" target="_blank" rel="noopener">オセロニアコモンズ</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copyright">
+        オセロ・Othelloは登録商標です．TM&© Othello,Co. and MegaHouse<br>
+        © 2016 DeNA Co.,Ltd.
+      </p>
+      <p class="footer-note">
+        このサイトはオセロニアの非公式ファンサイトです。公式とは関係ございません。
+      </p>
+      <p class="footer-note">
+        我々の活動は、オセロニアコモンズを遵守しています。
+      </p>
     </div>
   </div>
 </footer>
