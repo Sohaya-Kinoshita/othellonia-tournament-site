@@ -18,33 +18,8 @@
         </div>
 
         <div class="card" id="createUserCard" style="display:none;">
-            <h2>参加チームアカウント作成</h2>
-
-            <div style="display:flex; flex-direction:column; gap:12px; max-width:520px;">
-                <label>
-                    ログインID（例：team01）
-                    <input id="newUserId" type="text" placeholder="team01" />
-                </label>
-
-                <label>
-                    パスワード（例：TeamPass123）
-                    <input id="newPassword" type="text" placeholder="TeamPass123" />
-                </label>
-
-                <label>
-                    teamId（例：TEAM_A）
-                    <input id="newTeamId" type="text" placeholder="TEAM_A" />
-                </label>
-
-                <label style="display:flex; align-items:center; gap:8px;">
-                    <input id="newIsLeader" type="checkbox" />
-                    リーダー権限を付与する
-                </label>
-
-                <button id="createUserButton" type="button">作成</button>
-
-                <div id="createUserMessage"></div>
-            </div>
+            <h2>参加者管理</h2>
+            <p><a href="./participants.html">参加者の追加と確認はこちらから</a></p>
         </div>
     </main>
 
@@ -74,49 +49,8 @@
             createUserCard.style.display = "block";
         }
 
-        async function createTeamUser() {
-            const messageElement = document.getElementById("createUserMessage");
-            messageElement.textContent = "";
-
-            const userId = document.getElementById("newUserId").value.trim();
-            const password = document.getElementById("newPassword").value;
-            const teamId = document.getElementById("newTeamId").value.trim();
-            const isLeader = document.getElementById("newIsLeader").checked;
-
-            if (!userId || !password || !teamId) {
-                messageElement.textContent = "ログインID・パスワード・teamIdは必須です．";
-                return;
-            }
-
-            const response = await fetch("/api/admin/create-user", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId,
-                    password,
-                    role: "team",
-                    teamId,
-                    isLeader,
-                }),
-            });
-
-            const result = await response.json().catch(() => null);
-
-            if (!response.ok) {
-                messageElement.textContent = result?.message ?? "作成に失敗しました．";
-                return;
-            }
-
-            messageElement.textContent = `作成しました：${result.createdUser.userId}（teamId=${result.createdUser.teamId}）`;
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
             checkAdmin();
-
-            const createUserButton = document.getElementById("createUserButton");
-            if (createUserButton) {
-                createUserButton.addEventListener("click", createTeamUser);
-            }
         });
     </script>
 </body>

@@ -95,7 +95,9 @@ async function readCurrentUserFromSession(request, db) {
   if (!sessionId) return null;
 
   const sessionRow = await db
-    .prepare("SELECT userId, expiresAt FROM sessions WHERE sessionId = ?")
+    .prepare(
+      "SELECT userId, userType, expiresAt FROM sessions WHERE sessionId = ?",
+    )
     .bind(sessionId)
     .first();
 
@@ -103,21 +105,35 @@ async function readCurrentUserFromSession(request, db) {
 
   if (new Date(sessionRow.expiresAt).getTime() < Date.now()) return null;
 
-  const userRow = await db
-    .prepare(
-      "SELECT userId, role, teamId, isLeader FROM users WHERE userId = ?",
-    )
-    .bind(sessionRow.userId)
-    .first();
+  const userType = sessionRow.userType;
 
-  if (!userRow) return null;
+  if (userType === "admin") {
+    const adminRow = await db
+      .prepare("SELECT userId FROM admins WHERE userId = ?")
+      .bind(sessionRow.userId)
+      .first();
+    if (!adminRow) return null;
+    return {
+      userId: adminRow.userId,
+      role: "admin",
+    };
+  } else if (userType === "participant") {
+    const participantRow = await db
+      .prepare(
+        "SELECT userId, teamId, isLeader FROM participants WHERE userId = ?",
+      )
+      .bind(sessionRow.userId)
+      .first();
+    if (!participantRow) return null;
+    return {
+      userId: participantRow.userId,
+      role: "team",
+      teamId: participantRow.teamId,
+      isLeader: participantRow.isLeader === 1,
+    };
+  }
 
-  return {
-    userId: userRow.userId,
-    role: userRow.role,
-    teamId: userRow.teamId,
-    isLeader: userRow.isLeader === 1,
-  };
+  return null;
 }
 
 function readCookie(request, cookieName) {

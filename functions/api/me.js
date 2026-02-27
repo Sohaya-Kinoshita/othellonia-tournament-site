@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
 
   const sessionRow = await db
     .prepare(
-      "SELECT sessionId, userId, expiresAt FROM sessions WHERE sessionId = ?",
+      "SELECT sessionId, userId, userType, expiresAt FROM sessions WHERE sessionId = ?",
     )
     .bind(sessionId)
     .first();
@@ -30,12 +30,22 @@ export async function onRequestGet(context) {
     });
   }
 
-  const userRow = await db
-    .prepare(
-      "SELECT userId, role, teamId, isLeader FROM users WHERE userId = ?",
-    )
-    .bind(sessionRow.userId)
-    .first();
+  const userType = sessionRow.userType;
+  let userRow;
+
+  if (userType === "admin") {
+    userRow = await db
+      .prepare("SELECT userId FROM admins WHERE userId = ?")
+      .bind(sessionRow.userId)
+      .first();
+  } else if (userType === "participant") {
+    userRow = await db
+      .prepare(
+        "SELECT userId, teamId, isLeader FROM participants WHERE userId = ?",
+      )
+      .bind(sessionRow.userId)
+      .first();
+  }
 
   if (!userRow) {
     return jsonResponse({ ok: true, isLoggedIn: false }, 200, {
@@ -49,9 +59,9 @@ export async function onRequestGet(context) {
       isLoggedIn: true,
       user: {
         userId: userRow.userId,
-        role: userRow.role,
-        teamId: userRow.teamId,
-        isLeader: userRow.isLeader === 1,
+        role: userType === "admin" ? "admin" : "team",
+        teamId: userType === "participant" ? userRow.teamId : null,
+        isLeader: userType === "participant" ? userRow.isLeader === 1 : false,
       },
     },
     200,

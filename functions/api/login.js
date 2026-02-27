@@ -19,12 +19,22 @@ export async function onRequestPost(context) {
     );
   }
 
-  const userRow = await db
+  // participants テーブルを検索
+  const participantRow = await db
     .prepare(
-      "SELECT userId, passwordHash, role, teamId, isLeader FROM users WHERE userId = ?",
+      "SELECT userId, passwordHash, teamId, isLeader FROM participants WHERE userId = ?",
     )
     .bind(userId)
     .first();
+
+  // admins テーブルを検索
+  const adminRow = await db
+    .prepare("SELECT userId, passwordHash FROM admins WHERE userId = ?")
+    .bind(userId)
+    .first();
+
+  const userRow = participantRow || adminRow;
+  const userType = participantRow ? "participant" : adminRow ? "admin" : null;
 
   if (!userRow) {
     return jsonResponse(
@@ -51,9 +61,9 @@ export async function onRequestPost(context) {
 
   await db
     .prepare(
-      "INSERT INTO sessions (sessionId, userId, expiresAt) VALUES (?, ?, ?)",
+      "INSERT INTO sessions (sessionId, userId, userType, expiresAt) VALUES (?, ?, ?, ?)",
     )
-    .bind(sessionId, userRow.userId, expiresAt)
+    .bind(sessionId, userRow.userId, userType, expiresAt)
     .run();
 
   const cookie = buildSessionCookie(sessionId);
@@ -63,9 +73,9 @@ export async function onRequestPost(context) {
       ok: true,
       user: {
         userId: userRow.userId,
-        role: userRow.role,
-        teamId: userRow.teamId,
-        isLeader: userRow.isLeader === 1,
+        role: userType === "admin" ? "admin" : "team",
+        teamId: participantRow?.teamId || null,
+        isLeader: participantRow?.isLeader === 1 || false,
       },
     },
     200,
