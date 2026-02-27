@@ -65,6 +65,8 @@ function setupMenu() {
   // ログイン状態確認
   const loginLink = document.getElementById("loginLink");
   const logoutLink = document.getElementById("logoutLink");
+  const playerStatusDisplay = document.getElementById("playerStatusDisplay");
+  const playerNameDisplay = document.getElementById("playerNameDisplay");
 
   fetch("/api/me")
     .then((response) => response.json())
@@ -72,14 +74,23 @@ function setupMenu() {
       if (result.isLoggedIn) {
         if (loginLink) loginLink.style.display = "none";
         if (logoutLink) logoutLink.style.display = "flex";
+        if (playerStatusDisplay && playerNameDisplay) {
+          playerStatusDisplay.style.setProperty("display", "flex", "important");
+          playerNameDisplay.textContent =
+            result.player.playerName || "ユーザー";
+        }
       } else {
         if (loginLink) loginLink.style.display = "flex";
         if (logoutLink) logoutLink.style.display = "none";
+        if (playerStatusDisplay)
+          playerStatusDisplay.style.setProperty("display", "none", "important");
       }
     })
     .catch(() => {
       if (loginLink) loginLink.style.display = "flex";
       if (logoutLink) logoutLink.style.display = "none";
+      if (playerStatusDisplay)
+        playerStatusDisplay.style.setProperty("display", "none", "important");
     });
 
   // ログアウト処理

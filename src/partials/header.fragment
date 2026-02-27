@@ -21,6 +21,9 @@
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
             <a class="menu-item" href="./rules.html" data-title="大会ルール">大会ルール</a>
 
+            <div id="playerStatusDisplay" class="menu-item" style="display: none; cursor: default; opacity: 0.7;">
+                ログイン中：<span id="playerNameDisplay"></span>
+            </div>
             <a class="menu-item" href="./login.html" id="loginLink" data-title="ログイン">ログイン</a>
             <a class="menu-item" href="#" id="logoutLink" style="display: none;">ログアウト</a>
         </nav>

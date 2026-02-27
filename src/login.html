@@ -39,11 +39,38 @@
     <script>
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
+        const playerIdInput = document.getElementById('playerId');
+
+        // リアルタイムバリデーション
+        playerIdInput.addEventListener('input', (event) => {
+            const value = event.target.value;
+
+            // 半角数字のみを許可
+            const numericOnly = value.replace(/[^\d]/g, '');
+            if (value !== numericOnly) {
+                event.target.value = numericOnly;
+            }
+        });
 
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const playerId = document.getElementById('playerId').value;
+            const playerId = playerIdInput.value.trim();
+
+            // バリデーション
+            if (!/^\d+$/.test(playerId)) {
+                errorMessage.textContent = '半角数字で入力してください';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (playerId.length !== 12) {
+                errorMessage.textContent = '12文字で入力してください';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            errorMessage.style.display = 'none';
 
             try {
                 const response = await fetch('/api/login', {

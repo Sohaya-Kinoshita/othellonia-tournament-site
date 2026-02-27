@@ -46,7 +46,7 @@ export async function onRequest(context) {
     // プレイヤー情報を取得
     const player = await db
       .prepare(
-        "SELECT playerId, playerName, teamId1, teamId2, wins, matches FROM players WHERE playerId = ?",
+        "SELECT playerId, playerName, teamId1, teamId2, wins, matches, isAdmin FROM players WHERE playerId = ?",
       )
       .bind(session.playerId)
       .first();

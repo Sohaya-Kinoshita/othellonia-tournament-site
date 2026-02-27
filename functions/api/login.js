@@ -22,7 +22,9 @@ export async function onRequest(context) {
     // プレイヤーが存在するか確認
     const db = context.env.DB;
     const player = await db
-      .prepare("SELECT playerId, playerName FROM players WHERE playerId = ?")
+      .prepare(
+        "SELECT playerId, playerName, isAdmin FROM players WHERE playerId = ?",
+      )
       .bind(playerId)
       .first();
 

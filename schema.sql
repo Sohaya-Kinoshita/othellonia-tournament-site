@@ -22,6 +22,7 @@ IF NOT EXISTS players
   teamId2 TEXT,
   wins INTEGER NOT NULL DEFAULT 0,
   matches INTEGER NOT NULL DEFAULT 0,
+  isAdmin INTEGER NOT NULL DEFAULT 0,
   createdAt TEXT NOT NULL DEFAULT
 (datetime
 ('now')),

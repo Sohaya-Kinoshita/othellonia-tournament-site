@@ -633,6 +633,20 @@ th {
     height: var(--header-height);
     padding: 10px 8px;
   }
+
+  /* スマホ版でプレイヤー情報をメニュータイトルの直後に */
+  .menu-header {
+    order: 1;
+  }
+
+  #playerStatusDisplay {
+    order: 2;
+  }
+
+  .nav > a,
+  .nav > div:not(#playerStatusDisplay):not(.menu-header) {
+    order: 3;
+  }
 }
 
 .menu-title {
@@ -899,4 +913,24 @@ th {
   .auth-card {
     padding: 22px 20px 26px;
   }
+}
+
+/* ログイン情報表示 */
+#playerStatusDisplay {
+  background: #fef08a;
+  color: #713f12;
+  padding: 8px 12px !important;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  height: auto !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #fcd34d;
+}
+
+#playerNameDisplay {
+  font-weight: 800;
 }
