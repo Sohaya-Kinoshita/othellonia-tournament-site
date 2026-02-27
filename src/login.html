@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./images/oc_mark.png" type="image/png">
+    <title>ログイン - オセロニアクランバトル</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="login-container">
+        <div class="login-box">
+            <h1>ログイン</h1>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <input type="text" id="userId" name="userId" placeholder="ユーザーID" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="password" name="password" placeholder="パスワード" required>
+                </div>
+
+                <button type="submit" class="login-btn">ログインする</button>
+            </form>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div class="login-footer">
+                <p class="signup-prompt">ユーザーIDをまだお持ちでない方は</p>
+                <a href="#" class="signup-link">新規登録する</a>
+            </div>
+
+            <div class="login-links">
+                <a href="#" class="forgot-link">ユーザーID・パスワードを忘れた方はこちら</a>
+            </div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    location.href = './index.html';
+                } else {
+                    errorMessage.textContent = result.message || 'ログインに失敗しました';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'エラーが発生しました';
+                errorMessage.style.display = 'block';
+                console.error('Login error:', error);
+            }
+        });
+    </script>
+</body>
+
+</html>
