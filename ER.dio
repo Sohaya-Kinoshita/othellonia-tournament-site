@@ -71,8 +71,8 @@
                 <mxCell id="32" value="1，2" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
                     <mxGeometry x="320" y="75" width="50" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="33" value="7～12" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-                    <mxGeometry x="420" y="75" width="60" height="30" as="geometry"/>
+                <mxCell id="33" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="75" width="30" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="34" value="所属する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
                     <mxGeometry x="363" y="50" width="70" height="30" as="geometry"/>
