@@ -38,7 +38,11 @@ function setupMenu() {
   }
 
   // 現在ページの自動判定
-  const currentPath = location.pathname.split("/").pop() || "index.html";
+  let currentPath = location.pathname.split("/").pop() || "";
+  // ルートパスや空の場合は index.html に統一
+  if (!currentPath || currentPath === "") {
+    currentPath = "index.html";
+  }
   const menuItems = navigationMenu.querySelectorAll(".menu-item");
 
   for (const menuItemElement of menuItems) {
