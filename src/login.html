@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="icon" href="./images/oc_mark.png" type="image/png">
-    <title>ログイン - 隊抗戦</title>
+    <title>参加者ログイン - 隊抗戦</title>
 </head>
 
 <body>
@@ -14,43 +14,98 @@
 
     <main class="login-container">
         <div class="login-box">
-            <h1>ログイン</h1>
+            <h1>参加者ログイン</h1>
 
             <form id="loginForm" class="login-form">
                 <div class="form-group">
-                    <input type="text" id="playerId" name="playerId" placeholder="プレイヤーID" required>
+                    <input type="text" id="playerId" name="playerId" placeholder="プレイヤーID(半角数字12桁)" required>
                 </div>
 
-                <button type="submit" class="login-btn">ログインする</button>
+                <button type="submit" class="login-btn">ログイン</button>
             </form>
 
             <div id="errorMessage" class="error-message" style="display: none;"></div>
 
             <div class="login-footer">
-                <p class="signup-prompt">プレイヤーIDをまだお持ちでない方は</p>
-                <a href="#" class="signup-link">新規登録する</a>
+                <button type="button" id="helpButtonLink" class="signup-link"
+                    style="background: none; border: none; cursor: pointer; padding: 4px 0; color: var(--link); text-decoration: none; font-weight: 600;">ログインできない方はこちら</button>
+            </div>
+
+            <div class="login-footer">
+                <a href="./admin_login.html" class="signup-link">管理者用ログイン</a>
             </div>
         </div>
     </main>
+
+    <!-- ヘルプモーダル -->
+    <div id="helpModal" class="modal" style="display: none;">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>参加者ログインサポート</h2>
+                <button type="button" class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="urgent-notice">
+                    <h3>試合中・試合直前の方へ</h3>
+                    <p>ログインできない場合は、Discordにて直接管理者へお知らせください。</p>
+                </div>
+
+                <h3>よくある質問</h3>
+                <div class="faq-item">
+                    <p class="faq-question">Q. 正しいプレイヤーIDを入力しているのにエラーが出ます。</p>
+                    <p class="faq-answer">A. 参加登録が、管理者の方で、まだ完了されていない場合があります。参加登録が済んだら、Discordのチームチャットにて通知します。<br>
+                        また、半角数字が正しく入力されているかご確認ください。さらに詳しくは、以下のサポート連絡先までお問い合わせください。</p>
+                </div>
+
+                <h3>サポート連絡先</h3>
+                <p class="support-text">問題が解決しない場合は、公式X（Twitter）のDMまでお問い合わせください</p>
+                <ul class="support-list">
+                    <li><strong>公式X（Twitter）</strong>: <a href="https://x.com/OCB_othello" target="_blank"
+                            rel="noopener">@OCB_othello</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <div id="footerSlot"></div>
 
     <script src="./js/layout.js"></script>
     <script>
+        // モーダル制御
+        const helpModal = document.getElementById('helpModal');
+        const helpButtonLink = document.getElementById('helpButtonLink');
+        const modalClose = document.getElementById('modalClose');
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        // モーダル開く
+        helpButtonLink.addEventListener('click', () => {
+            helpModal.style.display = 'flex';
+            document.body.classList.add('no-scroll');
+        });
+
+        // モーダル閉じる関数
+        function closeHelpModal() {
+            helpModal.style.display = 'none';
+            document.body.classList.remove('no-scroll');
+        }
+
+        // 閉じるボタン
+        modalClose.addEventListener('click', closeHelpModal);
+
+        // オーバーレイクリック
+        modalOverlay.addEventListener('click', closeHelpModal);
+
+        // ESCキーで閉じる
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && helpModal.style.display === 'flex') {
+                closeHelpModal();
+            }
+        });
+
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const playerIdInput = document.getElementById('playerId');
-
-        // リアルタイムバリデーション
-        playerIdInput.addEventListener('input', (event) => {
-            const value = event.target.value;
-
-            // 半角数字のみを許可
-            const numericOnly = value.replace(/[^\d]/g, '');
-            if (value !== numericOnly) {
-                event.target.value = numericOnly;
-            }
-        });
 
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
