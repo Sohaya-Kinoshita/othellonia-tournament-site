@@ -48,6 +48,9 @@ function setupMenu() {
   for (const menuItemElement of menuItems) {
     const href = menuItemElement.getAttribute("href");
 
+    // href属性がない場合（divなど）はスキップ
+    if (!href) continue;
+
     // hrefから./を削除して、.htmlも削除
     const hrefName = href.replace(/^\.\//, "").replace(/\.html$/, "");
     // currentPathから.htmlを削除
@@ -112,9 +115,21 @@ function setupMenu() {
 }
 
 async function setupLayout() {
-  await loadPartial("headerSlot", "./partials/header.fragment");
-  await loadPartial("footerSlot", "./partials/footer.fragment");
-  setupMenu();
+  console.log("setupLayout started");
+  try {
+    await loadPartial("headerSlot", "./partials/header.fragment");
+    console.log("header loaded");
+    await loadPartial("footerSlot", "./partials/footer.fragment");
+    console.log("footer loaded");
+    setupMenu();
+    console.log("menu setup complete");
+  } catch (error) {
+    console.error("setupLayout error:", error);
+  }
 }
 
-setupLayout();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupLayout);
+} else {
+  setupLayout();
+}
