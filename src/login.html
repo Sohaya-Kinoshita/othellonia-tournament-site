@@ -25,10 +25,8 @@
             </form>
 
             <div id="errorMessage" class="error-message" style="display: none;"></div>
-
             <div class="login-footer">
-                <button type="button" id="helpButtonLink" class="signup-link"
-                    style="background: none; border: none; cursor: pointer; padding: 4px 0; color: var(--link); text-decoration: none; font-weight: 600;">ログインできない方はこちら</button>
+                <a href="#" id="helpButtonLink" class="signup-link">ログインできない方はこちら</a>
             </div>
 
             <div class="login-footer">
@@ -79,7 +77,8 @@
         const modalOverlay = document.getElementById('modalOverlay');
 
         // モーダル開く
-        helpButtonLink.addEventListener('click', () => {
+        helpButtonLink.addEventListener('click', (event) => {
+            event.preventDefault();
             helpModal.style.display = 'flex';
             document.body.classList.add('no-scroll');
         });
