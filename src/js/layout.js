@@ -47,9 +47,13 @@ function setupMenu() {
 
   for (const menuItemElement of menuItems) {
     const href = menuItemElement.getAttribute("href");
-    const title = menuItemElement.dataset.title;
 
-    if (href === `./${currentPath}`) {
+    // hrefから./を削除して、.htmlも削除
+    const hrefName = href.replace(/^\.\//, "").replace(/\.html$/, "");
+    // currentPathから.htmlを削除
+    const currentPageName = currentPath.replace(/\.html$/, "");
+
+    if (hrefName === currentPageName) {
       menuItemElement.classList.add("is-current");
       menuItemElement.setAttribute("aria-current", "page");
     }
