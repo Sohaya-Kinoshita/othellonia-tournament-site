@@ -1,2 +1,3 @@
 # othellonia-tournament-site
-オセロニア 大会運営サイト
+
+逆転オセロニア 大会運営サイト
