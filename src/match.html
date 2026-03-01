@@ -19,7 +19,7 @@
             <p>ここに本日の対戦カードを表示します。（仮ページ）</p>
         </div>
 
-        <div class="match-card">
+        <div class="match-card" id="matchCard">
             <div class="match-datetime">
                 <div>2026年99月99日99時99分～</div>
             </div>
@@ -123,12 +123,20 @@
                     </div>
                 </div>
             </div>
+            <button id="exportImageBtn" class="export-btn">📷 画像として保存</button>
         </div>
     </main>
 
     <div id="footerSlot"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="./js/layout.js"></script>
+    <script src="./js/exportCard.js"></script>
+    <script>
+        document.getElementById('exportImageBtn').addEventListener('click', function () {
+            exportCardAsImage('matchCard', '対戦カード', this);
+        });
+    </script>
 </body>
 
 </html>

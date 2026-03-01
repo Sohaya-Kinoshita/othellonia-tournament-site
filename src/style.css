@@ -971,6 +971,16 @@ th {
   border-radius: var(--radius);
 }
 
+/* エクスポート時のスタイル */
+.match-card.exporting {
+  width: 480px;
+  margin: 0 auto;
+}
+
+.match-card.exporting .player-item {
+  min-height: auto;
+}
+
 .match-datetime {
   font-size: 16px;
   font-weight: 600;
@@ -1054,8 +1064,9 @@ th {
   background: white;
   border-radius: 4px;
   font-size: 13px;
-  min-height: 85px;
+  min-height: 95px;
   justify-content: flex-start;
+  box-sizing: border-box;
 }
 
 .player-name {
@@ -1268,6 +1279,44 @@ th {
   color: #117a65;
 }
 
+.export-btn {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto 0;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hide-for-export {
+  display: none;
+}
+
 .mirrativ-link {
   display: inline-block;
   padding: 12px 24px;
@@ -1323,7 +1372,7 @@ th {
   .player-item {
     padding: 6px;
     font-size: 12px;
-    min-height: 75px;
+    min-height: 85px;
   }
 
   .player-name {
@@ -1365,7 +1414,7 @@ th {
   .player-item {
     padding: 5px;
     font-size: 12px;
-    min-height: 75px;
+    min-height: 80px;
   }
 
   .player-name {
