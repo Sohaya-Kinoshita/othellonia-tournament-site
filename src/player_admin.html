@@ -40,6 +40,15 @@
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label for="mirrativUrl">ミラティブURL（任意）</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="mirrativUrl" name="mirrativUrl" placeholder="ミラティブURL"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteMirrativUrlButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                    </div>
+                </div>
                 <button type="submit" class="btn">プレイヤーを作成</button>
                 <div id="playerMessage" class="message" style="display: none;"></div>
             </form>
@@ -77,8 +86,10 @@
             const messageDiv = document.getElementById("playerMessage");
             const playerIdInput = document.getElementById("playerId");
             const playerNameInput = document.getElementById("playerName");
+            const mirrativUrlInput = document.getElementById("mirrativUrl");
             const pastePlayerIdButton = document.getElementById("pastePlayerIdButton");
             const pastePlayerNameButton = document.getElementById("pastePlayerNameButton");
+            const pasteMirrativUrlButton = document.getElementById("pasteMirrativUrlButton");
 
             pastePlayerIdButton.addEventListener("click", async () => {
                 try {
@@ -104,10 +115,23 @@
                 }
             });
 
+            pasteMirrativUrlButton.addEventListener("click", async () => {
+                try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    mirrativUrlInput.value = clipboardText.trim();
+                    messageDiv.style.display = "none";
+                } catch (error) {
+                    messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+
             playerForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 const playerId = document.getElementById("playerId").value.trim();
                 const playerName = document.getElementById("playerName").value.trim();
+                const mirrativUrl = document.getElementById("mirrativUrl").value.trim();
 
                 if (playerId.length !== 12) {
                     messageDiv.textContent = "プレイヤーIDは12文字ちょうどで入力してください";
@@ -117,10 +141,15 @@
                 }
 
                 try {
+                    const body = { playerId, playerName };
+                    if (mirrativUrl) {
+                        body.mirrativUrl = mirrativUrl;
+                    }
+
                     const response = await fetch("/api/players", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ playerId, playerName }),
+                        body: JSON.stringify(body),
                     });
                     const result = await response.json();
 

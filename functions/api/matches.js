@@ -45,177 +45,270 @@ export async function onRequest(context) {
   }
 
   // POSTメソッド：マッチ作成
-  if (context.request.method !== "POST") {
-    return new Response(JSON.stringify({ message: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  try {
-    // 管理者認証確認
-    const cookies = context.request.headers.get("cookie") || "";
-    const sessionId = cookies
-      .split("; ")
-      .find((c) => c.startsWith("sessionId="))
-      ?.split("=")[1];
-
-    if (!sessionId) {
-      return new Response(JSON.stringify({ message: "認証が必要です" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // セッションIDをデコード（admin_user_id を抽出）
-    let adminUserId = "";
+  if (context.request.method === "POST") {
     try {
-      const decoded = atob(sessionId);
-      const [type, userId] = decoded.split(":");
+      // 管理者認証確認
+      const cookies = context.request.headers.get("cookie") || "";
+      const sessionId = cookies
+        .split("; ")
+        .find((c) => c.startsWith("sessionId="))
+        ?.split("=")[1];
 
-      if (type !== "admin") {
+      if (!sessionId) {
+        return new Response(JSON.stringify({ message: "認証が必要です" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // セッションIDをデコード（admin_user_id を抽出）
+      let adminUserId = "";
+      try {
+        const decoded = atob(sessionId);
+        const [type, userId] = decoded.split(":");
+
+        if (type !== "admin") {
+          return new Response(
+            JSON.stringify({ message: "管理者権限が必要です" }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        adminUserId = userId;
+      } catch (e) {
+        return new Response(JSON.stringify({ message: "認証エラー" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // リクエストボディを解析
+      const { matchId, teamAId, teamBId } = await context.request.json();
+
+      if (!matchId || !teamAId || !teamBId) {
         return new Response(
-          JSON.stringify({ message: "管理者権限が必要です" }),
+          JSON.stringify({
+            message: "マッチID、チームA ID、チームB IDが必要です",
+          }),
           {
-            status: 403,
+            status: 400,
             headers: { "Content-Type": "application/json" },
           },
         );
       }
 
-      adminUserId = userId;
-    } catch (e) {
-      return new Response(JSON.stringify({ message: "認証エラー" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+      // マッチIDが3文字か確認
+      if (String(matchId).trim().length !== 3) {
+        return new Response(
+          JSON.stringify({
+            message: "マッチIDは3文字ちょうどで入力してください",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    // リクエストボディを解析
-    const { matchId, teamAId, teamBId } = await context.request.json();
+      // チームIDが同じでないか確認
+      if (teamAId === teamBId) {
+        return new Response(
+          JSON.stringify({
+            message: "チームA と チームB は異なるチームを選択してください",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    if (!matchId || !teamAId || !teamBId) {
-      return new Response(
-        JSON.stringify({
-          message: "マッチID、チームA ID、チームB IDが必要です",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+      const db = context.env.DB;
 
-    // マッチIDが3文字か確認
-    if (String(matchId).trim().length !== 3) {
-      return new Response(
-        JSON.stringify({
-          message: "マッチIDは3文字ちょうどで入力してください",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+      // マッチが既に存在するか確認
+      const existingMatch = await db
+        .prepare("SELECT match_id FROM matches WHERE match_id = ?")
+        .bind(matchId)
+        .first();
 
-    // チームIDが同じでないか確認
-    if (teamAId === teamBId) {
-      return new Response(
-        JSON.stringify({
-          message: "チームA と チームB は異なるチームを選択してください",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+      if (existingMatch) {
+        return new Response(
+          JSON.stringify({ message: "このマッチIDは既に使用されています" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    const db = context.env.DB;
+      // チームAが存在するか確認
+      const teamA = await db
+        .prepare("SELECT team_id FROM teams WHERE team_id = ?")
+        .bind(teamAId)
+        .first();
 
-    // マッチが既に存在するか確認
-    const existingMatch = await db
-      .prepare("SELECT match_id FROM matches WHERE match_id = ?")
-      .bind(matchId)
-      .first();
+      if (!teamA) {
+        return new Response(
+          JSON.stringify({ message: "チームA が見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    if (existingMatch) {
-      return new Response(
-        JSON.stringify({ message: "このマッチIDは既に使用されています" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+      // チームBが存在するか確認
+      const teamB = await db
+        .prepare("SELECT team_id FROM teams WHERE team_id = ?")
+        .bind(teamBId)
+        .first();
 
-    // チームAが存在するか確認
-    const teamA = await db
-      .prepare("SELECT team_id FROM teams WHERE team_id = ?")
-      .bind(teamAId)
-      .first();
+      if (!teamB) {
+        return new Response(
+          JSON.stringify({ message: "チームB が見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    if (!teamA) {
-      return new Response(
-        JSON.stringify({ message: "チームA が見つかりません" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // チームBが存在するか確認
-    const teamB = await db
-      .prepare("SELECT team_id FROM teams WHERE team_id = ?")
-      .bind(teamBId)
-      .first();
-
-    if (!teamB) {
-      return new Response(
-        JSON.stringify({ message: "チームB が見つかりません" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // マッチを作成
-    await db
-      .prepare(
-        `
-        INSERT INTO matches (
-          match_id,
-          team_a_id,
-          team_b_id,
-          admin_user_id,
-          best_of,
-          created_at,
-          order_deadline
+      // マッチを作成
+      await db
+        .prepare(
+          `
+          INSERT INTO matches (
+            match_id,
+            team_a_id,
+            team_b_id,
+            admin_user_id,
+            best_of,
+            created_at,
+            order_deadline
+          )
+          VALUES (?, ?, ?, ?, 7, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
+        `,
         )
-        VALUES (?, ?, ?, ?, 7, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
-      `,
-      )
-      .bind(matchId, teamAId, teamBId, adminUserId)
-      .run();
+        .bind(matchId, teamAId, teamBId, adminUserId)
+        .run();
 
-    return new Response(
-      JSON.stringify({ success: true, message: "マッチを作成しました" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  } catch (error) {
-    console.error("Match creation error:", error);
-    return new Response(
-      JSON.stringify({ message: "マッチ作成処理でエラーが発生しました" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+      return new Response(
+        JSON.stringify({ success: true, message: "マッチを作成しました" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Match creation error:", error);
+      return new Response(
+        JSON.stringify({ message: "マッチ作成処理でエラーが発生しました" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
   }
-}
+
+  // PUTメソッド：マッチの確定（勝者設定）
+  if (context.request.method === "PUT") {
+    try {
+      // 管理者認証確認
+      const cookies = context.request.headers.get("cookie") || "";
+      const sessionId = cookies
+        .split("; ")
+        .find((c) => c.startsWith("sessionId="))
+        ?.split("=")[1];
+
+      if (!sessionId) {
+        return new Response(JSON.stringify({ message: "認証が必要です" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // セッションIDをデコード
+      try {
+        const decoded = atob(sessionId);
+        const [type] = decoded.split(":");
+
+        if (type !== "admin") {
+          return new Response(
+            JSON.stringify({ message: "管理者権限が必要です" }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      } catch (e) {
+        return new Response(JSON.stringify({ message: "認証エラー" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // リクエストボディを解析
+      const { matchId, winnerTeamId } = await context.request.json();
+
+      if (!matchId) {
+        return new Response(
+          JSON.stringify({ message: "マッチIDが必要です" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const db = context.env.DB;
+
+      // マッチが存在するか確認
+      const existingMatch = await db
+        .prepare("SELECT match_id FROM matches WHERE match_id = ?")
+        .bind(matchId)
+        .first();
+
+      if (!existingMatch) {
+        return new Response(
+          JSON.stringify({ message: "マッチが見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // 勝者を更新
+      await db
+        .prepare("UPDATE matches SET winner_team_id = ? WHERE match_id = ?")
+        .bind(winnerTeamId || null, matchId)
+        .run();
+
+      return new Response(
+        JSON.stringify({ success: true, message: "マッチを確定しました" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Match update error:", error);
+      return new Response(
+        JSON.stringify({ message: "マッチ確定処理でエラーが発生しました" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
+  return new Response(JSON.stringify({ message: "Method not allowed" }), {
+    status: 405,
+    headers: { "Content-Type": "application/json" },
+  });}

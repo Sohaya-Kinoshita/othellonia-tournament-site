@@ -349,9 +349,11 @@ export async function onRequest(context) {
     }
 
     // リクエストボディを解析
-    const { playerId, playerName } = await context.request.json();
+    const { playerId, playerName, mirrativUrl } = await context.request.json();
     const normalizedPlayerId = String(playerId || "").trim();
     const normalizedPlayerName = String(playerName || "").trim();
+    const rawMirrativUrl = String(mirrativUrl || "").trim();
+    const normalizedMirrativId = rawMirrativUrl ? extractMirrativId(rawMirrativUrl) : null;
 
     if (!normalizedPlayerId || !normalizedPlayerName) {
       return new Response(
@@ -395,8 +397,8 @@ export async function onRequest(context) {
 
     // プレイヤーを作成
     await db
-      .prepare("INSERT INTO players (player_id, player_name) VALUES (?, ?)")
-      .bind(normalizedPlayerId, normalizedPlayerName)
+      .prepare("INSERT INTO players (player_id, player_name, mirrativ_id) VALUES (?, ?, ?)")
+      .bind(normalizedPlayerId, normalizedPlayerName, normalizedMirrativId)
       .run();
 
     return new Response(

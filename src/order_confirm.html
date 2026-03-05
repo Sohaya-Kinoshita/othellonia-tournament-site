@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>オーダーの確定</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>オーダーの確定</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="orderConfirmCard">
+            <h2>オーダーの確定</h2>
+            <hr>
+
+            <div style="margin-bottom: 20px;">
+                <label for="matchSelect">確認するマッチを選択</label>
+                <select id="matchSelect"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                    <option value="">-- マッチを選択してください --</option>
+                </select>
+            </div>
+
+            <div id="matchDetailsContainer" style="display: none;">
+                <div class="card" style="margin-top: 20px; background-color: #f9f9f9;">
+                    <h3>マッチ情報</h3>
+                    <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
+                    <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
+                    <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
+                    <p><strong>提出期限:</strong> <span id="displayDeadline"></span></p>
+
+                    <h3 style="margin-top: 20px;">オーダー確認</h3>
+                    <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-top: 10px;">
+                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                            <h4 id="teamAHeader" style="margin: 0 0 10px 0;"></h4>
+                            <div id="teamAOrderStatus" style="padding: 10px; border-radius: 4px;"></div>
+                            <div id="teamAOrderDetails" style="margin-top: 10px; font-size: 0.9em;"></div>
+                        </div>
+                        <div>
+                            <h4 id="teamBHeader" style="margin: 0 0 10px 0;"></h4>
+                            <div id="teamBOrderStatus" style="padding: 10px; border-radius: 4px;"></div>
+                            <div id="teamBOrderDetails" style="margin-top: 10px; font-size: 0.9em;"></div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn" id="refreshButton" style="margin-top: 20px;">更新</button>
+                    <div id="confirmMessage" class="message" style="display: none; margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        let allMatches = [];
+        let currentMatchId = null;
+
+        function formatDateTime(datetimeText) {
+            if (!datetimeText) {
+                return "-";
+            }
+            const date = new Date(datetimeText);
+            if (Number.isNaN(date.getTime())) {
+                return datetimeText;
+            }
+            return date.toLocaleString("ja-JP");
+        }
+
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const orderConfirmCard = document.getElementById("orderConfirmCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            orderConfirmCard.classList.remove("hidden");
+            loadMatches();
+        }
+
+        async function loadMatches() {
+            try {
+                const response = await fetch("/api/matches");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert("マッチ一覧の取得に失敗しました");
+                    return;
+                }
+
+                allMatches = result.matches || [];
+                populateMatchSelect();
+            } catch (error) {
+                console.error("Error loading matches:", error);
+                alert("マッチ情報の読み込みに失敗しました");
+            }
+        }
+
+        function populateMatchSelect() {
+            const matchSelect = document.getElementById("matchSelect");
+
+            allMatches.forEach((match) => {
+                const option = document.createElement("option");
+                option.value = match.match_id;
+                option.textContent = `${match.match_id}: ${match.team_a_name} vs ${match.team_b_name}`;
+                matchSelect.appendChild(option);
+            });
+
+            matchSelect.addEventListener("change", () => {
+                const selectedMatchId = matchSelect.value;
+                if (selectedMatchId) {
+                    currentMatchId = selectedMatchId;
+                    displayMatchDetails();
+                } else {
+                    document.getElementById("matchDetailsContainer").style.display = "none";
+                }
+            });
+        }
+
+        async function displayMatchDetails() {
+            const match = allMatches.find((m) => m.match_id === currentMatchId);
+            if (!match) return;
+
+            const displayMatchId = document.getElementById("displayMatchId");
+            const displayTeamA = document.getElementById("displayTeamA");
+            const displayTeamB = document.getElementById("displayTeamB");
+            const displayDeadline = document.getElementById("displayDeadline");
+            const teamAHeader = document.getElementById("teamAHeader");
+            const teamBHeader = document.getElementById("teamBHeader");
+            const teamAOrderStatus = document.getElementById("teamAOrderStatus");
+            const teamBOrderStatus = document.getElementById("teamBOrderStatus");
+            const teamAOrderDetails = document.getElementById("teamAOrderDetails");
+            const teamBOrderDetails = document.getElementById("teamBOrderDetails");
+            const matchDetailsContainer = document.getElementById("matchDetailsContainer");
+            const refreshButton = document.getElementById("refreshButton");
+
+            displayMatchId.textContent = match.match_id;
+            displayTeamA.textContent = `${match.team_a_id} - ${match.team_a_name}`;
+            displayTeamB.textContent = `${match.team_b_id} - ${match.team_b_name}`;
+            displayDeadline.textContent = formatDateTime(match.order_deadline);
+
+            teamAHeader.textContent = `${match.team_a_id} - ${match.team_a_name}`;
+            teamBHeader.textContent = `${match.team_b_id} - ${match.team_b_name}`;
+
+            refreshButton.onclick = async () => {
+                await loadOrderStatus(match);
+            };
+
+            await loadOrderStatus(match);
+            matchDetailsContainer.style.display = "block";
+
+            async function loadOrderStatus(match) {
+                try {
+                    const responseA = await fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_a_id)}`);
+                    const resultA = await responseA.json();
+
+                    const responseB = await fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_b_id)}`);
+                    const resultB = await responseB.json();
+
+                    // Team A
+                    const playerOrderA = resultA.playerOrder || [];
+                    const hasSubmittedA = playerOrderA.length > 0;
+
+                    if (hasSubmittedA) {
+                        teamAOrderStatus.style.backgroundColor = "#e8f5e9";
+                        teamAOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultA.submittedAt)}`;
+                        teamAOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderA.slice(0, 7).map((id, idx) => `第${idx + 1}戦: ${id}`).join(", ")}`;
+                    } else {
+                        teamAOrderStatus.style.backgroundColor = "#fff3e0";
+                        teamAOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
+                        teamAOrderDetails.innerHTML = "";
+                    }
+
+                    // Team B
+                    const playerOrderB = resultB.playerOrder || [];
+                    const hasSubmittedB = playerOrderB.length > 0;
+
+                    if (hasSubmittedB) {
+                        teamBOrderStatus.style.backgroundColor = "#e8f5e9";
+                        teamBOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultB.submittedAt)}`;
+                        teamBOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderB.slice(0, 7).map((id, idx) => `第${idx + 1}戦: ${id}`).join(", ")}`;
+                    } else {
+                        teamBOrderStatus.style.backgroundColor = "#fff3e0";
+                        teamBOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
+                        teamBOrderDetails.innerHTML = "";
+                    }
+                } catch (error) {
+                    console.error("Error loading order status:", error);
+                    teamAOrderStatus.innerHTML = "オーダー情報の取得に失敗しました";
+                    teamBOrderStatus.innerHTML = "オーダー情報の取得に失敗しました";
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAdmin();
+        });
+    </script>
+</body>
+
+</html>
