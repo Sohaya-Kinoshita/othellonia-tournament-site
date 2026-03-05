@@ -31,7 +31,9 @@ export async function onRequest(context) {
       // 参加者ログイン情報
       if (type === "player") {
         const player = await db
-          .prepare("SELECT player_id, player_name FROM players WHERE player_id = ?")
+          .prepare(
+            "SELECT player_id, player_name FROM players WHERE player_id = ?",
+          )
           .bind(id)
           .first();
 
@@ -46,7 +48,10 @@ export async function onRequest(context) {
           JSON.stringify({
             isLoggedIn: true,
             type: "player",
-            player: { playerId: player.player_id, playerName: player.player_name },
+            player: {
+              playerId: player.player_id,
+              playerName: player.player_name,
+            },
           }),
           {
             status: 200,
