@@ -12,7 +12,10 @@ export async function onRequest(context) {
 
     // 現在時刻（JST）を取得
     const now = new Date();
-    const nowJST = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ");
+    const nowJST = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
 
     // 期限を過ぎ、まだ確定していないオーダーをすべて取得
     const expiredOrders = await db

@@ -82,10 +82,12 @@
             return select;
         }
 
-        async function loadMatchOrder(matchId, teamId, members) {
+        async function loadMatchOrder(matchId, teamId, members, match) {
             const orderStatus = document.getElementById(`orderStatus_${matchId}`);
             const orderList = document.getElementById(`orderList_${matchId}`);
             const submitButton = document.getElementById(`submitOrderBtn_${matchId}`);
+            const matchCardSection = document.getElementById(`matchCardSection_${matchId}`);
+            const matchCardDiv = document.getElementById(`matchCard_${matchId}`);
 
             orderStatus.textContent = "オーダー読込中...";
 
@@ -108,17 +110,32 @@
                         orderStatus.textContent = `確定済み（${formatDateTime(result.confirmedAt)}）`;
                         orderStatus.style.color = "#1b5e20";
                         submitButton.style.display = "none";
+
+                        // 対戦カードを読み込み・表示
+                        try {
+                            const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+                            const cardData = await cardResponse.json();
+
+                            if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                                matchCardSection.style.display = "block";
+                                matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                            }
+                        } catch (cardError) {
+                            console.error("Match card load error:", cardError);
+                        }
                     } else {
                         orderStatus.textContent = result.orderId
                             ? `提出済み（${result.orderId} / ${formatDateTime(result.submittedAt)}）`
                             : `提出済み（${formatDateTime(result.submittedAt)}）`;
                         orderStatus.style.color = "#2e7d32";
                         submitButton.style.display = "block";
+                        matchCardSection.style.display = "none";
                     }
                 } else {
                     orderStatus.textContent = "未提出";
                     orderStatus.style.color = "#f57f17";
                     submitButton.style.display = "block";
+                    matchCardSection.style.display = "none";
                 }
 
                 orderList.innerHTML = "";
@@ -140,6 +157,40 @@
                 orderStatus.textContent = "オーダー取得に失敗しました";
                 orderStatus.style.color = "#c62828";
             }
+        }
+
+        function generateMatchCardHTML(cardData) {
+            const { match, games } = cardData;
+            if (!games || games.length === 0) {
+                return "<p style=\"color: #999;\">対戦情報がありません</p>";
+            }
+
+            let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+
+            // Team A
+            html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
+            html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
+            games.forEach((game) => {
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
+                html += '</div>';
+            });
+            html += '</div>';
+
+            // Team B
+            html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
+            html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
+            games.forEach((game) => {
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
+                html += '</div>';
+            });
+            html += '</div>';
+
+            html += '</div>';
+            return html;
         }
 
         async function submitOrder(matchId, teamId, members) {
@@ -328,6 +379,11 @@
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
                                 </div>
+
+                                <div id="matchCardSection_${match.match_id}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                                    <div style="font-weight: 700; margin-bottom: 12px;">対戦カード</div>
+                                    <div id="matchCard_${match.match_id}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;"></div>
+                                </div>
                             </div>
                         `;
                         matchesList.appendChild(matchElement);
@@ -337,7 +393,7 @@
                             submitOrder(match.match_id, teamId, members);
                         });
 
-                        loadMatchOrder(match.match_id, teamId, members);
+                        loadMatchOrder(match.match_id, teamId, members, match);
                     });
                 }
 

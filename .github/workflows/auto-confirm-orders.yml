@@ -3,7 +3,7 @@ name: Auto Confirm Orders
 on:
   schedule:
     # 毎日 朝1:00 JST (前日の16:00 UTC) に実行
-    - cron: '0 16 * * *'
+    - cron: "0 16 * * *"
   workflow_dispatch:
 
 jobs:
