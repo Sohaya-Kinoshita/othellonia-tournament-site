@@ -7,6 +7,10 @@ export async function onRequest(context) {
     return handlePost(context);
   }
 
+  if (context.request.method === "PATCH") {
+    return handlePatch(context);
+  }
+
   return new Response(JSON.stringify({ message: "Method not allowed" }), {
     status: 405,
     headers: { "Content-Type": "application/json" },
@@ -137,6 +141,87 @@ async function authenticateLeader(db, request, teamId) {
   return { ok: true, playerId };
 }
 
+async function authenticateLeaderOrAdmin(db, request, teamId) {
+  const sessionId = getSessionIdFromCookie(request.headers.get("cookie"));
+
+  if (!sessionId) {
+    return {
+      ok: false,
+      response: new Response(JSON.stringify({ message: "認証が必要です" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    };
+  }
+
+  let type = "";
+  let id = "";
+  try {
+    const decoded = atob(sessionId);
+    [type, id] = decoded.split(":");
+  } catch (error) {
+    return {
+      ok: false,
+      response: new Response(JSON.stringify({ message: "認証エラー" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    };
+  }
+
+  // Admin is allowed to view all orders
+  if (type === "admin") {
+    return { ok: true, type: "admin" };
+  }
+
+  // Otherwise must be team leader
+  if (type !== "player") {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({ message: "プレイヤー権限が必要です" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    };
+  }
+
+  const team = await db
+    .prepare("SELECT team_reader FROM teams WHERE team_id = ?")
+    .bind(teamId)
+    .first();
+
+  if (!team) {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({ message: "チームが見つかりません" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    };
+  }
+
+  if (team.team_reader !== id) {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({ message: "このチームのリーダーではありません" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    };
+  }
+
+  return { ok: true, type: "player" };
+}
+
 async function handleGet(context) {
   try {
     const db = context.env.DB;
@@ -154,7 +239,7 @@ async function handleGet(context) {
       );
     }
 
-    const auth = await authenticateLeader(db, context.request, teamId);
+    const auth = await authenticateLeaderOrAdmin(db, context.request, teamId);
     if (!auth.ok) {
       return auth.response;
     }
@@ -165,7 +250,7 @@ async function handleGet(context) {
       const legacyOrder = await db
         .prepare(
           `
-            SELECT submitted_at, player_order
+            SELECT submitted_at, confirmed_at, player_order
             FROM orders
             WHERE match_id = ? AND team_id = ?
             ORDER BY submitted_at DESC
@@ -183,6 +268,7 @@ async function handleGet(context) {
             teamId,
             orderId: null,
             submittedAt: null,
+            confirmedAt: null,
             playerOrder: [],
           }),
           {
@@ -199,6 +285,7 @@ async function handleGet(context) {
           teamId,
           orderId: null,
           submittedAt: legacyOrder.submitted_at,
+          confirmedAt: legacyOrder.confirmed_at,
           playerOrder: safeParseOrderJson(legacyOrder.player_order),
         }),
         {
@@ -221,7 +308,7 @@ async function handleGet(context) {
     const latestOrder = await db
       .prepare(
         `
-				SELECT order_id, submitted_at
+				SELECT order_id, submitted_at, confirmed_at
 				FROM orders
 				WHERE match_id = ? AND team_id = ?
 				ORDER BY submitted_at DESC, order_id DESC
@@ -239,6 +326,7 @@ async function handleGet(context) {
           teamId,
           orderId: null,
           submittedAt: null,
+          confirmedAt: null,
           playerOrder: [],
         }),
         {
@@ -267,6 +355,7 @@ async function handleGet(context) {
         teamId,
         orderId: latestOrder.order_id,
         submittedAt: latestOrder.submitted_at,
+        confirmedAt: latestOrder.confirmed_at,
         playerOrder: (details.results || []).map((row) => row.player_id),
       }),
       {
@@ -476,6 +565,95 @@ async function handlePost(context) {
     console.error("Order POST error:", error);
     return new Response(
       JSON.stringify({ message: "オーダー提出処理でエラーが発生しました" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+}
+
+async function handlePatch(context) {
+  try {
+    const db = context.env.DB;
+    const { matchId, teamId } = await context.request.json();
+
+    if (!matchId || !teamId) {
+      return new Response(
+        JSON.stringify({ message: "matchId と teamId が必要です" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const auth = await authenticateLeaderOrAdmin(db, context.request, teamId);
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    // Only admin can confirm orders
+    if (auth.type !== "admin") {
+      return new Response(JSON.stringify({ message: "管理者権限が必要です" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const result = await db
+      .prepare(
+        `
+        UPDATE orders
+        SET confirmed_at = datetime('now', '+9 hours')
+        WHERE match_id = ? AND team_id = ? AND confirmed_at IS NULL
+      `,
+      )
+      .bind(matchId, teamId)
+      .run();
+
+    if (result.meta.changes === 0) {
+      return new Response(
+        JSON.stringify({
+          message: "未提出のオーダーを確定することはできません",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Get the updated order
+    const updatedOrder = await db
+      .prepare(
+        `
+        SELECT submitted_at, confirmed_at
+        FROM orders
+        WHERE match_id = ? AND team_id = ?
+      `,
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "オーダーを確定しました",
+        matchId,
+        teamId,
+        submittedAt: updatedOrder.submitted_at,
+        confirmedAt: updatedOrder.confirmed_at,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  } catch (error) {
+    console.error("Order PATCH error:", error);
+    return new Response(
+      JSON.stringify({ message: "オーダー確定処理でエラーが発生しました" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

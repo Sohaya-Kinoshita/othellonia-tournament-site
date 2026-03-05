@@ -53,6 +53,9 @@
                         </div>
                     </div>
 
+                    <button type="button" class="btn" id="initializeMatchButton"
+                        style="margin-top: 20px; background-color: #FF9800; font-weight: bold; display: none;">マッチを確定</button>
+
                     <button type="button" class="btn" id="refreshButton" style="margin-top: 20px;">更新</button>
                     <div id="confirmMessage" class="message" style="display: none; margin-top: 15px;"></div>
                 </div>
@@ -179,6 +182,8 @@
                     const responseB = await fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_b_id)}`);
                     const resultB = await responseB.json();
 
+                    const initializeMatchButton = document.getElementById("initializeMatchButton");
+
                     // Team A
                     const playerOrderA = resultA.playerOrder || [];
                     const hasSubmittedA = playerOrderA.length > 0;
@@ -206,10 +211,51 @@
                         teamBOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
                         teamBOrderDetails.innerHTML = "";
                     }
+
+                    // Show match initialization button if both teams have submitted orders
+                    if (hasSubmittedA && hasSubmittedB) {
+                        initializeMatchButton.style.display = "block";
+                        initializeMatchButton.onclick = async () => {
+                            await initializeMatch(match.match_id);
+                        };
+                    } else {
+                        initializeMatchButton.style.display = "none";
+                    }
                 } catch (error) {
                     console.error("Error loading order status:", error);
                     teamAOrderStatus.innerHTML = "オーダー情報の取得に失敗しました";
                     teamBOrderStatus.innerHTML = "オーダー情報の取得に失敗しました";
+                }
+            }
+
+            async function initializeMatch(matchId) {
+                if (!confirm("マッチを確定し、ゲームを初期化してよろしいですか？")) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/matches", {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            matchId,
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        alert(`マッチの確定に失敗しました: ${result.message || "エラーが発生しました"}`);
+                        return;
+                    }
+
+                    alert("マッチを確定し、ゲームを初期化しました");
+                    await loadOrderStatus(match);
+                } catch (error) {
+                    console.error("Error initializing match:", error);
+                    alert("マッチ確定処理でエラーが発生しました");
                 }
             }
         }

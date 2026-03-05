@@ -305,6 +305,189 @@ export async function onRequest(context) {
     }
   }
 
+  // PATCHメソッド：マッチのゲーム初期化
+  if (context.request.method === "PATCH") {
+    try {
+      // 管理者認証確認
+      const cookies = context.request.headers.get("cookie") || "";
+      const sessionId = cookies
+        .split("; ")
+        .find((c) => c.startsWith("sessionId="))
+        ?.split("=")[1];
+
+      if (!sessionId) {
+        return new Response(JSON.stringify({ message: "認証が必要です" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // セッションIDをデコード
+      try {
+        const decoded = atob(sessionId);
+        const [type] = decoded.split(":");
+
+        if (type !== "admin") {
+          return new Response(
+            JSON.stringify({ message: "管理者権限が必要です" }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      } catch (e) {
+        return new Response(JSON.stringify({ message: "認証エラー" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // リクエストボディを解析
+      const { matchId } = await context.request.json();
+
+      if (!matchId) {
+        return new Response(JSON.stringify({ message: "マッチIDが必要です" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const db = context.env.DB;
+
+      // マッチが存在するか確認
+      const match = await db
+        .prepare(
+          "SELECT match_id, team_a_id, team_b_id FROM matches WHERE match_id = ?",
+        )
+        .bind(matchId)
+        .first();
+
+      if (!match) {
+        return new Response(
+          JSON.stringify({ message: "マッチが見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // オーダーが両チーム提出されているか確認
+      const orderA = await db
+        .prepare(
+          "SELECT COUNT(*) as count FROM orders WHERE match_id = ? AND team_id = ? AND submitted_at IS NOT NULL",
+        )
+        .bind(matchId, match.team_a_id)
+        .first();
+
+      const orderB = await db
+        .prepare(
+          "SELECT COUNT(*) as count FROM orders WHERE match_id = ? AND team_id = ? AND submitted_at IS NOT NULL",
+        )
+        .bind(matchId, match.team_b_id)
+        .first();
+
+      if (orderA.count === 0 || orderB.count === 0) {
+        return new Response(
+          JSON.stringify({ message: "両チームのオーダーが未提出です" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // オーダーを取得
+      const playerOrderA = await db
+        .prepare(
+          "SELECT player_order FROM orders WHERE match_id = ? AND team_id = ? ORDER BY submitted_at DESC LIMIT 1",
+        )
+        .bind(matchId, match.team_a_id)
+        .first();
+
+      const playerOrderB = await db
+        .prepare(
+          "SELECT player_order FROM orders WHERE match_id = ? AND team_id = ? ORDER BY submitted_at DESC LIMIT 1",
+        )
+        .bind(matchId, match.team_b_id)
+        .first();
+
+      // JSONパース
+      let playersA = [];
+      let playersB = [];
+
+      try {
+        playersA = JSON.parse(playerOrderA.player_order);
+        playersB = JSON.parse(playerOrderB.player_order);
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ message: "オーダーのパースに失敗しました" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (playersA.length !== 7 || playersB.length !== 7) {
+        return new Response(
+          JSON.stringify({
+            message: "オーダーが不正です（7名である必要があります）",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // 既存ゲームを削除
+      await db
+        .prepare("DELETE FROM games WHERE match_id = ?")
+        .bind(matchId)
+        .run();
+
+      // 新しいゲームレコードを作成
+      const statements = [];
+      for (let i = 0; i < 7; i++) {
+        const gameId = `${matchId}${String(i + 1).padStart(2, "0")}`;
+        statements.push(
+          db
+            .prepare(
+              `
+              INSERT INTO games (game_id, match_id, game_number, player_a_id, player_b_id)
+              VALUES (?, ?, ?, ?, ?)
+            `,
+            )
+            .bind(gameId, matchId, i + 1, playersA[i], playersB[i]),
+        );
+      }
+
+      await db.batch(statements);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "マッチのゲームを初期化しました",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Match game initialization error:", error);
+      return new Response(
+        JSON.stringify({ message: "ゲーム初期化処理でエラーが発生しました" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
   return new Response(JSON.stringify({ message: "Method not allowed" }), {
     status: 405,
     headers: { "Content-Type": "application/json" },
