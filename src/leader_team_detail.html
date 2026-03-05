@@ -85,6 +85,7 @@
         async function loadMatchOrder(matchId, teamId, members) {
             const orderStatus = document.getElementById(`orderStatus_${matchId}`);
             const orderList = document.getElementById(`orderList_${matchId}`);
+            const submitButton = document.getElementById(`submitOrderBtn_${matchId}`);
 
             orderStatus.textContent = "オーダー読込中...";
 
@@ -100,20 +101,39 @@
 
                 const currentOrder = result.playerOrder || [];
                 const hasSubmitted = currentOrder.length > 0;
+                const isConfirmed = result.confirmedAt !== null && result.confirmedAt !== undefined;
+
                 if (hasSubmitted) {
-                    orderStatus.textContent = result.orderId
-                        ? `提出済み（${result.orderId} / ${formatDateTime(result.submittedAt)}）`
-                        : `提出済み（${formatDateTime(result.submittedAt)}）`;
+                    if (isConfirmed) {
+                        orderStatus.textContent = `確定済み（${formatDateTime(result.confirmedAt)}）`;
+                        orderStatus.style.color = "#1b5e20";
+                        submitButton.style.display = "none";
+                    } else {
+                        orderStatus.textContent = result.orderId
+                            ? `提出済み（${result.orderId} / ${formatDateTime(result.submittedAt)}）`
+                            : `提出済み（${formatDateTime(result.submittedAt)}）`;
+                        orderStatus.style.color = "#2e7d32";
+                        submitButton.style.display = "block";
+                    }
                 } else {
                     orderStatus.textContent = "未提出";
+                    orderStatus.style.color = "#f57f17";
+                    submitButton.style.display = "block";
                 }
-                orderStatus.style.color = hasSubmitted ? "#2e7d32" : "#f57f17";
 
                 orderList.innerHTML = "";
                 for (let index = 0; index < 7; index += 1) {
                     orderList.appendChild(
                         createOrderSelect(matchId, index, members, currentOrder[index] || ""),
                     );
+                }
+
+                // 確定済みなら選択を無効化
+                if (isConfirmed) {
+                    const selects = orderList.querySelectorAll("select");
+                    selects.forEach((select) => {
+                        select.disabled = true;
+                    });
                 }
             } catch (error) {
                 console.error("Order load error:", error);

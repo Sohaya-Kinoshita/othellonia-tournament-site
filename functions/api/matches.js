@@ -464,6 +464,23 @@ export async function onRequest(context) {
         );
       }
 
+      // orders テーブルの confirmed_at を更新
+      statements.push(
+        db
+          .prepare(
+            "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
+          )
+          .bind(matchId, match.team_a_id),
+      );
+
+      statements.push(
+        db
+          .prepare(
+            "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
+          )
+          .bind(matchId, match.team_b_id),
+      );
+
       await db.batch(statements);
 
       return new Response(
