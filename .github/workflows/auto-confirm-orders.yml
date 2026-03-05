@@ -1,0 +1,20 @@
+name: Auto Confirm Orders
+
+on:
+  schedule:
+    # 毎日 朝1:00 JST (前日の16:00 UTC) に実行
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  auto-confirm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger auto-confirm orders API
+        run: |
+          curl -X POST https://${{ secrets.PAGES_DOMAIN }}/api/auto-confirm-orders \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            -w "\nStatus: %{http_code}\n"
+        env:
+          PAGES_DOMAIN: c5b3ccf0.othellonia-tournament-site.pages.dev
