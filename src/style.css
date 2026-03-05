@@ -24,7 +24,7 @@ body {
     "Segoe UI",
     sans-serif;
   color: var(--text);
-  background: url("./images/背景.png") repeat;
+  background: url("./images/背景2.png") repeat fixed;
   line-height: 1.6;
   display: flex;
   flex-direction: column;
