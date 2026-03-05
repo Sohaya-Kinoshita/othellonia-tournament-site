@@ -67,7 +67,7 @@ export async function onRequest(context) {
 
       if (!user) {
         return new Response(
-          JSON.stringify({ message: "ユーザーが見つかりません" }),
+          JSON.stringify({ message: "IDまたはパスワードが間違っています。" }),
           {
             status: 401,
             headers: { "Content-Type": "application/json" },
@@ -78,7 +78,7 @@ export async function onRequest(context) {
       // パスワードを検証
       if (user.pass !== password) {
         return new Response(
-          JSON.stringify({ message: "パスワードが正しくありません" }),
+          JSON.stringify({ message: "IDまたはパスワードが間違っています。" }),
           {
             status: 401,
             headers: { "Content-Type": "application/json" },

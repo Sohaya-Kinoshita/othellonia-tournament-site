@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>リーダーページ</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>リーダーページ</h1>
+            <hr>
+            <p id="statusMessage">確認中...</p>
+            <a href="./index.html" class="btn">トップページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="leaderMenuCard">
+            <h2>リーダーメニュー</h2>
+            <hr>
+            <p id="playerName" style="font-weight: bold; margin-bottom: 16px;"></p>
+            <div id="teamsList"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function checkLeaderStatus() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const statusMessage = document.getElementById("statusMessage");
+            const leaderMenuCard = document.getElementById("leaderMenuCard");
+            const playerNameDiv = document.getElementById("playerName");
+            const teamsList = document.getElementById("teamsList");
+
+            if (!result.isLoggedIn) {
+                location.href = "./login.html";
+                return;
+            }
+
+            if (result.type !== "player") {
+                statusMessage.textContent = "プレイヤーとしてログインしてください。";
+                return;
+            }
+
+            try {
+                const leaderResponse = await fetch("/api/leader-teams");
+                const leaderResult = await leaderResponse.json();
+
+                if (!leaderResponse.ok) {
+                    statusMessage.textContent =
+                        "チーム情報の取得に失敗しました。";
+                    return;
+                }
+
+                const teams = leaderResult.teams;
+
+                if (!teams || teams.length === 0) {
+                    statusMessage.textContent =
+                        "あなたはリーダーを務めるチームがありません。";
+                    return;
+                }
+
+                // プレイヤー名を表示
+                statusMessage.style.display = "none";
+                playerNameDiv.textContent = `${result.player.playerName} としてログイン中`;
+
+                // リーダーを務めるチーム一覧を表示
+                teams.forEach((team) => {
+                    const teamElement = document.createElement("div");
+                    teamElement.style.marginBottom = "16px";
+                    teamElement.innerHTML = `
+                        <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 1.1em;">
+                                ${team.team_id} - ${team.team_name}
+                            </h3>
+                            <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
+                                メンバー数: ${team.member_count || 0} 人
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <a href="./leader_team_detail.html?teamId=${team.team_id}" class="btn" style="flex: 1; text-align: center; text-decoration: none; margin: 0;">
+                                    詳細を見る
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    teamsList.appendChild(teamElement);
+                });
+
+                leaderMenuCard.classList.remove("hidden");
+            } catch (error) {
+                console.error("Error:", error);
+                statusMessage.textContent =
+                    "チーム情報の取得に失敗しました。";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkLeaderStatus();
+        });
+    </script>
+</body>
+
+</html>

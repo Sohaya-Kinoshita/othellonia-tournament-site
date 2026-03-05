@@ -79,6 +79,7 @@ function setupMenu() {
   const playerStatusDisplay = document.getElementById("playerStatusDisplay");
   const playerNameDisplay = document.getElementById("playerNameDisplay");
   const adminPageLink = document.getElementById("adminPageLink");
+  const leaderPageLink = document.getElementById("leaderPageLink");
 
   fetch("/api/me")
     .then((response) => response.json())
@@ -98,6 +99,9 @@ function setupMenu() {
           } else {
             playerNameDisplay.textContent =
               result.player.playerName || "ユーザー";
+            // プレイヤーページリンクを表示
+            if (leaderPageLink)
+              leaderPageLink.style.setProperty("display", "flex", "important");
             playerStatusDisplay.classList.remove("admin-status");
             // 管理者ページリンクを非表示
             if (adminPageLink)

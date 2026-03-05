@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>新しいマッチを作成</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>新しいマッチを作成</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="matchCard">
+            <h2>新しいマッチを作成</h2>
+            <form id="matchForm">
+                <div class="form-group">
+                    <label for="matchId">マッチID（3文字）</label>
+                    <input type="text" id="matchId" name="matchId" maxlength="3" required placeholder="例: M01">
+                </div>
+                <div class="form-group">
+                    <label for="teamAId">チームA</label>
+                    <select id="teamAId" name="teamAId" required>
+                        <option value="">チームを選択してください</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="teamBId">チームB</label>
+                    <select id="teamBId" name="teamBId" required>
+                        <option value="">チームを選択してください</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">マッチを作成</button>
+                <div id="matchMessage" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const matchCard = document.getElementById("matchCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            matchCard.classList.remove("hidden");
+            await setupMatchForm();
+        }
+
+        async function setupMatchForm() {
+            const matchForm = document.getElementById("matchForm");
+            const messageDiv = document.getElementById("matchMessage");
+            const teamASelect = document.getElementById("teamAId");
+            const teamBSelect = document.getElementById("teamBId");
+
+            // チーム一覧を取得して選択肢を設定
+            try {
+                const response = await fetch("/api/teams");
+                const result = await response.json();
+
+                if (result.success && result.teams) {
+                    const teams = result.teams;
+
+                    // チームA用の選択肢を設定
+                    teams.forEach((team) => {
+                        const option = document.createElement("option");
+                        option.value = team.team_id;
+                        option.textContent = `${team.team_id} - ${team.team_name}`;
+                        teamASelect.appendChild(option);
+                    });
+
+                    // チームB用の選択肢を設定
+                    teams.forEach((team) => {
+                        const option = document.createElement("option");
+                        option.value = team.team_id;
+                        option.textContent = `${team.team_id} - ${team.team_name}`;
+                        teamBSelect.appendChild(option);
+                    });
+
+                    // チームAが変更されたときをチームBの選択肢をリセット
+                    teamASelect.addEventListener("change", () => {
+                        if (teamASelect.value === teamBSelect.value && teamBSelect.value !== "") {
+                            // teamBSelectを最初の選択肢にリセット
+                            teamBSelect.value = "";
+                        }
+                    });
+
+                    // チームBが変更されたときをチームAの選択肢をリセット
+                    teamBSelect.addEventListener("change", () => {
+                        if (teamASelect.value === teamBSelect.value && teamASelect.value !== "") {
+                            // teamASelectを最初の選択肢にリセット
+                            teamASelect.value = "";
+                        }
+                    });
+                }
+            } catch (error) {
+                messageDiv.textContent = "チーム一覧の取得に失敗しました";
+                messageDiv.className = "message error";
+                messageDiv.style.display = "block";
+            }
+
+            // フォーム送信処理
+            matchForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const matchId = document.getElementById("matchId").value.trim();
+                const teamAId = teamASelect.value;
+                const teamBId = teamBSelect.value;
+
+                if (!matchId || !teamAId || !teamBId) {
+                    messageDiv.textContent = "すべてのフィールドを入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                if (teamAId === teamBId) {
+                    messageDiv.textContent = "チームA と チームB は異なるチームを選択してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/matches", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            matchId,
+                            teamAId,
+                            teamBId,
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        messageDiv.textContent = result.message;
+                        messageDiv.className = "message success";
+                        messageDiv.style.display = "block";
+
+                        // フォームをリセット
+                        matchForm.reset();
+                        teamASelect.value = "";
+                        teamBSelect.value = "";
+                    } else {
+                        messageDiv.textContent =
+                            result.message || "マッチの作成に失敗しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                    }
+                } catch (error) {
+                    messageDiv.textContent = "エラーが発生しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+        }
+
+        checkAdmin();
+    </script>
+</body>
+
+</html>

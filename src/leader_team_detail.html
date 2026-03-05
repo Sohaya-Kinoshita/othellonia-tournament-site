@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>チーム詳細</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>チーム詳細</h1>
+            <hr>
+            <p id="statusMessage">確認中...</p>
+            <a href="./leader.html" class="btn">リーダーページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="teamDetailCard">
+            <h2 id="teamName"></h2>
+            <hr>
+            <div id="teamInfo" style="margin-bottom: 16px;"></div>
+
+            <h3>メンバー一覧</h3>
+            <table id="memberTable" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #333;">
+                        <th style="text-align: left; padding: 8px;">プレイヤーID</th>
+                        <th style="text-align: left; padding: 8px;">プレイヤー名</th>
+                    </tr>
+                </thead>
+                <tbody id="memberTableBody">
+                </tbody>
+            </table>
+
+            <h3>関連マッチ</h3>
+            <div id="matchesList"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function loadTeamDetail() {
+            const statusMessage = document.getElementById("statusMessage");
+            const teamDetailCard = document.getElementById("teamDetailCard");
+            const teamNameDiv = document.getElementById("teamName");
+            const teamInfoDiv = document.getElementById("teamInfo");
+            const memberTableBody = document.getElementById("memberTableBody");
+            const matchesList = document.getElementById("matchesList");
+
+            // 認証確認
+            const meResponse = await fetch("/api/me");
+            const meResult = await meResponse.json();
+
+            if (!meResult.isLoggedIn || meResult.type !== "player") {
+                location.href = "./login.html";
+                return;
+            }
+
+            // URLからteamIdを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const teamId = urlParams.get("teamId");
+
+            if (!teamId) {
+                statusMessage.textContent = "チームIDが指定されていません。";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/team-detail?teamId=${teamId}`);
+
+                if (!response.ok) {
+                    statusMessage.textContent =
+                        response.status === 403
+                            ? "このチームのリーダーではありません。"
+                            : "チーム情報の取得に失敗しました。";
+                    return;
+                }
+
+                const result = await response.json();
+                const team = result.team;
+                const members = result.members || [];
+                const matches = result.matches || [];
+
+                // チーム情報を表示
+                statusMessage.style.display = "none";
+                teamNameDiv.textContent = `${team.team_id} - ${team.team_name}`;
+                teamInfoDiv.innerHTML = `
+                    <div style="background: #f5f5f5; padding: 12px; border-radius: 4px; font-size: 0.9em;">
+                        <div><strong>チームID:</strong> ${team.team_id}</div>
+                        <div><strong>チーム名:</strong> ${team.team_name}</div>
+                        <div><strong>メンバー数:</strong> ${members.length} 人</div>
+                    </div>
+                `;
+
+                // メンバー一覧を表示
+                if (members.length === 0) {
+                    memberTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="2" style="padding: 12px; text-align: center; color: #999;">
+                                メンバーがありません
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    members.forEach((member, index) => {
+                        const row = document.createElement("tr");
+                        row.style.borderBottom = "1px solid #ddd";
+                        row.innerHTML = `
+                            <td style="padding: 8px;">${member.player_id}</td>
+                            <td style="padding: 8px;">${member.player_name}</td>
+                        `;
+                        memberTableBody.appendChild(row);
+                    });
+                }
+
+                // マッチ一覧を表示
+                if (matches.length === 0) {
+                    matchesList.innerHTML = `<p style="color: #999;">関連するマッチがありません</p>`;
+                } else {
+                    matches.forEach((match) => {
+                        const isTeamA = match.team_a_id === teamId;
+                        const opponentName = isTeamA
+                            ? match.team_b_name
+                            : match.team_a_name;
+                        const opponentId = isTeamA
+                            ? match.team_b_id
+                            : match.team_a_id;
+                        const status =
+                            match.winner_team_id === teamId
+                                ? "勝利"
+                                : match.winner_team_id === null
+                                    ? "進行中"
+                                    : "敗北";
+
+                        const matchElement = document.createElement("div");
+                        matchElement.style.marginBottom = "12px";
+                        matchElement.innerHTML = `
+                            <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div>
+                                        <strong>${match.match_id}</strong>
+                                        <span style="margin-left: 8px; font-size: 0.9em;">
+                                            ${team.team_name} vs ${opponentName} (${opponentId})
+                                        </span>
+                                    </div>
+                                    <span style="
+                                        padding: 4px 8px;
+                                        border-radius: 4px;
+                                        font-size: 0.85em;
+                                        font-weight: bold;
+                                        background-color: ${status === "勝利"
+                                ? "#c8e6c9"
+                                : status === "進行中"
+                                    ? "#fff9c4"
+                                    : "#ffcccc"
+                            };
+                                        color: ${status === "勝利"
+                                ? "#2e7d32"
+                                : status === "進行中"
+                                    ? "#f57f17"
+                                    : "#c62828"
+                            };
+                                    ">
+                                        ${status}
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.9em; color: #666;">
+                                    Best of ${match.best_of}
+                                </div>
+                            </div>
+                        `;
+                        matchesList.appendChild(matchElement);
+                    });
+                }
+
+                teamDetailCard.classList.remove("hidden");
+            } catch (error) {
+                console.error("Error:", error);
+                statusMessage.textContent = "チーム情報の取得に失敗しました。";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadTeamDetail();
+        });
+    </script>
+</body>
+
+</html>

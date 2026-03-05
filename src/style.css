@@ -709,9 +709,11 @@ th {
 }
 
 .menu-item.is-current {
-  color: var(--muted);
+  color: #1d4ed8;
+  font-weight: 700;
   pointer-events: none; /* クリック不可 */
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 4px;
 }
 .menu-header {
   height: var(--header-height);

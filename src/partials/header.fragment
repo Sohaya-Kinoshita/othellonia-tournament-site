@@ -20,6 +20,7 @@
             <a class="menu-item" href="./match.html" data-title="対戦カード">対戦カード</a>
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
             <a class="menu-item" href="./rules.html" data-title="大会ルール">大会ルール</a>
+            <a class="menu-item" href="./leader.html" id="leaderPageLink" data-title="リーダーページ" style="display: none;">リーダーページ</a>
             <a class="menu-item" href="./admin.html" id="adminPageLink" data-title="管理者ページ" style="display: none;">管理者ページ</a>
 
             <div id="playerStatusDisplay" class="menu-item" style="display: none; cursor: default; opacity: 0.7;">
