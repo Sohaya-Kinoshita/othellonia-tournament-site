@@ -353,7 +353,9 @@ export async function onRequest(context) {
     const normalizedPlayerId = String(playerId || "").trim();
     const normalizedPlayerName = String(playerName || "").trim();
     const rawMirrativUrl = String(mirrativUrl || "").trim();
-    const normalizedMirrativId = rawMirrativUrl ? extractMirrativId(rawMirrativUrl) : null;
+    const normalizedMirrativId = rawMirrativUrl
+      ? extractMirrativId(rawMirrativUrl)
+      : null;
 
     if (!normalizedPlayerId || !normalizedPlayerName) {
       return new Response(
@@ -397,7 +399,9 @@ export async function onRequest(context) {
 
     // プレイヤーを作成
     await db
-      .prepare("INSERT INTO players (player_id, player_name, mirrativ_id) VALUES (?, ?, ?)")
+      .prepare(
+        "INSERT INTO players (player_id, player_name, mirrativ_id) VALUES (?, ?, ?)",
+      )
       .bind(normalizedPlayerId, normalizedPlayerName, normalizedMirrativId)
       .run();
 

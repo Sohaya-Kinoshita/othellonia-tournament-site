@@ -256,13 +256,10 @@ export async function onRequest(context) {
       const { matchId, winnerTeamId } = await context.request.json();
 
       if (!matchId) {
-        return new Response(
-          JSON.stringify({ message: "マッチIDが必要です" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ message: "マッチIDが必要です" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       const db = context.env.DB;
@@ -311,4 +308,5 @@ export async function onRequest(context) {
   return new Response(JSON.stringify({ message: "Method not allowed" }), {
     status: 405,
     headers: { "Content-Type": "application/json" },
-  });}
+  });
+}
