@@ -5,7 +5,386 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
-    <title>マッチの確定</title>
+    <title>試合結果の入力</title>
+    <style>
+        .game-result-card {
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            overflow: hidden;
+        }
+
+        .game-result-card.expanded {
+            border-color: #4CAF50;
+        }
+
+        .game-result-header {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            transition: background-color 0.2s;
+        }
+
+        .game-result-header:hover {
+            background-color: #e8f5e9;
+        }
+
+        .game-result-card.expanded .game-result-header {
+            background-color: #e8f5e9;
+        }
+
+        .game-header-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .game-header-line1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .game-header-line2 {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .game-header-line3 {
+            font-size: 15px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .game-header-line4 {
+            font-size: 16px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .game-number-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .game-matchup {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .game-score-display {
+            font-size: 16px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .expand-icon {
+            font-size: 20px;
+            transition: transform 0.2s;
+            margin-top: 5px;
+        }
+
+        .game-result-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .game-result-body {
+            display: none;
+            padding: 15px;
+            background-color: #fafafa;
+        }
+
+        .game-result-card.expanded .game-result-body {
+            display: block;
+        }
+
+        .game-result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 12px;
+            background-color: white;
+            border-radius: 5px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .game-result-row.winner {
+            border-color: #4CAF50;
+            background-color: #f1f8f4;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-main {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .team-badge {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .player-stats {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .current-wins {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .bo3-score-input {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            margin-left: auto;
+        }
+
+        .bo3-score-input label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .bo3-score-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .bo3-score-button {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            background-color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bo3-score-button:hover {
+            border-color: #4CAF50;
+            background-color: #f1f8f4;
+        }
+
+        .bo3-score-button.selected {
+            border-color: #4CAF50;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .forfeit-button {
+            width: auto;
+            padding: 5px 12px;
+            height: 35px;
+            border: 2px solid #ff9800;
+            background-color: white;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .forfeit-button:hover {
+            border-color: #ff9800;
+            background-color: #fff3e0;
+        }
+
+        .forfeit-button.selected {
+            border-color: #ff9800;
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .bo3-score-separator {
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .win-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-left: 10px;
+            cursor: pointer;
+            border: 2px solid #ccc;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .win-indicator:hover {
+            border-color: #4CAF50;
+        }
+
+        .win-indicator.selected {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .score-summary {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .btn-save {
+            background-color: #2196F3;
+        }
+
+        .btn-save:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-confirm {
+            background-color: #4CAF50;
+        }
+
+        .btn-confirm:hover {
+            background-color: #388E3C;
+        }
+
+        .message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .search-box {
+            margin: 20px 0;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .match-list {
+            margin-top: 20px;
+        }
+
+        .match-item {
+            margin: 15px 0;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .match-item:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .match-item.active {
+            border-color: #4CAF50;
+            background-color: #f1f8f4;
+        }
+
+        .match-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .match-item-id {
+            color: #4CAF50;
+        }
+
+        .match-item-teams {
+            margin-top: 8px;
+            font-size: 16px;
+        }
+
+        .match-details-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .match-details-section.show {
+            display: block;
+        }
+
+        .hidden-section {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -13,55 +392,43 @@
 
     <main class="container">
         <div class="card">
-            <h1>マッチの確定</h1>
+            <h1>試合結果の入力</h1>
             <hr>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
         <div class="card hidden" id="matchConfirmCard">
-            <h2>マッチの確定</h2>
+            <h2>試合結果の入力</h2>
             <hr>
 
-            <div class="match-select-container">
-                <label for="matchSelect">確定するマッチを選択</label>
-                <select id="matchSelect" class="match-select">
-                    <option value="">-- マッチを選択してください --</option>
-                </select>
+            <div class="search-container">
+                <label for="searchBox">試合を検索</label>
+                <input type="text" id="searchBox" class="search-box" placeholder="マッチIDまたはチーム名を入力...">
             </div>
 
-            <div id="matchDetailsContainer" class="match-details-hidden">
+            <div class="match-list" id="matchList"></div>
+
+            <div id="matchDetailsContainer" class="match-details-section">
                 <div class="card match-details-card">
-                    <h3>マッチ情報</h3>
+                    <h3>試合情報</h3>
                     <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
                     <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
                     <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
-                    <p><strong>現在の勝者:</strong> <span id="displayWinner"></span></p>
 
-                    <h3 class="winner-section-title">勝者を選択</h3>
-                    <div class="winner-selection-box">
-                        <div class="winner-option">
-                            <label class="radio-label">
-                                <input type="radio" name="winner" value="" class="radio-input">
-                                <span>未決定</span>
-                            </label>
-                        </div>
-                        <div class="winner-option">
-                            <label class="radio-label">
-                                <input type="radio" name="winner" id="winnerTeamA" value="teamA" class="radio-input">
-                                <span id="labelTeamA"></span>
-                            </label>
-                        </div>
-                        <div class="winner-option">
-                            <label class="radio-label">
-                                <input type="radio" name="winner" id="winnerTeamB" value="teamB" class="radio-input">
-                                <span id="labelTeamB"></span>
-                            </label>
-                        </div>
+                    <div class="score-summary" id="scoreSummary">
+                        <span id="teamAName"></span>: <span id="teamAWins">0</span>勝　-　
+                        <span id="teamBName"></span>: <span id="teamBWins">0</span>勝
                     </div>
 
-                    <button type="button" class="btn confirm-button" id="confirmButton">確定</button>
-                    <div id="confirmMessage" class="message message-hidden"></div>
+                    <h3>各ゲームの結果</h3>
+                    <div id="gamesContainer"></div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-save" id="saveButton">一時保存</button>
+                        <button type="button" class="btn btn-confirm" id="confirmButton">確定</button>
+                    </div>
+                    <div id="confirmMessage" class="message"></div>
                 </div>
             </div>
         </div>
@@ -72,7 +439,11 @@
     <script src="./js/layout.js"></script>
     <script>
         let allMatches = [];
+        let visibleMatches = [];
         let currentMatchId = null;
+        let currentAdminId = null;
+        let currentMatchData = null;
+        let gameResults = {};
 
         async function checkAdmin() {
             const response = await fetch("/api/me");
@@ -88,6 +459,12 @@
 
             if (result.type !== "admin") {
                 adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            currentAdminId = result.user?.userId || null;
+            if (!currentAdminId) {
+                adminMessage.textContent = "管理者情報の取得に失敗しました。";
                 return;
             }
 
@@ -107,110 +484,419 @@
                 }
 
                 allMatches = result.matches || [];
-                populateMatchSelect();
+
+                visibleMatches = allMatches.filter((match) => {
+                    const admins = Array.isArray(match.admin_user_id)
+                        ? match.admin_user_id
+                        : (match.admin_user_id ? [match.admin_user_id] : []);
+                    return admins.includes(currentAdminId);
+                });
+
+                displayMatchList();
+                setupSearchBox();
             } catch (error) {
                 console.error("Error loading matches:", error);
                 alert("マッチ情報の読み込みに失敗しました");
             }
         }
 
-        function populateMatchSelect() {
-            const matchSelect = document.getElementById("matchSelect");
-
-            allMatches.forEach((match) => {
-                const option = document.createElement("option");
-                option.value = match.match_id;
-                option.textContent = `${match.match_id}: ${match.team_a_name} vs ${match.team_b_name}`;
-                matchSelect.appendChild(option);
-            });
-
-            matchSelect.addEventListener("change", () => {
-                const selectedMatchId = matchSelect.value;
-                if (selectedMatchId) {
-                    currentMatchId = selectedMatchId;
-                    displayMatchDetails();
-                } else {
-                    document.getElementById("matchDetailsContainer").style.display = "none";
-                }
+        function setupSearchBox() {
+            const searchBox = document.getElementById("searchBox");
+            searchBox.addEventListener("input", () => {
+                const searchTerm = searchBox.value.toLowerCase();
+                displayMatchList(searchTerm);
             });
         }
 
-        function displayMatchDetails() {
-            const match = allMatches.find((m) => m.match_id === currentMatchId);
-            if (!match) return;
+        function displayMatchList(searchTerm = "") {
+            const matchList = document.getElementById("matchList");
+            matchList.innerHTML = "";
 
-            const matchDetailsContainer = document.getElementById("matchDetailsContainer");
-            const displayMatchId = document.getElementById("displayMatchId");
-            const displayTeamA = document.getElementById("displayTeamA");
-            const displayTeamB = document.getElementById("displayTeamB");
-            const displayWinner = document.getElementById("displayWinner");
-            const winnerTeamA = document.getElementById("winnerTeamA");
-            const winnerTeamB = document.getElementById("winnerTeamB");
-            const labelTeamA = document.getElementById("labelTeamA");
-            const labelTeamB = document.getElementById("labelTeamB");
-            const confirmButton = document.getElementById("confirmButton");
-            const confirmMessage = document.getElementById("confirmMessage");
-
-            displayMatchId.textContent = match.match_id;
-            displayTeamA.textContent = `${match.team_a_id} - ${match.team_a_name}`;
-            displayTeamB.textContent = `${match.team_b_id} - ${match.team_b_name}`;
-            displayWinner.textContent = match.winner_team_id || "未決定";
-
-            winnerTeamA.value = match.team_a_id;
-            winnerTeamB.value = match.team_b_id;
-            labelTeamA.textContent = `${match.team_a_id} - ${match.team_a_name}`;
-            labelTeamB.textContent = `${match.team_b_id} - ${match.team_b_name}`;
-
-            // 現在の勝者を選択状態に
-            if (match.winner_team_id === match.team_a_id) {
-                winnerTeamA.checked = true;
-            } else if (match.winner_team_id === match.team_b_id) {
-                winnerTeamB.checked = true;
-            } else {
-                document.querySelector('input[name="winner"][value=""]').checked = true;
+            if (visibleMatches.length === 0) {
+                const adminMessage = document.getElementById("adminMessage");
+                adminMessage.style.display = "block";
+                adminMessage.textContent = "担当に割り当てられた試合がありません。";
+                return;
             }
 
-            confirmButton.onclick = async () => {
-                const selectedWinner = document.querySelector('input[name="winner"]:checked')?.value || null;
+            let filteredMatches = visibleMatches;
 
-                try {
-                    const response = await fetch("/api/matches", {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            matchId: currentMatchId,
-                            winnerTeamId: selectedWinner || null,
-                        }),
-                    });
-                    const result = await response.json();
+            if (searchTerm) {
+                filteredMatches = visibleMatches.filter((match) => {
+                    return (
+                        match.match_id.toLowerCase().includes(searchTerm) ||
+                        match.team_a_name.toLowerCase().includes(searchTerm) ||
+                        match.team_b_name.toLowerCase().includes(searchTerm) ||
+                        match.team_a_id.toLowerCase().includes(searchTerm) ||
+                        match.team_b_id.toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
 
-                    if (response.ok) {
-                        const matchIndex = allMatches.findIndex((m) => m.match_id === currentMatchId);
-                        if (matchIndex !== -1) {
-                            allMatches[matchIndex].winner_team_id = selectedWinner || null;
-                        }
+            if (filteredMatches.length === 0) {
+                matchList.innerHTML = '<p style="text-align: center; color: #999;">検索結果が見つかりませんでした</p>';
+                return;
+            }
 
-                        displayWinner.textContent = selectedWinner || "未決定";
-                        confirmMessage.textContent = "マッチを確定しました！";
-                        confirmMessage.className = "message success";
-                    } else {
-                        confirmMessage.textContent = result.message || "確定に失敗しました";
-                        confirmMessage.className = "message error";
-                    }
-                    confirmMessage.style.display = "block";
-                } catch (error) {
-                    console.error("Error confirming match:", error);
-                    confirmMessage.textContent = "通信エラーが発生しました";
-                    confirmMessage.className = "message error";
-                    confirmMessage.style.display = "block";
+            filteredMatches.forEach((match) => {
+                const matchItem = document.createElement("div");
+                matchItem.className = "match-item";
+                matchItem.dataset.matchId = match.match_id;
+
+                if (currentMatchId === match.match_id) {
+                    matchItem.classList.add("active");
                 }
-            };
 
-            matchDetailsContainer.style.display = "block";
+                matchItem.innerHTML = `
+                    <div class="match-item-header">
+                        <span class="match-item-id">${match.match_id}</span>
+                    </div>
+                    <div class="match-item-teams">
+                        ${match.team_a_name} vs ${match.team_b_name}
+                    </div>
+                `;
+
+                matchItem.onclick = async () => {
+                    // 他のアクティブ状態を解除
+                    document.querySelectorAll(".match-item").forEach(item => {
+                        item.classList.remove("active");
+                    });
+                    matchItem.classList.add("active");
+
+                    currentMatchId = match.match_id;
+                    await loadGameResults();
+                };
+
+                matchList.appendChild(matchItem);
+            });
+        }
+
+        async function loadGameResults() {
+            try {
+                const response = await fetch(`/api/games?match_id=${currentMatchId}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert(result.error || "ゲーム情報の取得に失敗しました");
+                    return;
+                }
+
+                currentMatchData = result;
+                gameResults = {};
+
+                // 既存の結果をgameResultsに保存
+                result.games.forEach(game => {
+                    gameResults[game.game_id] = {
+                        winner_player_id: game.winner_player_id,
+                        winner_team_id: game.winner_team_id,
+                        player_a_score: game.player_a_score || 0,
+                        player_b_score: game.player_b_score || 0,
+                        forfeit_winner: game.forfeit_winner || null
+                    };
+                });
+
+                displayGameResults();
+            } catch (error) {
+                console.error("Error loading game results:", error);
+                alert("ゲーム情報の読み込みに失敗しました");
+            }
+        }
+
+        function displayGameResults() {
+            const match = currentMatchData.match;
+            const games = currentMatchData.games;
+
+            document.getElementById("displayMatchId").textContent = match.match_id;
+            document.getElementById("displayTeamA").textContent = `${match.team_a_id} - ${match.team_a_name}`;
+            document.getElementById("displayTeamB").textContent = `${match.team_b_id} - ${match.team_b_name}`;
+            document.getElementById("teamAName").textContent = match.team_a_name;
+            document.getElementById("teamBName").textContent = match.team_b_name;
+
+            updateScoreSummary();
+            const gamesContainer = document.getElementById("gamesContainer");
+            gamesContainer.innerHTML = "";
+
+            games.forEach((game, index) => {
+                const gameCard = document.createElement("div");
+                gameCard.className = "game-result-card";
+                if (index === 0) gameCard.classList.add("expanded"); // 最初のゲームだけ開く
+
+                // BO3スコア表示
+                const result = gameResults[game.game_id] || {};
+                const scoreA = result.player_a_score || 0;
+                const scoreB = result.player_b_score || 0;
+                let scoreDisplay;
+                if (result.forfeit_winner) {
+                    scoreDisplay = '不戦勝';
+                } else if (scoreA > 0 || scoreB > 0) {
+                    scoreDisplay = `${scoreA} - ${scoreB}`;
+                } else {
+                    scoreDisplay = '未入力';
+                }
+
+                // ヘッダー（クリックで開閉）
+                const gameHeader = document.createElement("div");
+                gameHeader.className = "game-result-header";
+                gameHeader.innerHTML = `
+                    <div class="game-header-left">
+                        <div class="game-header-line1">第${game.game_number}戦</div>
+                        <div class="game-header-line2">${match.team_a_name} vs ${match.team_b_name}</div>
+                        <div class="game-header-line3">${game.player_a_name} vs ${game.player_b_name}</div>
+                        <div class="game-header-line4">${scoreDisplay}</div>
+                    </div>
+                    <span class="expand-icon">▼</span>
+                `;
+                gameHeader.onclick = () => {
+                    gameCard.classList.toggle("expanded");
+                };
+                gameCard.appendChild(gameHeader);
+
+                // ボディ（折りたたみ可能）
+                const gameBody = document.createElement("div");
+                gameBody.className = "game-result-body";
+
+                // 現在のゲームまでの各プレイヤーの勝利数を計算
+                let playerAWins = 0;
+                let playerBWins = 0;
+                games.forEach(g => {
+                    if (g.game_number < game.game_number) {
+                        if (gameResults[g.game_id]?.winner_player_id === game.player_a_id) {
+                            playerAWins++;
+                        }
+                        if (gameResults[g.game_id]?.winner_player_id === game.player_b_id) {
+                            playerBWins++;
+                        }
+                    }
+                });
+
+                // プレイヤーA
+                const rowA = document.createElement("div");
+                rowA.className = "game-result-row";
+                if (gameResults[game.game_id]?.winner_player_id === game.player_a_id) {
+                    rowA.classList.add("winner");
+                }
+                const playerAScoreA = result.player_a_score || 0;
+                rowA.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-main">
+                            <span class="player-name">${game.player_a_name}</span>
+                        </div>
+                        <div class="player-stats">これまで <span class="current-wins">${playerAWins}勝</span></div>
+                    </div>
+                    <div class="bo3-score-input">
+                        <label>BO3:</label>
+                        <div class="bo3-score-buttons">
+                            <button class="bo3-score-button ${playerAScoreA === 0 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 0)">0</button>
+                            <button class="bo3-score-button ${playerAScoreA === 1 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 1)">1</button>
+                            <button class="bo3-score-button ${playerAScoreA === 2 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 2)">2</button>
+                        </div>
+                        <button class="forfeit-button ${result.forfeit_winner === 'a' ? 'selected' : ''}" 
+                            onclick="setForfeitWinner('${game.game_id}', 'a')">不戦勝</button>
+                    </div>
+                `;
+                gameBody.appendChild(rowA);
+
+                // スコア区切り
+                const separator = document.createElement("div");
+                separator.style.textAlign = "center";
+                separator.style.padding = "5px";
+                separator.innerHTML = '<span class="bo3-score-separator">-</span>';
+                gameBody.appendChild(separator);
+
+                // プレイヤーB
+                const rowB = document.createElement("div");
+                rowB.className = "game-result-row";
+                if (gameResults[game.game_id]?.winner_player_id === game.player_b_id) {
+                    rowB.classList.add("winner");
+                }
+                const playerBScoreB = result.player_b_score || 0;
+                rowB.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-main">
+                            <span class="player-name">${game.player_b_name}</span>
+                        </div>
+                        <div class="player-stats">これまで <span class="current-wins">${playerBWins}勝</span></div>
+                    </div>
+                    <div class="bo3-score-input">
+                        <label>BO3:</label>
+                        <div class="bo3-score-buttons">
+                            <button class="bo3-score-button ${playerBScoreB === 0 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'b', 0)">0</button>
+                            <button class="bo3-score-button ${playerBScoreB === 1 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'b', 1)">1</button>
+                            <button class="bo3-score-button ${playerBScoreB === 2 && !result.forfeit_winner ? 'selected' : ''}" 
+                                    onclick="updateBO3Score('${game.game_id}', 'b', 2)">2</button>
+                        </div>
+                        <button class="forfeit-button ${result.forfeit_winner === 'b' ? 'selected' : ''}" 
+                            onclick="setForfeitWinner('${game.game_id}', 'b')">不戦勝</button>
+                    </div>
+                `;
+                gameBody.appendChild(rowB);
+
+                gameCard.appendChild(gameBody);
+                gamesContainer.appendChild(gameCard);
+            });
+
+            const matchDetailsContainer = document.getElementById("matchDetailsContainer");
+            matchDetailsContainer.classList.add("show");
+
+            // スクロールして詳細セクションを表示
+            matchDetailsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function updateBO3Score(gameId, player, score) {
+            const scoreNum = parseInt(score) || 0;
+
+            if (!gameResults[gameId]) {
+                gameResults[gameId] = {};
+            }
+
+            // 不戦勝フラグをクリア
+            delete gameResults[gameId].forfeit_winner;
+
+            if (player === 'a') {
+                gameResults[gameId].player_a_score = scoreNum;
+            } else {
+                gameResults[gameId].player_b_score = scoreNum;
+            }
+
+            // スコアから勝者を自動判定
+            const scoreA = gameResults[gameId].player_a_score || 0;
+            const scoreB = gameResults[gameId].player_b_score || 0;
+
+            // BO3なので2勝した方が勝者
+            if (scoreA === 2 && scoreB < 2) {
+                // プレイヤーAが勝者
+                const game = currentMatchData.games.find(g => g.game_id === gameId);
+                if (game) {
+                    gameResults[gameId].winner_player_id = game.player_a_id;
+                    gameResults[gameId].winner_team_id = currentMatchData.match.team_a_id;
+                }
+            } else if (scoreB === 2 && scoreA < 2) {
+                // プレイヤーBが勝者
+                const game = currentMatchData.games.find(g => g.game_id === gameId);
+                if (game) {
+                    gameResults[gameId].winner_player_id = game.player_b_id;
+                    gameResults[gameId].winner_team_id = currentMatchData.match.team_b_id;
+                }
+            } else {
+                // まだ勝者が決定していない
+                gameResults[gameId].winner_player_id = null;
+                gameResults[gameId].winner_team_id = null;
+            }
+
+            // 表示を更新
+            displayGameResults();
+            updateScoreSummary();
+        }
+
+        function setForfeitWinner(gameId, player) {
+            if (!gameResults[gameId]) {
+                gameResults[gameId] = {};
+            }
+
+            gameResults[gameId].forfeit_winner = player;
+
+            if (player === 'a') {
+                gameResults[gameId].player_a_score = 2;
+                gameResults[gameId].player_b_score = 0;
+                const game = currentMatchData.games.find(g => g.game_id === gameId);
+                if (game) {
+                    gameResults[gameId].winner_player_id = game.player_a_id;
+                    gameResults[gameId].winner_team_id = currentMatchData.match.team_a_id;
+                }
+            } else {
+                gameResults[gameId].player_a_score = 0;
+                gameResults[gameId].player_b_score = 2;
+                const game = currentMatchData.games.find(g => g.game_id === gameId);
+                if (game) {
+                    gameResults[gameId].winner_player_id = game.player_b_id;
+                    gameResults[gameId].winner_team_id = currentMatchData.match.team_b_id;
+                }
+            }
+
+            displayGameResults();
+            updateScoreSummary();
+        }
+
+        function updateScoreSummary() {
+            const match = currentMatchData.match;
+            let teamAWins = 0;
+            let teamBWins = 0;
+
+            Object.values(gameResults).forEach(result => {
+                if (result.winner_team_id === match.team_a_id) {
+                    teamAWins++;
+                } else if (result.winner_team_id === match.team_b_id) {
+                    teamBWins++;
+                }
+            });
+
+            document.getElementById("teamAWins").textContent = teamAWins;
+            document.getElementById("teamBWins").textContent = teamBWins;
+        }
+
+        async function saveResults(confirmed = false) {
+            const confirmMessage = document.getElementById("confirmMessage");
+            confirmMessage.style.display = "none";
+
+            // gameResultsを配列形式に変換
+            const game_results = currentMatchData.games.map(game => ({
+                game_id: game.game_id,
+                winner_player_id: gameResults[game.game_id]?.winner_player_id || null,
+                winner_team_id: gameResults[game.game_id]?.winner_team_id || null,
+                player_a_score: gameResults[game.game_id]?.player_a_score || 0,
+                player_b_score: gameResults[game.game_id]?.player_b_score || 0,
+                forfeit_winner: gameResults[game.game_id]?.forfeit_winner || null
+            }));
+
+            try {
+                const response = await fetch("/api/games", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        match_id: currentMatchId,
+                        game_results: game_results,
+                        confirmed: confirmed
+                    }),
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    confirmMessage.textContent = result.message || (confirmed ? "結果を確定しました！" : "一時保存しました");
+                    confirmMessage.className = "message success";
+                } else {
+                    confirmMessage.textContent = result.error || "保存に失敗しました";
+                    confirmMessage.className = "message error";
+                }
+                confirmMessage.style.display = "block";
+
+                // 確定の場合は再読み込み
+                if (confirmed && response.ok) {
+                    setTimeout(() => {
+                        loadGameResults();
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error("Error saving results:", error);
+                confirmMessage.textContent = "通信エラーが発生しました";
+                confirmMessage.className = "message error";
+                confirmMessage.style.display = "block";
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             checkAdmin();
+
+            document.getElementById("saveButton").onclick = () => saveResults(false);
+            document.getElementById("confirmButton").onclick = () => {
+                if (confirm("結果を確定してもよろしいですか？")) {
+                    saveResults(true);
+                }
+            };
         });
     </script>
 </body>
