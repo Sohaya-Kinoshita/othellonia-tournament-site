@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>チーム管理</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>チーム管理</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="teamViewCard">
+            <h2>チーム一覧を表示</h2>
+            <hr>
+            <p>現在登録されているすべてのチームを確認できます。</p>
+            <a href="./team_list.html" class="btn">チーム一覧を表示</a>
+        </div>
+
+        <div class="card hidden" id="teamCard">
+            <h2>新しいチームを作成</h2>
+            <form id="teamForm">
+                <div class="form-group">
+                    <label for="teamId">チームID（3文字）</label>
+                    <input type="text" id="teamId" name="teamId" maxlength="3" required placeholder="例: A01">
+                </div>
+                <div class="form-group">
+                    <label>チーム名（15文字以下）</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="teamName" name="teamName" maxlength="15" required placeholder="例: BLACK"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteTeamNameButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>チームリーダーID（12文字）</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="teamReader" name="teamReader" maxlength="12" required
+                            placeholder="例: 010100000001" style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteTeamReaderButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn">チームを作成</button>
+                <div id="teamMessage" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const teamCard = document.getElementById("teamCard");
+            const teamViewCard = document.getElementById("teamViewCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.textContent = "管理者としてログインしています。";
+            teamCard.classList.remove("hidden");
+            teamViewCard.classList.remove("hidden");
+            setupTeamForm();
+        }
+
+        function setupTeamForm() {
+            const teamForm = document.getElementById("teamForm");
+            const messageDiv = document.getElementById("teamMessage");
+            const teamNameInput = document.getElementById("teamName");
+            const teamReaderInput = document.getElementById("teamReader");
+            const pasteTeamNameButton = document.getElementById("pasteTeamNameButton");
+            const pasteTeamReaderButton = document.getElementById("pasteTeamReaderButton");
+
+            // チーム名の貼り付け処理
+            pasteTeamNameButton.addEventListener("click", async () => {
+                try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    teamNameInput.value = clipboardText.trim();
+                    messageDiv.style.display = "none";
+                } catch (error) {
+                    messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+
+            // チームリーダーIDの貼り付け処理
+            pasteTeamReaderButton.addEventListener("click", async () => {
+                try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    teamReaderInput.value = clipboardText.trim();
+                    messageDiv.style.display = "none";
+                } catch (error) {
+                    messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+
+            teamForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const teamId = document.getElementById("teamId").value.trim();
+                const teamName = document.getElementById("teamName").value.trim();
+                const teamReader = document.getElementById("teamReader").value.trim();
+
+                // チームリーダーIDの厳密な12文字チェック
+                if (teamReader.length !== 12) {
+                    messageDiv.textContent = "チームリーダーIDは12文字ちょうどで入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/teams", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ teamId, teamName, teamReader }),
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        messageDiv.textContent = "チームを作成しました！";
+                        messageDiv.className = "message success";
+                        teamForm.reset();
+                    } else {
+                        messageDiv.textContent = result.message || "エラーが発生しました";
+                        messageDiv.className = "message error";
+                    }
+                    messageDiv.style.display = "block";
+                } catch (error) {
+                    messageDiv.textContent = "通信エラーが発生しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAdmin();
+        });
+    </script>
+</body>
+
+</html>

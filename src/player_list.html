@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>プレイヤー一覧</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤー一覧</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./player_admin.html" class="btn">プレイヤー管理に戻る</a>
+        </div>
+
+        <div class="card hidden" id="playerListCard">
+            <h2>登録されているプレイヤー</h2>
+            <hr>
+            <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <label for="playerIdSearch">プレイヤーID検索</label>
+                <input id="playerIdSearch" type="text" placeholder="例: 010100000001"
+                    style="padding: 6px; min-width: 220px;" />
+                <button id="searchButton" type="button" class="btn">検索</button>
+                <button id="clearButton" type="button" class="btn">クリア</button>
+            </div>
+            <hr>
+            <div id="playerListContainer" style="overflow-x: auto;">
+                <table style="border-collapse: collapse; table-layout: auto; width: auto;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #ccc;">
+                            <th style="padding: 6px; text-align: center; border-right: 2px solid #999; width: 160px;">
+                                プレイヤーID</th>
+                            <th style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">プレイヤー名</th>
+                            <th style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">所属チーム1</th>
+                            <th style="padding: 6px; text-align: center;">所属チーム2</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTableBody"></tbody>
+                </table>
+            </div>
+            <p id="noPlayersMessage" style="text-align: center; color: #666; display: none;">
+                プレイヤーが登録されていません
+            </p>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        let allPlayers = [];
+
+        function renderPlayers(players) {
+            const playerTableBody = document.getElementById("playerTableBody");
+            const noPlayersMessage = document.getElementById("noPlayersMessage");
+
+            if (players.length === 0) {
+                noPlayersMessage.style.display = "block";
+                playerTableBody.innerHTML = "";
+                return;
+            }
+
+            noPlayersMessage.style.display = "none";
+            playerTableBody.innerHTML = players
+                .map(
+                    (player) => {
+                        const teamNames = (player.team_names || "")
+                            .split(" / ")
+                            .map((name) => name.trim())
+                            .filter((name) => name.length > 0);
+
+                        return `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 6px; text-align: center; border-right: 2px solid #999; width: 160px;">
+                                <span>${player.player_id}</span>
+                                <button type="button" onclick="copyPlayerId('${player.player_id}')" aria-label="プレイヤーIDをコピー" title="コピー" style="margin-left: 6px; width: 24px; height: 24px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+                                    📋
+                                </button>
+                            </td>
+                            <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${player.player_name}</td>
+                            <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${teamNames[0] || "(未所属)"}</td>
+                            <td style="padding: 6px; text-align: center;">${teamNames[1] || "(未所属)"}</td>
+                        </tr>
+                    `;
+                    },
+                )
+                .join("");
+        }
+
+        async function loadPlayerList() {
+            const adminMessage = document.getElementById("adminMessage");
+            const playerListCard = document.getElementById("playerListCard");
+            const playerIdSearch = document.getElementById("playerIdSearch");
+            const searchButton = document.getElementById("searchButton");
+            const clearButton = document.getElementById("clearButton");
+
+            try {
+                const authResponse = await fetch("/api/me");
+                const authResult = await authResponse.json();
+
+                if (!authResult.isLoggedIn) {
+                    location.href = "./admin_login.html";
+                    return;
+                }
+
+                if (authResult.type !== "admin") {
+                    adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                    return;
+                }
+
+                adminMessage.textContent = "管理者としてログインしています。";
+
+                const response = await fetch("/api/players");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    adminMessage.textContent = "プレイヤー一覧の取得に失敗しました";
+                    return;
+                }
+
+                allPlayers = result.players || [];
+                renderPlayers(allPlayers);
+
+                searchButton.addEventListener("click", () => {
+                    const keyword = playerIdSearch.value.trim();
+                    if (!keyword) {
+                        renderPlayers(allPlayers);
+                        return;
+                    }
+                    const filtered = allPlayers.filter((player) =>
+                        player.player_id.includes(keyword),
+                    );
+                    renderPlayers(filtered);
+                });
+
+                clearButton.addEventListener("click", () => {
+                    playerIdSearch.value = "";
+                    renderPlayers(allPlayers);
+                });
+
+                playerIdSearch.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        searchButton.click();
+                    }
+                });
+
+                playerListCard.classList.remove("hidden");
+            } catch (error) {
+                console.error("Error loading player list:", error);
+                adminMessage.textContent = "プレイヤー一覧の読み込みに失敗しました";
+            }
+        }
+
+        async function copyPlayerId(playerId) {
+            try {
+                await navigator.clipboard.writeText(playerId);
+            } catch (error) {
+                const textArea = document.createElement("textarea");
+                textArea.value = playerId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadPlayerList();
+        });
+    </script>
+</body>
+
+</html>

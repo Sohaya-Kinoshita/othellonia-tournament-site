@@ -14,12 +14,17 @@
     <main class="container">
         <div class="card">
             <h1>管理者ページ</h1>
+            <hr>
             <p id="adminMessage">確認中...</p>
         </div>
 
-        <div class="card hidden" id="createUserCard">
-            <h2>参加者管理</h2>
-            <p><a href="./participants.html">参加者の追加と確認はこちらから</a></p>
+        <div class="card hidden" id="adminMenuCard">
+            <h2>管理メニュー</h2>
+            <hr>
+            <ul class="admin-menu">
+                <li><a href="./team_admin.html">チーム管理</a></li>
+                <li><a href="./player_admin.html">プレイヤー管理</a></li>
+            </ul>
         </div>
     </main>
 
@@ -33,7 +38,7 @@
             const result = await response.json();
 
             const adminMessage = document.getElementById("adminMessage");
-            const createUserCard = document.getElementById("createUserCard");
+            const adminMenuCard = document.getElementById("adminMenuCard");
 
             if (!result.isLoggedIn) {
                 location.href = "./admin_login.html";
@@ -46,7 +51,7 @@
             }
 
             adminMessage.textContent = "管理者としてログインしています．";
-            createUserCard.style.display = "block";
+            adminMenuCard.classList.remove("hidden");
         }
 
         document.addEventListener("DOMContentLoaded", () => {

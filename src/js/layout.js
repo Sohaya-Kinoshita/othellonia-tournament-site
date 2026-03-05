@@ -78,6 +78,7 @@ function setupMenu() {
   const logoutLink = document.getElementById("logoutLink");
   const playerStatusDisplay = document.getElementById("playerStatusDisplay");
   const playerNameDisplay = document.getElementById("playerNameDisplay");
+  const adminPageLink = document.getElementById("adminPageLink");
 
   fetch("/api/me")
     .then((response) => response.json())
@@ -91,10 +92,16 @@ function setupMenu() {
           if (result.type === "admin") {
             playerNameDisplay.textContent = `(admin)${result.user.userName}`;
             playerStatusDisplay.classList.add("admin-status");
+            // 管理者ページリンクを表示
+            if (adminPageLink)
+              adminPageLink.style.setProperty("display", "flex", "important");
           } else {
             playerNameDisplay.textContent =
               result.player.playerName || "ユーザー";
             playerStatusDisplay.classList.remove("admin-status");
+            // 管理者ページリンクを非表示
+            if (adminPageLink)
+              adminPageLink.style.setProperty("display", "none", "important");
           }
         }
       } else {
@@ -102,6 +109,9 @@ function setupMenu() {
         if (logoutLink) logoutLink.style.display = "none";
         if (playerStatusDisplay)
           playerStatusDisplay.style.setProperty("display", "none", "important");
+        // 管理者ページリンクを非表示
+        if (adminPageLink)
+          adminPageLink.style.setProperty("display", "none", "important");
       }
     })
     .catch(() => {
@@ -109,6 +119,9 @@ function setupMenu() {
       if (logoutLink) logoutLink.style.display = "none";
       if (playerStatusDisplay)
         playerStatusDisplay.style.setProperty("display", "none", "important");
+      // 管理者ページリンクを非表示
+      if (adminPageLink)
+        adminPageLink.style.setProperty("display", "none", "important");
     });
 
   // ログアウト処理
