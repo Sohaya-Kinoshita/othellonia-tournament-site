@@ -133,6 +133,10 @@ IF NOT EXISTS games
 (12)  NOT NULL,
   player_b_id      CHAR
 (12)  NOT NULL,
+  player_a_score   INTEGER   NOT NULL DEFAULT 0,
+  player_b_score   INTEGER   NOT NULL DEFAULT 0,
+  forfeit_winner   CHAR
+(1),
   winner_team_id   CHAR
 (3),
   winner_player_id CHAR

@@ -485,12 +485,7 @@
 
                 allMatches = result.matches || [];
 
-                visibleMatches = allMatches.filter((match) => {
-                    const admins = Array.isArray(match.admin_user_id)
-                        ? match.admin_user_id
-                        : (match.admin_user_id ? [match.admin_user_id] : []);
-                    return admins.includes(currentAdminId);
-                });
+                visibleMatches = allMatches;
 
                 displayMatchList();
                 setupSearchBox();
@@ -515,7 +510,7 @@
             if (visibleMatches.length === 0) {
                 const adminMessage = document.getElementById("adminMessage");
                 adminMessage.style.display = "block";
-                adminMessage.textContent = "担当に割り当てられた試合がありません。";
+                adminMessage.textContent = "表示可能な試合がありません。";
                 return;
             }
 
@@ -571,13 +566,22 @@
             });
         }
 
-        async function loadGameResults() {
+        async function loadGameResults(retried = false) {
             try {
                 const response = await fetch(`/api/games?match_id=${currentMatchId}`);
                 const result = await response.json();
 
                 if (!response.ok) {
                     alert(result.error || "ゲーム情報の取得に失敗しました");
+                    return;
+                }
+
+                // ゲームが未生成の場合は自動初期化を試行
+                if ((!result.games || result.games.length === 0) && !retried) {
+                    const initialized = await initializeGamesForMatch(currentMatchId);
+                    if (initialized) {
+                        await loadGameResults(true);
+                    }
                     return;
                 }
 
@@ -599,6 +603,29 @@
             } catch (error) {
                 console.error("Error loading game results:", error);
                 alert("ゲーム情報の読み込みに失敗しました");
+            }
+        }
+
+        async function initializeGamesForMatch(matchId) {
+            try {
+                const response = await fetch("/api/matches", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ matchId })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert(result.message || "ゲーム初期化に失敗しました。オーダー提出状況を確認してください。");
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.error("Error initializing games:", error);
+                alert("ゲーム初期化中に通信エラーが発生しました");
+                return false;
             }
         }
 

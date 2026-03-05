@@ -40,9 +40,25 @@ export async function onRequest(context) {
           .all();
       } catch (adminError) {
         console.warn(
-          "match_adminsテーブルからの取得エラー:",
+          "match_admins.admin_user_id 取得エラー。user_id で再試行:",
           adminError.message,
         );
+        try {
+          const legacyAdmins = await db
+            .prepare(
+              `
+                SELECT match_id, user_id AS admin_user_id
+                FROM match_admins
+              `,
+            )
+            .all();
+          admins = legacyAdmins;
+        } catch (legacyAdminError) {
+          console.warn(
+            "match_adminsテーブルからの取得エラー:",
+            legacyAdminError.message,
+          );
+        }
       }
 
       const adminMap = new Map();
@@ -343,12 +359,26 @@ export async function onRequest(context) {
 
       await ensureMatchAdminsTable(db);
 
-      const assigned = await db
-        .prepare(
-          "SELECT 1 FROM match_admins WHERE match_id = ? AND user_id = ? LIMIT 1",
-        )
-        .bind(matchId, adminUserId)
-        .first();
+      let assigned = null;
+      try {
+        assigned = await db
+          .prepare(
+            "SELECT 1 FROM match_admins WHERE match_id = ? AND admin_user_id = ? LIMIT 1",
+          )
+          .bind(matchId, adminUserId)
+          .first();
+      } catch (assignedError) {
+        console.warn(
+          "admin_user_idでの権限確認に失敗。user_idで再試行:",
+          assignedError.message,
+        );
+        assigned = await db
+          .prepare(
+            "SELECT 1 FROM match_admins WHERE match_id = ? AND user_id = ? LIMIT 1",
+          )
+          .bind(matchId, adminUserId)
+          .first();
+      }
 
       let hasLegacyAssignment = false;
       if (!assigned) {
@@ -515,15 +545,13 @@ export async function onRequest(context) {
             .bind(matchId),
         ];
 
-        for (const userId of userIds) {
-          statements.push(
-            db
-              .prepare(
-                "INSERT INTO match_admins (match_id, user_id) VALUES (?, ?)",
-              )
-              .bind(matchId, userId),
-          );
-        }
+        const insertUsingAdminUserId = userIds.map((userId) =>
+          db
+            .prepare(
+              "INSERT INTO match_admins (match_id, admin_user_id) VALUES (?, ?)",
+            )
+            .bind(matchId, userId),
+        );
 
         statements.push(
           db
@@ -531,7 +559,22 @@ export async function onRequest(context) {
             .bind(userIds[0], matchId),
         );
 
-        await db.batch(statements);
+        try {
+          await db.batch([...statements, ...insertUsingAdminUserId]);
+        } catch (insertError) {
+          console.warn(
+            "admin_user_idでの管理者更新に失敗。user_idで再試行:",
+            insertError.message,
+          );
+          const insertUsingUserId = userIds.map((userId) =>
+            db
+              .prepare(
+                "INSERT INTO match_admins (match_id, user_id) VALUES (?, ?)",
+              )
+              .bind(matchId, userId),
+          );
+          await db.batch([...statements, ...insertUsingUserId]);
+        }
 
         return new Response(
           JSON.stringify({

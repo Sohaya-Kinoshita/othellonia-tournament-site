@@ -133,12 +133,8 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
   }
 
   if (!authCheck) {
-    return new Response(
-      JSON.stringify({ error: "このマッチの編集権限がありません" }),
-      {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+    console.log(
+      `match_id=${matchId} は担当未割当ですが、管理者のため閲覧を許可します`,
     );
   }
 
@@ -315,12 +311,8 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
   }
 
   if (!authCheck) {
-    return new Response(
-      JSON.stringify({ error: "このマッチの編集権限がありません" }),
-      {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+    console.log(
+      `match_id=${match_id} は担当未割当ですが、管理者のため更新を許可します`,
     );
   }
 
