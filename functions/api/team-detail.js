@@ -107,6 +107,8 @@ export async function onRequest(context) {
             ta.team_name as team_a_name,
             tb.team_name as team_b_name,
             m.best_of,
+            m.created_at,
+            m.order_deadline,
             m.winner_team_id
           FROM matches m
           LEFT JOIN teams ta ON m.team_a_id = ta.team_id

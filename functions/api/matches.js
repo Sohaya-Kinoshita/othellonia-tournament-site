@@ -13,6 +13,8 @@ export async function onRequest(context) {
             ta.team_name as team_a_name,
             tb.team_name as team_b_name,
             m.best_of,
+            m.created_at,
+            m.order_deadline,
             m.winner_team_id,
             m.admin_user_id
           FROM matches m
@@ -184,8 +186,16 @@ export async function onRequest(context) {
     await db
       .prepare(
         `
-        INSERT INTO matches (match_id, team_a_id, team_b_id, admin_user_id, best_of)
-        VALUES (?, ?, ?, ?, 7)
+        INSERT INTO matches (
+          match_id,
+          team_a_id,
+          team_b_id,
+          admin_user_id,
+          best_of,
+          created_at,
+          order_deadline
+        )
+        VALUES (?, ?, ?, ?, 7, datetime('now'), datetime(date('now', '+7 days') || ' 23:59:00'))
       `,
       )
       .bind(matchId, teamAId, teamBId, adminUserId)
