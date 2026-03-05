@@ -397,7 +397,7 @@ async function handlePost(context) {
         .prepare(
           `
             INSERT INTO orders (match_id, team_id, player_order, submitted_at)
-            VALUES (?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, datetime('now', '+9 hours'))
             ON CONFLICT(match_id, team_id) DO UPDATE SET
               player_order = excluded.player_order,
               submitted_at = excluded.submitted_at
@@ -440,7 +440,7 @@ async function handlePost(context) {
         .prepare(
           `
 					INSERT INTO orders (order_id, match_id, team_id, submitted_at, submitted_by)
-					VALUES (?, ?, ?, datetime('now'), ?)
+					VALUES (?, ?, ?, datetime('now', '+9 hours'), ?)
 				`,
         )
         .bind(nextOrderId, matchId, teamId, match.admin_user_id),

@@ -195,7 +195,7 @@ export async function onRequest(context) {
           created_at,
           order_deadline
         )
-        VALUES (?, ?, ?, ?, 7, datetime('now'), datetime(date('now', '+7 days') || ' 23:59:00'))
+        VALUES (?, ?, ?, ?, 7, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
       `,
       )
       .bind(matchId, teamAId, teamBId, adminUserId)
