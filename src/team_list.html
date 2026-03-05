@@ -15,7 +15,7 @@
         <div class="card">
             <h1>チーム一覧</h1>
             <p id="adminMessage">確認中...</p>
-            <a href="./team_admin.html" class="btn">チーム管理に戻る</a>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
         <div class="card hidden" id="teamListCard">
@@ -98,7 +98,7 @@
                     return;
                 }
 
-                adminMessage.textContent = "管理者としてログインしています。";
+                adminMessage.style.display = "none";
 
                 // チーム一覧を取得
                 const response = await fetch("/api/teams");

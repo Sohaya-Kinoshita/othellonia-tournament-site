@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>チームを削除</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>チームを削除</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="teamDeleteCard">
+            <h2>削除するチームを選択</h2>
+            <div id="teamListContainer" style="overflow-x: auto;"></div>
+            <p id="noTeamsMessage" style="text-align: center; color: #666; display: none;">
+                チームが登録されていません
+            </p>
+            <div id="deleteMessage" class="message" style="display: none;"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const teamDeleteCard = document.getElementById("teamDeleteCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            teamDeleteCard.classList.remove("hidden");
+            loadTeams();
+        }
+
+        async function loadTeams() {
+            const teamListContainer = document.getElementById("teamListContainer");
+            const noTeamsMessage = document.getElementById("noTeamsMessage");
+
+            try {
+                const response = await fetch("/api/teams");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage("チーム一覧の取得に失敗しました", "error");
+                    return;
+                }
+
+                const teams = result.teams || [];
+                if (teams.length === 0) {
+                    teamListContainer.innerHTML = "";
+                    noTeamsMessage.style.display = "block";
+                    return;
+                }
+
+                noTeamsMessage.style.display = "none";
+                teamListContainer.innerHTML = `
+                    <table style="border-collapse: collapse; table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #ccc;">
+                                <th style="padding: 5px; text-align: center; border-right: 2px solid #999; width: 100px;">チームID</th>
+                                <th style="padding: 5px; text-align: left; border-right: 2px dotted #ccc;">チーム名</th>
+                                <th style="padding: 5px; text-align: center; width: 140px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${teams
+                        .map(
+                            (team) => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 5px; text-align: center; border-right: 2px solid #999;">${team.team_id}</td>
+                                    <td style="padding: 5px; border-right: 2px dotted #ccc;">${team.team_name}</td>
+                                    <td style="padding: 5px; text-align: center;">
+                                        <button type="button" class="btn" data-team-id="${team.team_id}">削除</button>
+                                    </td>
+                                </tr>
+                            `,
+                        )
+                        .join("")}
+                        </tbody>
+                    </table>
+                `;
+
+                teamListContainer.querySelectorAll("button[data-team-id]").forEach((button) => {
+                    button.addEventListener("click", async () => {
+                        const teamId = button.getAttribute("data-team-id");
+                        const confirmed = confirm(`チーム ${teamId} を削除します。よろしいですか？`);
+                        if (!confirmed) return;
+
+                        const deleteResponse = await fetch("/api/teams", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ teamId }),
+                        });
+                        const deleteResult = await deleteResponse.json();
+
+                        if (deleteResponse.ok) {
+                            showMessage("チームを削除しました", "success");
+                            await loadTeams();
+                        } else {
+                            showMessage(deleteResult.message || "チーム削除に失敗しました", "error");
+                        }
+                    });
+                });
+            } catch (error) {
+                showMessage("通信エラーが発生しました", "error");
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById("deleteMessage");
+            messageDiv.textContent = text;
+            messageDiv.className = type === "success" ? "message success" : "message error";
+            messageDiv.style.display = "block";
+        }
+
+        document.addEventListener("DOMContentLoaded", checkAdmin);
+    </script>
+</body>
+
+</html>

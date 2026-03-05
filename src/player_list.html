@@ -16,7 +16,7 @@
             <h1>プレイヤー一覧</h1>
             <hr>
             <p id="adminMessage">確認中...</p>
-            <a href="./player_admin.html" class="btn">プレイヤー管理に戻る</a>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
         <div class="card hidden" id="playerListCard">
@@ -114,7 +114,7 @@
                     return;
                 }
 
-                adminMessage.textContent = "管理者としてログインしています。";
+                adminMessage.style.display = "none";
 
                 const response = await fetch("/api/players");
                 const result = await response.json();

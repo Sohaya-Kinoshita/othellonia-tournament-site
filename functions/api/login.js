@@ -47,9 +47,12 @@ export async function onRequest(context) {
         },
       );
 
+      // 本番環境ではSecure; 開発環境ではなし
+      const isProduction = new URL(context.request.url).protocol === "https:";
+      const secureFlag = isProduction ? "; Secure" : "";
       response.headers.set(
         "Set-Cookie",
-        `sessionId=${sessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
+        `sessionId=${sessionId}; Path=/; HttpOnly${secureFlag}; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
       );
 
       return response;
@@ -98,9 +101,12 @@ export async function onRequest(context) {
         },
       );
 
+      // 本番環境ではSecure; 開発環境ではなし
+      const isProduction = new URL(context.request.url).protocol === "https:";
+      const secureFlag = isProduction ? "; Secure" : "";
       response.headers.set(
         "Set-Cookie",
-        `sessionId=${sessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
+        `sessionId=${sessionId}; Path=/; HttpOnly${secureFlag}; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
       );
 
       return response;

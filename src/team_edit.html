@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
-    <title>新しいチームを作成</title>
+    <title>チーム編集</title>
 </head>
 
 <body>
@@ -13,38 +13,51 @@
 
     <main class="container">
         <div class="card">
-            <h1>新しいチームを作成</h1>
+            <h1>チーム編集</h1>
             <hr>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
-        <div class="card hidden" id="teamCard">
-            <h2>新しいチームを作成</h2>
-            <form id="teamForm">
+        <div class="card hidden" id="teamEditCard">
+            <h2>チーム情報を編集</h2>
+
+            <div style="margin-bottom: 20px;">
+                <label for="teamSelect">編集するチーム（チームID - チーム名）</label>
+                <select id="teamSelect"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                    <option value="">-- チームを選択してください --</option>
+                </select>
+            </div>
+
+            <form id="teamEditForm" style="display: none;">
                 <div class="form-group">
-                    <label for="teamId">チームID（3文字）</label>
-                    <input type="text" id="teamId" name="teamId" maxlength="3" required placeholder="例: A01">
+                    <label>チームID（読み取り専用）</label>
+                    <input type="text" id="teamIdDisplay" disabled
+                        style="background-color: #f0f0f0; cursor: not-allowed;">
                 </div>
+
                 <div class="form-group">
                     <label>チーム名（15文字以下）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="teamName" name="teamName" maxlength="15" required placeholder="例: BLACK"
+                        <input type="text" id="teamNameEdit" maxlength="15" required placeholder="例: BLACK"
                             style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteTeamNameButton"
+                        <button type="button" class="btn" id="pasteTeamNameEditButton"
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label>チームリーダーID（12文字）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="teamReader" name="teamReader" maxlength="12" required
-                            placeholder="例: 010100000001" style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteTeamReaderButton"
+                        <input type="text" id="teamReaderEdit" maxlength="12" required placeholder="例: 010100000001"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteTeamReaderEditButton"
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
                 </div>
-                <button type="submit" class="btn">チームを作成</button>
+
+                <button type="submit" class="btn">チーム情報を更新</button>
                 <div id="teamMessage" class="message" style="display: none;"></div>
             </form>
         </div>
@@ -59,7 +72,7 @@
             const result = await response.json();
 
             const adminMessage = document.getElementById("adminMessage");
-            const teamCard = document.getElementById("teamCard");
+            const teamEditCard = document.getElementById("teamEditCard");
 
             if (!result.isLoggedIn) {
                 location.href = "./admin_login.html";
@@ -72,17 +85,67 @@
             }
 
             adminMessage.style.display = "none";
-            teamCard.classList.remove("hidden");
-            setupTeamForm();
+            teamEditCard.classList.remove("hidden");
+            loadTeams();
         }
 
-        function setupTeamForm() {
-            const teamForm = document.getElementById("teamForm");
+        async function loadTeams() {
+            try {
+                const response = await fetch("/api/teams");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert("チーム一覧取得に失敗しました");
+                    return;
+                }
+
+                const teamSelect = document.getElementById("teamSelect");
+                const teams = result.teams || [];
+
+                teams.forEach((team) => {
+                    const option = document.createElement("option");
+                    option.value = team.team_id;
+                    option.textContent = `${team.team_id} - ${team.team_name}`;
+                    teamSelect.appendChild(option);
+                });
+
+                teamSelect.addEventListener("change", () => {
+                    selectTeam(teams);
+                });
+            } catch (error) {
+                console.error("Error loading teams:", error);
+                alert("チーム一覧の読み込みに失敗しました");
+            }
+        }
+
+        function selectTeam(teams) {
+            const teamSelect = document.getElementById("teamSelect");
+            const teamEditForm = document.getElementById("teamEditForm");
+            const selectedTeamId = teamSelect.value;
+
+            if (!selectedTeamId) {
+                teamEditForm.style.display = "none";
+                return;
+            }
+
+            const selectedTeam = teams.find((t) => t.team_id === selectedTeamId);
+
+            if (selectedTeam) {
+                document.getElementById("teamIdDisplay").value = selectedTeam.team_id;
+                document.getElementById("teamNameEdit").value = selectedTeam.team_name;
+                document.getElementById("teamReaderEdit").value = selectedTeam.team_reader;
+                teamEditForm.style.display = "block";
+                setupEditForm();
+            }
+        }
+
+        function setupEditForm() {
+            const teamEditForm = document.getElementById("teamEditForm");
             const messageDiv = document.getElementById("teamMessage");
-            const teamNameInput = document.getElementById("teamName");
-            const teamReaderInput = document.getElementById("teamReader");
-            const pasteTeamNameButton = document.getElementById("pasteTeamNameButton");
-            const pasteTeamReaderButton = document.getElementById("pasteTeamReaderButton");
+            const teamNameInput = document.getElementById("teamNameEdit");
+            const teamReaderInput = document.getElementById("teamReaderEdit");
+            const pasteTeamNameButton = document.getElementById("pasteTeamNameEditButton");
+            const pasteTeamReaderButton = document.getElementById("pasteTeamReaderEditButton");
 
             // チーム名の貼り付け処理
             pasteTeamNameButton.addEventListener("click", async () => {
@@ -110,13 +173,14 @@
                 }
             });
 
-            teamForm.addEventListener("submit", async (e) => {
+            // フォーム送信
+            teamEditForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
-                const teamId = document.getElementById("teamId").value.trim();
-                const teamName = document.getElementById("teamName").value.trim();
-                const teamReader = document.getElementById("teamReader").value.trim();
 
-                // チームリーダーIDの厳密な12文字チェック
+                const teamId = document.getElementById("teamIdDisplay").value;
+                const teamName = teamNameInput.value.trim();
+                const teamReader = teamReaderInput.value.trim();
+
                 if (teamReader.length !== 12) {
                     messageDiv.textContent = "チームリーダーIDは12文字ちょうどで入力してください";
                     messageDiv.className = "message error";
@@ -126,16 +190,15 @@
 
                 try {
                     const response = await fetch("/api/teams", {
-                        method: "POST",
+                        method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ teamId, teamName, teamReader }),
                     });
                     const result = await response.json();
 
                     if (response.ok) {
-                        messageDiv.textContent = "チームを作成しました！";
+                        messageDiv.textContent = "チーム情報を更新しました！";
                         messageDiv.className = "message success";
-                        teamForm.reset();
                     } else {
                         messageDiv.textContent = result.message || "エラーが発生しました";
                         messageDiv.className = "message error";

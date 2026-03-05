@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>プレイヤーを削除</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤーを削除</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="playerDeleteCard">
+            <h2>削除するプレイヤーを選択</h2>
+            <div id="playerListContainer" style="overflow-x: auto;"></div>
+            <p id="noPlayersMessage" style="text-align: center; color: #666; display: none;">
+                プレイヤーが登録されていません
+            </p>
+            <div id="deleteMessage" class="message" style="display: none;"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const playerDeleteCard = document.getElementById("playerDeleteCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            playerDeleteCard.classList.remove("hidden");
+            loadPlayers();
+        }
+
+        async function loadPlayers() {
+            const playerListContainer = document.getElementById("playerListContainer");
+            const noPlayersMessage = document.getElementById("noPlayersMessage");
+
+            try {
+                const response = await fetch("/api/players");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage("プレイヤー一覧の取得に失敗しました", "error");
+                    return;
+                }
+
+                const players = result.players || [];
+                if (players.length === 0) {
+                    playerListContainer.innerHTML = "";
+                    noPlayersMessage.style.display = "block";
+                    return;
+                }
+
+                noPlayersMessage.style.display = "none";
+                playerListContainer.innerHTML = `
+                    <table style="border-collapse: collapse; table-layout: auto; width: auto;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #ccc;">
+                                <th style="padding: 5px; text-align: center; border-right: 2px solid #999; width: 130px;">プレイヤーID</th>
+                                <th style="padding: 5px; text-align: left; border-right: 2px dotted #ccc; white-space: nowrap;">プレイヤー名</th>
+                                <th style="padding: 5px; text-align: center; width: 100px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${players
+                        .map(
+                            (player) => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 5px; text-align: center; border-right: 2px solid #999;">${player.player_id}</td>
+                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap;">${player.player_name}</td>
+                                    <td style="padding: 5px; text-align: center;">
+                                        <button type="button" class="btn" data-player-id="${player.player_id}">削除</button>
+                                    </td>
+                                </tr>
+                            `,
+                        )
+                        .join("")}
+                        </tbody>
+                    </table>
+                `;
+
+                playerListContainer.querySelectorAll("button[data-player-id]").forEach((button) => {
+                    button.addEventListener("click", async () => {
+                        const playerId = button.getAttribute("data-player-id");
+                        const playerName =
+                            button.closest("tr")?.children?.[1]?.textContent?.trim() || "";
+                        const playerLabel = playerName
+                            ? `${playerId}-${playerName}`
+                            : playerId;
+                        const confirmed = confirm(`プレイヤー ${playerLabel} を削除します。よろしいですか？`);
+                        if (!confirmed) return;
+
+                        const deleteResponse = await fetch("/api/players", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ playerId }),
+                        });
+                        const deleteResult = await deleteResponse.json();
+
+                        if (deleteResponse.ok) {
+                            showMessage("プレイヤーを削除しました", "success");
+                            await loadPlayers();
+                        } else {
+                            showMessage(deleteResult.message || "プレイヤー削除に失敗しました", "error");
+                        }
+                    });
+                });
+            } catch (error) {
+                showMessage("通信エラーが発生しました", "error");
+            }
+        }
+
+        let toastTimer = null;
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById("deleteMessage");
+            messageDiv.textContent = text;
+            messageDiv.className =
+                type === "success"
+                    ? "message success toast-bottom"
+                    : "message error toast-bottom";
+            messageDiv.style.display = "block";
+
+            requestAnimationFrame(() => {
+                messageDiv.classList.add("show");
+            });
+
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
+
+            toastTimer = setTimeout(() => {
+                messageDiv.classList.remove("show");
+                setTimeout(() => {
+                    messageDiv.style.display = "none";
+                }, 260);
+            }, 2800);
+        }
+
+        document.addEventListener("DOMContentLoaded", checkAdmin);
+    </script>
+</body>
+
+</html>

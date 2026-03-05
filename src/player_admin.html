@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
-    <title>プレイヤー管理</title>
+    <title>新しいプレイヤーを作成</title>
 </head>
 
 <body>
@@ -13,24 +13,17 @@
 
     <main class="container">
         <div class="card">
-            <h1>プレイヤー管理</h1>
+            <h1>新しいプレイヤーを作成</h1>
             <hr>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
-        <div class="card hidden" id="playerViewCard">
-            <h2>プレイヤー一覧を表示</h2>
-            <hr>
-            <p>現在登録されているすべてのプレイヤーを確認できます。</p>
-            <a href="./player_list.html" class="btn">プレイヤー一覧を表示</a>
-        </div>
-
         <div class="card hidden" id="playerCard">
-            <h2>新しい参加者を作成</h2>
+            <h2>新しいプレイヤーを作成</h2>
             <form id="playerForm">
                 <div class="form-group">
-                    <label for="playerId">参加者ID（12文字）</label>
+                    <label for="playerId">プレイヤーID（12文字）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="playerId" name="playerId" maxlength="12" minlength="12" required
                             placeholder="例: 010100000001" style="margin-bottom: 0;">
@@ -39,7 +32,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="playerName">参加者名（10文字以下）</label>
+                    <label for="playerName">プレイヤー名（10文字以下）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="playerName" name="playerName" maxlength="10" required placeholder="例: 太郎"
                             style="margin-bottom: 0;">
@@ -47,7 +40,7 @@
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
                 </div>
-                <button type="submit" class="btn">参加者を作成</button>
+                <button type="submit" class="btn">プレイヤーを作成</button>
                 <div id="playerMessage" class="message" style="display: none;"></div>
             </form>
         </div>
@@ -63,7 +56,6 @@
 
             const adminMessage = document.getElementById("adminMessage");
             const playerCard = document.getElementById("playerCard");
-            const playerViewCard = document.getElementById("playerViewCard");
 
             if (!result.isLoggedIn) {
                 location.href = "./admin_login.html";
@@ -75,9 +67,8 @@
                 return;
             }
 
-            adminMessage.textContent = "管理者としてログインしています。";
+            adminMessage.style.display = "none";
             playerCard.classList.remove("hidden");
-            playerViewCard.classList.remove("hidden");
             setupPlayerForm();
         }
 
@@ -119,7 +110,7 @@
                 const playerName = document.getElementById("playerName").value.trim();
 
                 if (playerId.length !== 12) {
-                    messageDiv.textContent = "参加者IDは12文字ちょうどで入力してください";
+                    messageDiv.textContent = "プレイヤーIDは12文字ちょうどで入力してください";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;
@@ -134,7 +125,7 @@
                     const result = await response.json();
 
                     if (response.ok) {
-                        messageDiv.textContent = "参加者を作成しました！";
+                        messageDiv.textContent = "プレイヤーを作成しました！";
                         messageDiv.className = "message success";
                         playerForm.reset();
                     } else {

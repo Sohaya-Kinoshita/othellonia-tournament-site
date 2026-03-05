@@ -88,7 +88,7 @@ function setupMenu() {
         if (logoutLink) logoutLink.style.display = "flex";
         if (playerStatusDisplay && playerNameDisplay) {
           playerStatusDisplay.style.setProperty("display", "flex", "important");
-          // 管理者か参加者かで表示を分ける
+          // 管理者かプレイヤーかで表示を分ける
           if (result.type === "admin") {
             playerNameDisplay.textContent = `(admin)${result.user.userName}`;
             playerStatusDisplay.classList.add("admin-status");

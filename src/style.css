@@ -1656,6 +1656,27 @@ th {
   color: #14532d;
   font-weight: 700;
 }
+
+.message.toast-bottom {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%) translateY(24px);
+  opacity: 0;
+  z-index: 2000;
+  min-width: 280px;
+  max-width: min(92vw, 640px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.message.toast-bottom.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 .hidden {
   display: none !important;
 }

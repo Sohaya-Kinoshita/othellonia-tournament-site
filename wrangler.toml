@@ -1,6 +1,8 @@
 name = "othellonia-tournament-site"
 compatibility_date = "2026-02-22"
 pages_build_output_dir = "src"
+
+[env.production]
 account_id = "b047d662ecb52d3d1866efcb85f8be69"
 
 [[d1_databases]]

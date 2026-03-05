@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>プレイヤー情報更新</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤー情報更新</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="assignmentCard">
+            <h2>プレイヤーの情報を更新する</h2>
+
+            <div style="margin-bottom: 20px;">
+                <label for="playerSelect">更新するプレイヤー（プレイヤーID - プレイヤー名）</label>
+                <select id="playerSelect"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                    <option value="">-- プレイヤーを選択してください --</option>
+                </select>
+            </div>
+
+            <div id="teamAssignmentContainer" style="display: none;">
+                <div class="card" style="margin-top: 20px; background-color: #f9f9f9;">
+                    <h3>プレイヤー名を変更</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
+                        <input type="text" id="playerNameEditInput" maxlength="10" placeholder="プレイヤー名（10文字以下）"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pastePlayerNameEditButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                        <button type="button" class="btn" id="updatePlayerNameButton"
+                            style="margin: 0; white-space: nowrap;">名前を更新</button>
+                    </div>
+
+                    <h3>チーム割り当て</h3>
+                    <p style="color: #666; font-size: 0.9em;">プレイヤーは最大2つのチームに登録できます</p>
+
+                    <div id="teamListContainer" style="margin-top: 15px;">
+                        <!-- チーム一覧がここに動的に挿入されます -->
+                    </div>
+
+                    <div id="assignmentMessage" class="message" style="display: none; margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        let allPlayers = [];
+        let allTeams = [];
+        let currentPlayerId = null;
+
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const assignmentCard = document.getElementById("assignmentCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            assignmentCard.classList.remove("hidden");
+            loadData();
+        }
+
+        async function loadData() {
+            try {
+                // プレイヤー一覧を取得
+                const playersResponse = await fetch("/api/players");
+                const playersResult = await playersResponse.json();
+                allPlayers = playersResult.players || [];
+
+                // チーム一覧を取得
+                const teamsResponse = await fetch("/api/teams");
+                const teamsResult = await teamsResponse.json();
+                allTeams = teamsResult.teams || [];
+
+                populatePlayerSelect();
+            } catch (error) {
+                console.error("Error loading data:", error);
+                alert("データの読み込みに失敗しました");
+            }
+        }
+
+        function populatePlayerSelect() {
+            const playerSelect = document.getElementById("playerSelect");
+
+            allPlayers.forEach((player) => {
+                const option = document.createElement("option");
+                option.value = player.player_id;
+                option.textContent = `${player.player_id} - ${player.player_name}`;
+                playerSelect.appendChild(option);
+            });
+
+            playerSelect.addEventListener("change", () => {
+                const selectedPlayerId = playerSelect.value;
+                if (selectedPlayerId) {
+                    currentPlayerId = selectedPlayerId;
+                    displayTeamAssignment();
+                } else {
+                    document.getElementById("teamAssignmentContainer").style.display = "none";
+                }
+            });
+        }
+
+        async function displayTeamAssignment() {
+            const teamAssignmentContainer = document.getElementById("teamAssignmentContainer");
+            const teamListContainer = document.getElementById("teamListContainer");
+            const playerNameEditInput = document.getElementById("playerNameEditInput");
+            const pastePlayerNameEditButton = document.getElementById("pastePlayerNameEditButton");
+            const updatePlayerNameButton = document.getElementById("updatePlayerNameButton");
+            const messageDiv = document.getElementById("assignmentMessage");
+
+            try {
+                const selectedPlayer = allPlayers.find(
+                    (player) => player.player_id === currentPlayerId
+                );
+
+                if (selectedPlayer) {
+                    playerNameEditInput.value = selectedPlayer.player_name || "";
+                }
+
+                pastePlayerNameEditButton.onclick = async () => {
+                    try {
+                        const clipboardText = await navigator.clipboard.readText();
+                        playerNameEditInput.value = clipboardText.trim();
+                        messageDiv.style.display = "none";
+                    } catch (error) {
+                        messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                    }
+                };
+
+                updatePlayerNameButton.onclick = async () => {
+                    const playerName = playerNameEditInput.value.trim();
+
+                    if (!playerName) {
+                        messageDiv.textContent = "プレイヤー名を入力してください";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                        return;
+                    }
+
+                    if (playerName.length > 10) {
+                        messageDiv.textContent = "プレイヤー名は10文字以下で入力してください";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                        return;
+                    }
+
+                    try {
+                        const updateResponse = await fetch("/api/players", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                playerId: currentPlayerId,
+                                playerName,
+                            }),
+                        });
+                        const updateResult = await updateResponse.json();
+
+                        if (updateResponse.ok) {
+                            const playerIndex = allPlayers.findIndex(
+                                (player) => player.player_id === currentPlayerId
+                            );
+                            if (playerIndex !== -1) {
+                                allPlayers[playerIndex].player_name = playerName;
+                            }
+
+                            const playerSelect = document.getElementById("playerSelect");
+                            const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+                            if (selectedOption) {
+                                selectedOption.textContent = `${currentPlayerId} - ${playerName}`;
+                            }
+
+                            messageDiv.textContent = "プレイヤー名を更新しました！";
+                            messageDiv.className = "message success";
+                        } else {
+                            messageDiv.textContent =
+                                updateResult.message || "プレイヤー名の更新に失敗しました";
+                            messageDiv.className = "message error";
+                        }
+                        messageDiv.style.display = "block";
+                    } catch (error) {
+                        console.error("Error updating player name:", error);
+                        messageDiv.textContent = "通信エラーが発生しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                    }
+                };
+
+                // プレイヤーが割り当てられているチームを取得
+                const response = await fetch(
+                    `/api/team-members?playerId=${encodeURIComponent(currentPlayerId)}`
+                );
+                const result = await response.json();
+                const assignedTeams = result.teams.map((t) => t.team_id) || [];
+
+                // チーム一覧を表示
+                teamListContainer.innerHTML = allTeams
+                    .map((team) => {
+                        const isAssigned = assignedTeams.includes(team.team_id);
+                        return `
+                            <div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #ddd;">
+                                <input 
+                                    type="checkbox" 
+                                    class="team-checkbox" 
+                                    value="${team.team_id}" 
+                                    ${isAssigned ? "checked" : ""}
+                                    style="margin-right: 10px;"
+                                >
+                                <span>${team.team_id} - ${team.team_name}</span>
+                            </div>
+                        `;
+                    })
+                    .join("");
+
+                // チェックボックスのイベントリスナーを設定
+                setupCheckboxListeners(assignedTeams);
+
+                teamAssignmentContainer.style.display = "block";
+            } catch (error) {
+                console.error("Error loading team assignment:", error);
+                alert("チーム情報の読み込みに失敗しました");
+            }
+        }
+
+        function setupCheckboxListeners(currentAssignedTeams) {
+            const checkboxes = document.querySelectorAll(".team-checkbox");
+            const messageDiv = document.getElementById("assignmentMessage");
+
+            checkboxes.forEach((checkbox) => {
+                checkbox.addEventListener("change", async () => {
+                    const teamId = checkbox.value;
+                    const isChecked = checkbox.checked;
+
+                    try {
+                        if (isChecked) {
+                            // チームに追加
+                            const response = await fetch("/api/team-members", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    playerId: currentPlayerId,
+                                    teamId: teamId,
+                                }),
+                            });
+                            const result = await response.json();
+
+                            if (response.ok) {
+                                messageDiv.textContent = `${teamId}チームに追加しました！`;
+                                messageDiv.className = "message success";
+                            } else {
+                                messageDiv.textContent =
+                                    result.message || "追加に失敗しました";
+                                messageDiv.className = "message error";
+                                checkbox.checked = false;
+                            }
+                        } else {
+                            // チームから削除
+                            const response = await fetch("/api/team-members", {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    playerId: currentPlayerId,
+                                    teamId: teamId,
+                                }),
+                            });
+                            const result = await response.json();
+
+                            if (response.ok) {
+                                messageDiv.textContent = `${teamId}チームから削除しました！`;
+                                messageDiv.className = "message success";
+                            } else {
+                                messageDiv.textContent =
+                                    result.message || "削除に失敗しました";
+                                messageDiv.className = "message error";
+                                checkbox.checked = true;
+                            }
+                        }
+
+                        messageDiv.style.display = "block";
+                        setTimeout(() => {
+                            messageDiv.style.display = "none";
+                        }, 3000);
+                    } catch (error) {
+                        console.error("Error updating team assignment:", error);
+                        messageDiv.textContent = "通信エラーが発生しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                        checkbox.checked = !isChecked;
+                    }
+                });
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAdmin();
+        });
+    </script>
+</body>
+
+</html>
