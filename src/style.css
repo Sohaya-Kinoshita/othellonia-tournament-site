@@ -1577,3 +1577,11 @@ th {
 .support-list a:hover {
   text-decoration: underline;
 }
+
+/* 管理者ログイン状態の色 */
+.menu-item.admin-status {
+  color: #fff !important; /* 白色 */
+  background-color: #ff6b6b !important; /* 赤色背景 */
+  font-weight: bold !important;
+  border-radius: 6px !important;
+}

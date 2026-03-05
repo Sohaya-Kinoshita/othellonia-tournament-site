@@ -13,7 +13,9 @@ export async function onRequest(context) {
     // 参加者ログイン（プレイヤーIDのみ）
     if (playerId && !userId) {
       const player = await db
-        .prepare("SELECT player_id, player_name FROM players WHERE player_id = ?")
+        .prepare(
+          "SELECT player_id, player_name FROM players WHERE player_id = ?",
+        )
         .bind(playerId)
         .first();
 
@@ -34,7 +36,10 @@ export async function onRequest(context) {
         JSON.stringify({
           success: true,
           type: "player",
-          player: { playerId: player.player_id, playerName: player.player_name },
+          player: {
+            playerId: player.player_id,
+            playerName: player.player_name,
+          },
         }),
         {
           status: 200,
@@ -103,8 +108,7 @@ export async function onRequest(context) {
 
     return new Response(
       JSON.stringify({
-        message:
-          "プレイヤーIDまたはユーザーIDとパスワードが必要です",
+        message: "プレイヤーIDまたはユーザーIDとパスワードが必要です",
       }),
       {
         status: 400,
@@ -121,4 +125,4 @@ export async function onRequest(context) {
       },
     );
   }
-
+}

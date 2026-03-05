@@ -67,12 +67,12 @@
             errorMessage.style.display = 'none';
 
             try {
-                const response = await fetch('/api/admin-login', {
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ adminId, adminPassword })
+                    body: JSON.stringify({ userId: adminId, password: adminPassword })
                 });
 
                 const result = await response.json();

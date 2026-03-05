@@ -36,11 +36,11 @@
             const createUserCard = document.getElementById("createUserCard");
 
             if (!result.isLoggedIn) {
-                location.href = "./login.html";
+                location.href = "./admin_login.html";
                 return;
             }
 
-            if (result.user.role !== "admin") {
+            if (result.type !== "admin") {
                 adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
                 return;
             }
