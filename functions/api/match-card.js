@@ -27,8 +27,7 @@ export async function onRequest(context) {
           m.team_a_id,
           m.team_b_id,
           ta.team_name as team_a_name,
-          tb.team_name as team_b_name,
-          m.scheduled_at
+          tb.team_name as team_b_name
         FROM matches m
         LEFT JOIN teams ta ON m.team_a_id = ta.team_id
         LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -49,7 +48,7 @@ export async function onRequest(context) {
     }
 
     // ゲーム情報を取得
-    const games = await db
+    const gamesResult = await db
       .prepare(
         `
         SELECT 
@@ -70,11 +69,15 @@ export async function onRequest(context) {
       .bind(matchId)
       .all();
 
+    const games = Array.isArray(gamesResult)
+      ? gamesResult
+      : gamesResult?.results || [];
+
     return new Response(
       JSON.stringify({
         success: true,
         match,
-        games: games.results || [],
+        games,
       }),
       {
         status: 200,
@@ -83,8 +86,13 @@ export async function onRequest(context) {
     );
   } catch (error) {
     console.error("Match card fetch error:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     return new Response(
-      JSON.stringify({ message: "マッチカード取得処理でエラーが発生しました" }),
+      JSON.stringify({
+        message: "マッチカード取得処理でエラーが発生しました",
+        error: error.message,
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

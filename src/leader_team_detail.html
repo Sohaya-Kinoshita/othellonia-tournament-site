@@ -25,16 +25,18 @@
             <div id="teamInfo" style="margin-bottom: 16px;"></div>
 
             <h3>メンバー一覧</h3>
-            <table id="memberTable" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #333;">
-                        <th style="text-align: left; padding: 8px;">プレイヤーID</th>
-                        <th style="text-align: left; padding: 8px;">プレイヤー名</th>
-                    </tr>
-                </thead>
-                <tbody id="memberTableBody">
-                </tbody>
-            </table>
+            <div style="overflow-x: auto; margin-bottom: 16px;">
+                <table id="memberTable">
+                    <thead>
+                        <tr>
+                            <th>プレイヤーID</th>
+                            <th>プレイヤー名</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTableBody">
+                    </tbody>
+                </table>
+            </div>
 
             <h3>関連マッチ</h3>
             <div id="matchesList"></div>
@@ -110,6 +112,7 @@
                         orderStatus.textContent = `確定済み（${formatDateTime(result.confirmedAt)}）`;
                         orderStatus.style.color = "#1b5e20";
                         submitButton.style.display = "none";
+                        orderList.style.display = "none";
 
                         // 対戦カードを読み込み・表示
                         try {
@@ -129,12 +132,14 @@
                             : `提出済み（${formatDateTime(result.submittedAt)}）`;
                         orderStatus.style.color = "#2e7d32";
                         submitButton.style.display = "block";
+                        orderList.style.display = "grid";
                         matchCardSection.style.display = "none";
                     }
                 } else {
                     orderStatus.textContent = "未提出";
                     orderStatus.style.color = "#f57f17";
                     submitButton.style.display = "block";
+                    orderList.style.display = "grid";
                     matchCardSection.style.display = "none";
                 }
 

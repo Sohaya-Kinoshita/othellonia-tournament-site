@@ -23,46 +23,45 @@
             <h2>マッチの確定</h2>
             <hr>
 
-            <div style="margin-bottom: 20px;">
+            <div class="match-select-container">
                 <label for="matchSelect">確定するマッチを選択</label>
-                <select id="matchSelect"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                <select id="matchSelect" class="match-select">
                     <option value="">-- マッチを選択してください --</option>
                 </select>
             </div>
 
-            <div id="matchDetailsContainer" style="display: none;">
-                <div class="card" style="margin-top: 20px; background-color: #f9f9f9;">
+            <div id="matchDetailsContainer" class="match-details-hidden">
+                <div class="card match-details-card">
                     <h3>マッチ情報</h3>
                     <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
                     <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
                     <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
                     <p><strong>現在の勝者:</strong> <span id="displayWinner"></span></p>
 
-                    <h3 style="margin-top: 20px;">勝者を選択</h3>
-                    <div style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="winner" value="" style="margin-right: 8px;">
+                    <h3 class="winner-section-title">勝者を選択</h3>
+                    <div class="winner-selection-box">
+                        <div class="winner-option">
+                            <label class="radio-label">
+                                <input type="radio" name="winner" value="" class="radio-input">
                                 <span>未決定</span>
                             </label>
                         </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="winner" id="winnerTeamA" style="margin-right: 8px;">
+                        <div class="winner-option">
+                            <label class="radio-label">
+                                <input type="radio" name="winner" id="winnerTeamA" value="teamA" class="radio-input">
                                 <span id="labelTeamA"></span>
                             </label>
                         </div>
-                        <div>
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="winner" id="winnerTeamB" style="margin-right: 8px;">
+                        <div class="winner-option">
+                            <label class="radio-label">
+                                <input type="radio" name="winner" id="winnerTeamB" value="teamB" class="radio-input">
                                 <span id="labelTeamB"></span>
                             </label>
                         </div>
                     </div>
 
-                    <button type="button" class="btn" id="confirmButton" style="margin-top: 20px;">確定</button>
-                    <div id="confirmMessage" class="message" style="display: none; margin-top: 15px;"></div>
+                    <button type="button" class="btn confirm-button" id="confirmButton">確定</button>
+                    <div id="confirmMessage" class="message message-hidden"></div>
                 </div>
             </div>
         </div>

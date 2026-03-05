@@ -23,16 +23,15 @@
             <h2>オーダーの確定</h2>
             <hr>
 
-            <div style="margin-bottom: 20px;">
+            <div class="margin-bottom-20">
                 <label for="matchSelect">確認するマッチを選択</label>
-                <select id="matchSelect"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                <select id="matchSelect" class="select-full-width">
                     <option value="">-- マッチを選択してください --</option>
                 </select>
             </div>
 
-            <div id="matchDetailsContainer" style="display: none;">
-                <div class="card" style="margin-top: 20px; background-color: #f9f9f9;">
+            <div id="matchDetailsContainer" class="match-details-hidden">
+                <div class="card card-match-info">
                     <h3>マッチ情報</h3>
                     <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
                     <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
@@ -40,24 +39,23 @@
                     <p><strong>提出期限:</strong> <span id="displayDeadline"></span></p>
 
                     <h3 style="margin-top: 20px;">オーダー確認</h3>
-                    <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-top: 10px;">
-                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                            <h4 id="teamAHeader" style="margin: 0 0 10px 0;"></h4>
-                            <div id="teamAOrderStatus" style="padding: 10px; border-radius: 4px;"></div>
-                            <div id="teamAOrderDetails" style="margin-top: 10px; font-size: 0.9em;"></div>
+                    <div class="order-container">
+                        <div class="team-section">
+                            <h4 id="teamAHeader" class="team-header"></h4>
+                            <div id="teamAOrderStatus" class="order-status"></div>
+                            <div id="teamAOrderDetails" class="order-details"></div>
                         </div>
                         <div>
-                            <h4 id="teamBHeader" style="margin: 0 0 10px 0;"></h4>
-                            <div id="teamBOrderStatus" style="padding: 10px; border-radius: 4px;"></div>
-                            <div id="teamBOrderDetails" style="margin-top: 10px; font-size: 0.9em;"></div>
+                            <h4 id="teamBHeader" class="team-header"></h4>
+                            <div id="teamBOrderStatus" class="order-status"></div>
+                            <div id="teamBOrderDetails" class="order-details"></div>
                         </div>
                     </div>
 
-                    <button type="button" class="btn" id="initializeMatchButton"
-                        style="margin-top: 20px; background-color: #FF9800; font-weight: bold; display: none;">マッチを確定</button>
+                    <button type="button" class="btn initialize-button" id="initializeMatchButton">マッチを確定</button>
 
-                    <button type="button" class="btn" id="refreshButton" style="margin-top: 20px;">更新</button>
-                    <div id="confirmMessage" class="message" style="display: none; margin-top: 15px;"></div>
+                    <button type="button" class="btn refresh-button" id="refreshButton">更新</button>
+                    <div id="confirmMessage" class="message confirm-message"></div>
                 </div>
             </div>
         </div>

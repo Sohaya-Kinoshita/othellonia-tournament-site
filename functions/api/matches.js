@@ -25,8 +25,30 @@ export async function onRequest(context) {
         )
         .all();
 
+      // admin_user_id を JSON パースして配列に変換
+      const processedMatches = matches.results.map((match) => {
+        try {
+          // JSON パースを試みる（JSON 形式の場合）
+          const adminUserIds = match.admin_user_id
+            ? JSON.parse(match.admin_user_id)
+            : [];
+          return {
+            ...match,
+            admin_user_id: Array.isArray(adminUserIds)
+              ? adminUserIds
+              : [adminUserIds],
+          };
+        } catch (e) {
+          // パース失敗時は元の値を配列化
+          return {
+            ...match,
+            admin_user_id: match.admin_user_id ? [match.admin_user_id] : [],
+          };
+        }
+      });
+
       return new Response(
-        JSON.stringify({ success: true, matches: matches.results || [] }),
+        JSON.stringify({ success: true, matches: processedMatches }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -344,7 +366,8 @@ export async function onRequest(context) {
       }
 
       // リクエストボディを解析
-      const { matchId } = await context.request.json();
+      const { matchId, adminUserId, adminUserIds } =
+        await context.request.json();
 
       if (!matchId) {
         return new Response(JSON.stringify({ message: "マッチIDが必要です" }), {
@@ -354,6 +377,65 @@ export async function onRequest(context) {
       }
 
       const db = context.env.DB;
+
+      // adminUserId または adminUserIds が指定されている場合は、管理者の更新のみを行う
+      if (adminUserId || adminUserIds) {
+        // 複数のユーザーIDを配列で受け取る（後方互換性のため adminUserId もサポート）
+        const userIds =
+          adminUserIds && Array.isArray(adminUserIds)
+            ? adminUserIds
+            : adminUserId
+              ? [adminUserId]
+              : [];
+
+        if (userIds.length === 0) {
+          return new Response(
+            JSON.stringify({ message: "最低1人の管理者を指定してください" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        // すべてのユーザーが存在するか確認
+        for (const userId of userIds) {
+          const user = await db
+            .prepare("SELECT user_id FROM users WHERE user_id = ?")
+            .bind(userId)
+            .first();
+
+          if (!user) {
+            return new Response(
+              JSON.stringify({
+                message: `ユーザー「${userId}」が見つかりません`,
+              }),
+              {
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+        }
+
+        // マッチの管理者を JSON 配列として更新
+        const adminUsersJson = JSON.stringify(userIds);
+        await db
+          .prepare("UPDATE matches SET admin_user_id = ? WHERE match_id = ?")
+          .bind(adminUsersJson, matchId)
+          .run();
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "マッチの管理者を更新しました",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
       // マッチが存在するか確認
       const match = await db
@@ -398,31 +480,34 @@ export async function onRequest(context) {
         );
       }
 
-      // オーダーを取得
-      const playerOrderA = await db
-        .prepare(
-          "SELECT player_order FROM orders WHERE match_id = ? AND team_id = ? ORDER BY submitted_at DESC LIMIT 1",
-        )
-        .bind(matchId, match.team_a_id)
-        .first();
-
-      const playerOrderB = await db
-        .prepare(
-          "SELECT player_order FROM orders WHERE match_id = ? AND team_id = ? ORDER BY submitted_at DESC LIMIT 1",
-        )
-        .bind(matchId, match.team_b_id)
-        .first();
-
-      // JSONパース
-      let playersA = [];
-      let playersB = [];
-
-      try {
-        playersA = JSON.parse(playerOrderA.player_order);
-        playersB = JSON.parse(playerOrderB.player_order);
-      } catch (e) {
+      const schemaType = await detectOrderSchema(db);
+      if (schemaType === "unknown") {
         return new Response(
-          JSON.stringify({ message: "オーダーのパースに失敗しました" }),
+          JSON.stringify({ message: "ordersテーブル形式が未対応です" }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // オーダーを取得（legacy/v2 両対応）
+      const playersA = await getLatestOrderPlayers(
+        db,
+        schemaType,
+        matchId,
+        match.team_a_id,
+      );
+      const playersB = await getLatestOrderPlayers(
+        db,
+        schemaType,
+        matchId,
+        match.team_b_id,
+      );
+
+      if (!playersA || !playersB) {
+        return new Response(
+          JSON.stringify({ message: "オーダーの取得に失敗しました" }),
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
@@ -509,4 +594,80 @@ export async function onRequest(context) {
     status: 405,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+async function detectOrderSchema(db) {
+  const columns = await db.prepare("PRAGMA table_info(orders)").all();
+  const names = new Set((columns.results || []).map((row) => row.name));
+
+  if (names.has("order_id") && names.has("submitted_by")) {
+    return "v2";
+  }
+
+  if (
+    names.has("match_id") &&
+    names.has("team_id") &&
+    names.has("player_order")
+  ) {
+    return "legacy";
+  }
+
+  return "unknown";
+}
+
+async function getLatestOrderPlayers(db, schemaType, matchId, teamId) {
+  if (schemaType === "legacy") {
+    const order = await db
+      .prepare(
+        "SELECT player_order FROM orders WHERE match_id = ? AND team_id = ? ORDER BY submitted_at DESC LIMIT 1",
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    if (!order || !order.player_order) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(order.player_order);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  if (schemaType === "v2") {
+    const latestOrder = await db
+      .prepare(
+        `
+          SELECT order_id
+          FROM orders
+          WHERE match_id = ? AND team_id = ?
+          ORDER BY submitted_at DESC, order_id DESC
+          LIMIT 1
+        `,
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    if (!latestOrder || !latestOrder.order_id) {
+      return null;
+    }
+
+    const details = await db
+      .prepare(
+        `
+          SELECT game_number, player_id
+          FROM order_details
+          WHERE order_id = ?
+          ORDER BY game_number
+        `,
+      )
+      .bind(latestOrder.order_id)
+      .all();
+
+    return (details.results || []).map((row) => row.player_id);
+  }
+
+  return null;
 }
