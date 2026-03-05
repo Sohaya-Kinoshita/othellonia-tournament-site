@@ -14,53 +14,85 @@ export async function onRequest(context) {
       });
     }
 
-    const db = context.env.DB;
+    try {
+      // セッションIDをデコード（Base64）
+      const decoded = atob(sessionId);
+      const [type, id] = decoded.split(":");
 
-    // セッションが有効か確認
-    const session = await db
-      .prepare("SELECT playerId, expiresAt FROM sessions WHERE sessionId = ?")
-      .bind(sessionId)
-      .first();
+      if (!type || !id) {
+        return new Response(JSON.stringify({ isLoggedIn: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-    if (!session) {
+      const db = context.env.DB;
+
+      // 参加者ログイン情報
+      if (type === "player") {
+        const player = await db
+          .prepare("SELECT player_id, player_name FROM players WHERE player_id = ?")
+          .bind(id)
+          .first();
+
+        if (!player) {
+          return new Response(JSON.stringify({ isLoggedIn: false }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({
+            isLoggedIn: true,
+            type: "player",
+            player: { playerId: player.player_id, playerName: player.player_name },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // 管理者ログイン情報
+      if (type === "admin") {
+        const user = await db
+          .prepare("SELECT user_id, user_name FROM users WHERE user_id = ?")
+          .bind(id)
+          .first();
+
+        if (!user) {
+          return new Response(JSON.stringify({ isLoggedIn: false }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({
+            isLoggedIn: true,
+            type: "admin",
+            user: { userId: user.user_id, userName: user.user_name },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(JSON.stringify({ isLoggedIn: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (decodeError) {
+      // セッションIDのデコード失敗
       return new Response(JSON.stringify({ isLoggedIn: false }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    // セッションの有効期限をチェック
-    if (new Date(session.expiresAt) < new Date()) {
-      // 期限切れのセッションを削除
-      await db
-        .prepare("DELETE FROM sessions WHERE sessionId = ?")
-        .bind(sessionId)
-        .run();
-
-      return new Response(JSON.stringify({ isLoggedIn: false }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // プレイヤー情報を取得
-    const player = await db
-      .prepare(
-        "SELECT playerId, playerName, teamId1, teamId2, wins, matches, isAdmin FROM players WHERE playerId = ?",
-      )
-      .bind(session.playerId)
-      .first();
-
-    return new Response(
-      JSON.stringify({
-        isLoggedIn: true,
-        player,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
   } catch (error) {
     console.error("Me error:", error);
     return new Response(JSON.stringify({ isLoggedIn: false }), {

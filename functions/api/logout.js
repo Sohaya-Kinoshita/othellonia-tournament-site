@@ -7,22 +7,6 @@ export async function onRequest(context) {
   }
 
   try {
-    // クッキーからセッションIDを取得
-    const cookies = context.request.headers.get("cookie") || "";
-    const sessionId = cookies
-      .split("; ")
-      .find((c) => c.startsWith("sessionId="))
-      ?.split("=")[1];
-
-    if (sessionId) {
-      const db = context.env.DB;
-      // セッションを削除
-      await db
-        .prepare("DELETE FROM sessions WHERE sessionId = ?")
-        .bind(sessionId)
-        .run();
-    }
-
     const response = new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

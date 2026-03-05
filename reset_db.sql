@@ -1,5 +1,18 @@
+-- 外部キー制約を一時的に無効化
 PRAGMA foreign_keys
-= ON;
+= OFF;
+
+-- 既存のすべてのテーブルをドロップ
+DROP TABLE IF EXISTS games;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS team_members;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS teams;
+
+-- 外部キー制約を有効化して新しいスキーマを作成
+PRAGMA foreign_keys = ON;
 
 -- =========================
 -- teams（チーム）
@@ -198,6 +211,3 @@ IF NOT EXISTS idx_games_scheduled_at ON games
 CREATE INDEX
 IF NOT EXISTS idx_games_winner_player_id ON games
 (winner_player_id);
-
-
-

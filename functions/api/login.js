@@ -7,69 +7,110 @@ export async function onRequest(context) {
   }
 
   try {
-    const { playerId } = await context.request.json();
-
-    if (!playerId) {
-      return new Response(
-        JSON.stringify({ message: "プレイヤーIDが必要です" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // プレイヤーが存在するか確認
+    const { playerId, userId, password } = await context.request.json();
     const db = context.env.DB;
-    const player = await db
-      .prepare(
-        "SELECT playerId, playerName, isAdmin FROM players WHERE playerId = ?",
-      )
-      .bind(playerId)
-      .first();
 
-    if (!player) {
-      return new Response(
-        JSON.stringify({ message: "プレイヤーが見つかりません" }),
+    // 参加者ログイン（プレイヤーIDのみ）
+    if (playerId && !userId) {
+      const player = await db
+        .prepare("SELECT player_id, player_name FROM players WHERE player_id = ?")
+        .bind(playerId)
+        .first();
+
+      if (!player) {
+        return new Response(
+          JSON.stringify({ message: "プレイヤーが見つかりません" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // セッションIDを生成（player_idをBase64エンコード）
+      const sessionId = btoa("player:" + player.player_id + ":" + Date.now());
+
+      const response = new Response(
+        JSON.stringify({
+          success: true,
+          type: "player",
+          player: { playerId: player.player_id, playerName: player.player_name },
+        }),
         {
-          status: 401,
+          status: 200,
           headers: { "Content-Type": "application/json" },
         },
       );
+
+      response.headers.set(
+        "Set-Cookie",
+        `sessionId=${sessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
+      );
+
+      return response;
     }
 
-    // セッションIDを生成
-    const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(
-      Date.now() + 7 * 24 * 60 * 60 * 1000,
-    ).toISOString(); // 7日間有効
+    // 管理者ログイン（ユーザーIDとパスワード）
+    if (userId && password) {
+      const user = await db
+        .prepare("SELECT user_id, user_name, pass FROM users WHERE user_id = ?")
+        .bind(userId)
+        .first();
 
-    // セッションを作成
-    await db
-      .prepare(
-        "INSERT INTO sessions (sessionId, playerId, expiresAt) VALUES (?, ?, ?)",
-      )
-      .bind(sessionId, playerId, expiresAt)
-      .run();
+      if (!user) {
+        return new Response(
+          JSON.stringify({ message: "ユーザーが見つかりません" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
-    // クッキーにセッションIDを保存
-    const response = new Response(
+      // パスワードを検証
+      if (user.pass !== password) {
+        return new Response(
+          JSON.stringify({ message: "パスワードが正しくありません" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // セッションIDを生成（user_idをBase64エンコード）
+      const sessionId = btoa("admin:" + user.user_id + ":" + Date.now());
+
+      const response = new Response(
+        JSON.stringify({
+          success: true,
+          type: "admin",
+          user: { userId: user.user_id, userName: user.user_name },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      response.headers.set(
+        "Set-Cookie",
+        `sessionId=${sessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
+      );
+
+      return response;
+    }
+
+    return new Response(
       JSON.stringify({
-        success: true,
-        player: { playerId: player.playerId, playerName: player.playerName },
+        message:
+          "プレイヤーIDまたはユーザーIDとパスワードが必要です",
       }),
       {
-        status: 200,
+        status: 400,
         headers: { "Content-Type": "application/json" },
       },
     );
-
-    response.headers.set(
-      "Set-Cookie",
-      `sessionId=${sessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
-    );
-
-    return response;
   } catch (error) {
     console.error("Login error:", error);
     return new Response(
@@ -80,4 +121,4 @@ export async function onRequest(context) {
       },
     );
   }
-}
+
