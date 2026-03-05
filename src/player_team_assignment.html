@@ -42,6 +42,15 @@
                             style="margin: 0; white-space: nowrap;">名前を更新</button>
                     </div>
 
+                    <h3 style="margin-top: 20px;">ミラティブアカウント</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
+                        <input type="text" id="mirrativUrlInput" placeholder="ミラティブURL" style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteMirrativUrlButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                        <button type="button" class="btn" id="updateMirrativUrlButton"
+                            style="margin: 0; white-space: nowrap;">URLを更新</button>
+                    </div>
+
                     <h3>チーム割り当て</h3>
                     <p style="color: #666; font-size: 0.9em;">プレイヤーは最大2つのチームに登録できます</p>
 
@@ -131,6 +140,9 @@
             const playerNameEditInput = document.getElementById("playerNameEditInput");
             const pastePlayerNameEditButton = document.getElementById("pastePlayerNameEditButton");
             const updatePlayerNameButton = document.getElementById("updatePlayerNameButton");
+            const mirrativUrlInput = document.getElementById("mirrativUrlInput");
+            const pasteMirrativUrlButton = document.getElementById("pasteMirrativUrlButton");
+            const updateMirrativUrlButton = document.getElementById("updateMirrativUrlButton");
             const messageDiv = document.getElementById("assignmentMessage");
 
             try {
@@ -140,6 +152,7 @@
 
                 if (selectedPlayer) {
                     playerNameEditInput.value = selectedPlayer.player_name || "";
+                    mirrativUrlInput.value = selectedPlayer.mirrativ_url || "";
                 }
 
                 pastePlayerNameEditButton.onclick = async () => {
@@ -206,6 +219,56 @@
                         messageDiv.style.display = "block";
                     } catch (error) {
                         console.error("Error updating player name:", error);
+                        messageDiv.textContent = "通信エラーが発生しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                    }
+                };
+
+                pasteMirrativUrlButton.onclick = async () => {
+                    try {
+                        const clipboardText = await navigator.clipboard.readText();
+                        mirrativUrlInput.value = clipboardText.trim();
+                        messageDiv.style.display = "none";
+                    } catch (error) {
+                        messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                    }
+                };
+
+                updateMirrativUrlButton.onclick = async () => {
+                    const mirrativUrl = mirrativUrlInput.value.trim();
+
+                    try {
+                        const updateResponse = await fetch("/api/players", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                playerId: currentPlayerId,
+                                mirrativUrl,
+                            }),
+                        });
+                        const updateResult = await updateResponse.json();
+
+                        if (updateResponse.ok) {
+                            const playerIndex = allPlayers.findIndex(
+                                (player) => player.player_id === currentPlayerId
+                            );
+                            if (playerIndex !== -1) {
+                                allPlayers[playerIndex].mirrativ_url = mirrativUrl;
+                            }
+
+                            messageDiv.textContent = "ミラティブURLを更新しました！";
+                            messageDiv.className = "message success";
+                        } else {
+                            messageDiv.textContent =
+                                updateResult.message || "ミラティブURLの更新に失敗しました";
+                            messageDiv.className = "message error";
+                        }
+                        messageDiv.style.display = "block";
+                    } catch (error) {
+                        console.error("Error updating mirrativ URL:", error);
                         messageDiv.textContent = "通信エラーが発生しました";
                         messageDiv.className = "message error";
                         messageDiv.style.display = "block";

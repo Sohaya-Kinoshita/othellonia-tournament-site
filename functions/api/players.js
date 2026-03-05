@@ -1,3 +1,18 @@
+function extractMirrativId(url) {
+  if (!url) return null;
+
+  // URLデコード
+  const decoded = decodeURIComponent(url);
+
+  // user/数字 のパターンで数字を抽出
+  const match = decoded.match(/user\/(\d+)/);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+
+  return null;
+}
+
 export async function onRequest(context) {
   if (context.request.method === "GET") {
     try {
@@ -8,6 +23,7 @@ export async function onRequest(context) {
           SELECT
             players.player_id,
             players.player_name,
+            players.mirrativ_id,
             COALESCE(GROUP_CONCAT(teams.team_name, ' / '), '') AS team_names
           FROM players
           LEFT JOIN team_members ON players.player_id = team_members.player_id
@@ -18,8 +34,15 @@ export async function onRequest(context) {
         )
         .all();
 
+      const playersWithUrls = (players.results || []).map((player) => ({
+        ...player,
+        mirrativ_url: player.mirrativ_id
+          ? `https://www.mirrativ.com/user/${player.mirrativ_id}`
+          : null,
+      }));
+
       return new Response(
-        JSON.stringify({ success: true, players: players.results || [] }),
+        JSON.stringify({ success: true, players: playersWithUrls }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -74,13 +97,18 @@ export async function onRequest(context) {
         });
       }
 
-      const { playerId, playerName } = await context.request.json();
+      const { playerId, playerName, mirrativUrl } =
+        await context.request.json();
       const normalizedPlayerId = String(playerId || "").trim();
       const normalizedPlayerName = String(playerName || "").trim();
+      const rawMirrativUrl = String(mirrativUrl || "").trim();
+      const normalizedMirrativId = rawMirrativUrl
+        ? extractMirrativId(rawMirrativUrl)
+        : null;
 
-      if (!normalizedPlayerId || !normalizedPlayerName) {
+      if (!normalizedPlayerId) {
         return new Response(
-          JSON.stringify({ message: "プレイヤーID、プレイヤー名が必要です" }),
+          JSON.stringify({ message: "プレイヤーIDが必要です" }),
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
@@ -100,7 +128,7 @@ export async function onRequest(context) {
         );
       }
 
-      if (normalizedPlayerName.length > 10) {
+      if (normalizedPlayerName && normalizedPlayerName.length > 10) {
         return new Response(
           JSON.stringify({
             message: "プレイヤー名は10文字以下で入力してください",
@@ -128,9 +156,16 @@ export async function onRequest(context) {
         );
       }
 
+      if (normalizedPlayerName) {
+        await db
+          .prepare("UPDATE players SET player_name = ? WHERE player_id = ?")
+          .bind(normalizedPlayerName, normalizedPlayerId)
+          .run();
+      }
+
       await db
-        .prepare("UPDATE players SET player_name = ? WHERE player_id = ?")
-        .bind(normalizedPlayerName, normalizedPlayerId)
+        .prepare("UPDATE players SET mirrativ_id = ? WHERE player_id = ?")
+        .bind(normalizedMirrativId, normalizedPlayerId)
         .run();
 
       return new Response(

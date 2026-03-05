@@ -24,7 +24,8 @@ IF NOT EXISTS players
   player_id   CHAR
 (12)     NOT NULL PRIMARY KEY,
   player_name VARCHAR
-(10)  NOT NULL
+(10)  NOT NULL,
+  mirrativ_id INTEGER
 );
 
 -- =========================

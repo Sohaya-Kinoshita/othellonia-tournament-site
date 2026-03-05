@@ -38,7 +38,8 @@
                                 プレイヤーID</th>
                             <th style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">プレイヤー名</th>
                             <th style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">所属チーム1</th>
-                            <th style="padding: 6px; text-align: center;">所属チーム2</th>
+                            <th style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">所属チーム2</th>
+                            <th style="padding: 6px; text-align: center;">ミラティブURL</th>
                         </tr>
                     </thead>
                     <tbody id="playerTableBody"></tbody>
@@ -85,7 +86,12 @@
                             </td>
                             <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${player.player_name}</td>
                             <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${teamNames[0] || "(未所属)"}</td>
-                            <td style="padding: 6px; text-align: center;">${teamNames[1] || "(未所属)"}</td>
+                            <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${teamNames[1] || "(未所属)"}</td>
+                            <td style="padding: 6px; text-align: center;">
+                                ${player.mirrativ_url
+                                ? `<a href="${player.mirrativ_url}" target="_blank" rel="noopener noreferrer">${player.mirrativ_url}</a>`
+                                : "(未設定)"}
+                            </td>
                         </tr>
                     `;
                     },
