@@ -47,6 +47,16 @@ body.no-scroll {
   overflow: hidden;
 }
 
+/* reCAPTCHA badge: prevent text clipping on pages with global line-height */
+.grecaptcha-badge {
+  line-height: normal !important;
+  bottom: 12px !important;
+}
+
+.grecaptcha-badge * {
+  line-height: normal !important;
+}
+
 /* レイアウト */
 .container {
   width: 100%;
