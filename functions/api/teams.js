@@ -9,10 +9,13 @@ export async function onRequest(context) {
           SELECT 
             teams.team_id, 
             teams.team_name, 
-            teams.team_reader,
+            leaders.leader_id,
+            leaders.leader_name,
+            leaders.player_id,
             players.player_name
           FROM teams 
-          LEFT JOIN players ON teams.team_reader = players.player_id 
+          LEFT JOIN leaders ON teams.team_id = leaders.team_id AND leaders.leader_role = 'leader'
+          LEFT JOIN players ON leaders.player_id = players.player_id 
           ORDER BY teams.team_id
         `,
         )
@@ -74,26 +77,12 @@ export async function onRequest(context) {
         });
       }
 
-      const { teamId, teamName, teamReader } = await context.request.json();
+      const { teamId, teamName, leaderName, leaderPlayerId, leaderPassword } = await context.request.json();
 
-      if (!teamId || !teamName || !teamReader) {
+      if (!teamId || !teamName) {
         return new Response(
           JSON.stringify({
-            message: "チームID、チーム名、チームリーダーIDが必要です",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // チームリーダーIDの厳密な12文字チェック
-      const normalizedTeamReader = String(teamReader || "").trim();
-      if (normalizedTeamReader.length !== 12) {
-        return new Response(
-          JSON.stringify({
-            message: "チームリーダーIDは12文字ちょうどで入力してください",
+            message: "チームID、チーム名が必要です",
           }),
           {
             status: 400,
@@ -120,13 +109,94 @@ export async function onRequest(context) {
         );
       }
 
-      // チームを更新
+      // チーム名を更新
       await db
-        .prepare(
-          "UPDATE teams SET team_name = ?, team_reader = ? WHERE team_id = ?",
-        )
-        .bind(teamName, normalizedTeamReader, teamId)
+        .prepare("UPDATE teams SET team_name = ? WHERE team_id = ?")
+        .bind(teamName, teamId)
         .run();
+
+      // リーダー情報が提供されている場合は更新
+      if (leaderName || leaderPlayerId || leaderPassword) {
+        // 既存のリーダーを取得
+        const existingLeader = await db
+          .prepare("SELECT leader_id, leader_name, player_id FROM leaders WHERE team_id = ? AND leader_role = ?")
+          .bind(teamId, "leader")
+          .first();
+
+        if (!existingLeader) {
+          return new Response(
+            JSON.stringify({ message: "リーダーが見つかりません" }),
+            {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        // 更新するフィールドを決定
+        const updatedLeaderName = leaderName || existingLeader.leader_name;
+        const updatedPlayerId = leaderPlayerId || existingLeader.player_id;
+
+        // プレイヤーIDが変更される場合、存在チェック
+        if (leaderPlayerId && leaderPlayerId !== existingLeader.player_id) {
+          const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+          if (normalizedLeaderPlayerId.length !== 12) {
+            return new Response(
+              JSON.stringify({
+                message: "リーダーのプレイヤーIDは12文字ちょうどで入力してください",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          const playerExists = await db
+            .prepare("SELECT player_id FROM players WHERE player_id = ?")
+            .bind(normalizedLeaderPlayerId)
+            .first();
+
+          if (!playerExists) {
+            return new Response(
+              JSON.stringify({ message: "指定されたプレイヤーIDが見つかりません" }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+        }
+
+        // パスワードが提供されている場合はハッシュ化
+        let updateQuery = "UPDATE leaders SET leader_name = ?, player_id = ?";
+        const updateParams = [updatedLeaderName, updatedPlayerId];
+
+        if (leaderPassword) {
+          if (leaderPassword.length < 8) {
+            return new Response(
+              JSON.stringify({
+                message: "パスワードは8文字以上で入力してください",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          updateQuery += ", pass = ?";
+          updateParams.push(leaderPassword);
+        }
+
+        updateQuery += " WHERE leader_id = ?";
+        updateParams.push(existingLeader.leader_id);
+
+        await db
+          .prepare(updateQuery)
+          .bind(...updateParams)
+          .run();
+      }
 
       return new Response(
         JSON.stringify({ success: true, message: "チームを更新しました" }),
@@ -234,6 +304,12 @@ export async function onRequest(context) {
         .bind(normalizedTeamId)
         .run();
 
+      // leadersテーブルからも削除
+      await db
+        .prepare("DELETE FROM leaders WHERE team_id = ?")
+        .bind(normalizedTeamId)
+        .run();
+
       await db
         .prepare("DELETE FROM teams WHERE team_id = ?")
         .bind(normalizedTeamId)
@@ -303,12 +379,12 @@ export async function onRequest(context) {
     }
 
     // リクエストボディを解析
-    const { teamId, teamName, teamReader } = await context.request.json();
+    const { teamId, teamName, leaderName, leaderPlayerId, leaderPassword } = await context.request.json();
 
-    if (!teamId || !teamName || !teamReader) {
+    if (!teamId || !teamName || !leaderName || !leaderPlayerId || !leaderPassword) {
       return new Response(
         JSON.stringify({
-          message: "チームID、チーム名、チームリーダーIDが必要です",
+          message: "チームID、チーム名、リーダー氏名、リーダーのプレイヤーID、リーダーのパスワードが必要です",
         }),
         {
           status: 400,
@@ -317,12 +393,25 @@ export async function onRequest(context) {
       );
     }
 
-    // チームリーダーIDの厳密な12文字チェック
-    const normalizedTeamReader = String(teamReader || "").trim();
-    if (normalizedTeamReader.length !== 12) {
+    // リーダーのプレイヤーIDの厳密な12文字チェック
+    const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+    if (normalizedLeaderPlayerId.length !== 12) {
       return new Response(
         JSON.stringify({
-          message: "チームリーダーIDは12文字ちょうどで入力してください",
+          message: "リーダーのプレイヤーIDは12文字ちょうどで入力してください",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // パスワードの長さチェック
+    if (leaderPassword.length < 8) {
+      return new Response(
+        JSON.stringify({
+          message: "パスワードは8文字以上で入力してください",
         }),
         {
           status: 400,
@@ -349,29 +438,70 @@ export async function onRequest(context) {
       );
     }
 
-    // チームを作成
-    await db
-      .prepare(
-        "INSERT INTO teams (team_id, team_name, team_reader) VALUES (?, ?, ?)",
-      )
-      .bind(teamId, teamName, normalizedTeamReader)
-      .run();
+    // プレイヤーが存在するか確認
+    const existingPlayer = await db
+      .prepare("SELECT player_id FROM players WHERE player_id = ?")
+      .bind(normalizedLeaderPlayerId)
+      .first();
 
-    return new Response(
-      JSON.stringify({ success: true, message: "チームを作成しました" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  } catch (error) {
-    console.error("Team creation error:", error);
-    return new Response(
-      JSON.stringify({ message: "チーム作成処理でエラーが発生しました" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    if (!existingPlayer) {
+      return new Response(
+        JSON.stringify({ message: "指定されたプレイヤーIDが見つかりません" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // leader_idを生成（L + team_id + 00001）
+    const leaderId = `L${teamId}00001`;
+
+    // トランザクション的にチームとリーダーを作成
+    try {
+      // チームを作成
+      await db
+        .prepare("INSERT INTO teams (team_id, team_name) VALUES (?, ?)")
+        .bind(teamId, teamName)
+        .run();
+
+      // リーダーを作成
+      await db
+        .prepare(
+          "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass, leader_name) VALUES (?, ?, ?, ?, ?, ?)"
+        )
+        .bind(leaderId, teamId, normalizedLeaderPlayerId, "leader", leaderPassword, leaderName)
+        .run();
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "チームを作成しました",
+          leaderId: leaderId 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (dbError) {
+      console.error("Database insert error:", dbError);
+      // チーム作成に失敗した場合はロールバック相当の処理
+      // D1ではトランザクションがサポートされていないため、エラー時に手動でクリーンアップ
+      try {
+        await db.prepare("DELETE FROM leaders WHERE leader_id = ?").bind(leaderId).run();
+        await db.prepare("DELETE FROM teams WHERE team_id = ?").bind(teamId).run();
+      } catch (cleanupError) {
+        console.error("Cleanup error:", cleanupError);
+      }
+      
+      return new Response(
+        JSON.stringify({ message: "チーム作成処理でエラーが発生しました" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
   }
 }

@@ -36,13 +36,22 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>チームリーダーID（12文字）</label>
+                    <label>リーダー氏名（10文字以下）</label>
+                    <input type="text" id="leaderName" name="leaderName" maxlength="10" required placeholder="例: 山田太郎">
+                </div>
+                <div class="form-group">
+                    <label>リーダーのプレイヤーID（12文字）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="teamReader" name="teamReader" maxlength="12" required
+                        <input type="text" id="leaderPlayerId" name="leaderPlayerId" maxlength="12" required
                             placeholder="例: 010100000001" style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteTeamReaderButton"
+                        <button type="button" class="btn" id="pasteLeaderPlayerIdButton"
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>リーダーのパスワード（8文字以上）</label>
+                    <input type="password" id="leaderPassword" name="leaderPassword" minlength="8" required
+                        placeholder="8文字以上">
                 </div>
                 <button type="submit" class="btn">チームを作成</button>
                 <div id="teamMessage" class="message" style="display: none;"></div>
@@ -80,9 +89,9 @@
             const teamForm = document.getElementById("teamForm");
             const messageDiv = document.getElementById("teamMessage");
             const teamNameInput = document.getElementById("teamName");
-            const teamReaderInput = document.getElementById("teamReader");
+            const leaderPlayerIdInput = document.getElementById("leaderPlayerId");
             const pasteTeamNameButton = document.getElementById("pasteTeamNameButton");
-            const pasteTeamReaderButton = document.getElementById("pasteTeamReaderButton");
+            const pasteLeaderPlayerIdButton = document.getElementById("pasteLeaderPlayerIdButton");
 
             // チーム名の貼り付け処理
             pasteTeamNameButton.addEventListener("click", async () => {
@@ -97,11 +106,11 @@
                 }
             });
 
-            // チームリーダーIDの貼り付け処理
-            pasteTeamReaderButton.addEventListener("click", async () => {
+            // リーダーのプレイヤーIDの貼り付け処理
+            pasteLeaderPlayerIdButton.addEventListener("click", async () => {
                 try {
                     const clipboardText = await navigator.clipboard.readText();
-                    teamReaderInput.value = clipboardText.trim();
+                    leaderPlayerIdInput.value = clipboardText.trim();
                     messageDiv.style.display = "none";
                 } catch (error) {
                     messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
@@ -114,11 +123,21 @@
                 e.preventDefault();
                 const teamId = document.getElementById("teamId").value.trim();
                 const teamName = document.getElementById("teamName").value.trim();
-                const teamReader = document.getElementById("teamReader").value.trim();
+                const leaderName = document.getElementById("leaderName").value.trim();
+                const leaderPlayerId = document.getElementById("leaderPlayerId").value.trim();
+                const leaderPassword = document.getElementById("leaderPassword").value;
 
-                // チームリーダーIDの厳密な12文字チェック
-                if (teamReader.length !== 12) {
-                    messageDiv.textContent = "チームリーダーIDは12文字ちょうどで入力してください";
+                // リーダーのプレイヤーIDの厳密な12文字チェック
+                if (leaderPlayerId.length !== 12) {
+                    messageDiv.textContent = "リーダーのプレイヤーIDは12文字ちょうどで入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                // パスワードの長さチェック
+                if (leaderPassword.length < 8) {
+                    messageDiv.textContent = "パスワードは8文字以上で入力してください";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;
@@ -128,7 +147,7 @@
                     const response = await fetch("/api/teams", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ teamId, teamName, teamReader }),
+                        body: JSON.stringify({ teamId, teamName, leaderName, leaderPlayerId, leaderPassword }),
                     });
                     const result = await response.json();
 

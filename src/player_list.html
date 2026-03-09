@@ -84,10 +84,7 @@
                         return `
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 6px; text-align: center; border-right: 2px solid #999; width: 160px;">
-                                <span>${player.player_id}</span>
-                                <button type="button" onclick="copyPlayerId('${player.player_id}')" aria-label="プレイヤーIDをコピー" title="コピー" style="margin-left: 8px; padding: 0; border: none; background: none; color: #2563eb; text-decoration: underline; cursor: pointer; font-size: 13px;">
-                                    コピー
-                                </button>
+                                <a href="#" onclick="event.preventDefault(); copyPlayerId('${player.player_id}');" style="color: #2563eb; text-decoration: underline; cursor: pointer;" title="クリックしてコピー">${player.player_id}</a>
                             </td>
                             <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${player.player_name}</td>
                             <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${teamNames[0] || "(未所属)"}</td>

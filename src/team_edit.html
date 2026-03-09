@@ -48,13 +48,23 @@
                 </div>
 
                 <div class="form-group">
-                    <label>チームリーダーID（12文字）</label>
+                    <label>リーダー氏名（10文字以下）</label>
+                    <input type="text" id="leaderNameEdit" maxlength="10" placeholder="例: 山田太郎">
+                </div>
+
+                <div class="form-group">
+                    <label>リーダーのプレイヤーID（12文字）</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="teamReaderEdit" maxlength="12" required placeholder="例: 010100000001"
+                        <input type="text" id="leaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000001"
                             style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteTeamReaderEditButton"
+                        <button type="button" class="btn" id="pasteLeaderPlayerIdEditButton"
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>リーダーのパスワード（変更する場合のみ入力・8文字以上）</label>
+                    <input type="password" id="leaderPasswordEdit" minlength="8" placeholder="変更しない場合は空欄">
                 </div>
 
                 <button type="submit" class="btn">チーム情報を更新</button>
@@ -133,7 +143,9 @@
             if (selectedTeam) {
                 document.getElementById("teamIdDisplay").value = selectedTeam.team_id;
                 document.getElementById("teamNameEdit").value = selectedTeam.team_name;
-                document.getElementById("teamReaderEdit").value = selectedTeam.team_reader;
+                document.getElementById("leaderNameEdit").value = selectedTeam.leader_name || "";
+                document.getElementById("leaderPlayerIdEdit").value = selectedTeam.player_id || "";
+                document.getElementById("leaderPasswordEdit").value = "";
                 teamEditForm.style.display = "block";
                 setupEditForm();
             }
@@ -143,9 +155,9 @@
             const teamEditForm = document.getElementById("teamEditForm");
             const messageDiv = document.getElementById("teamMessage");
             const teamNameInput = document.getElementById("teamNameEdit");
-            const teamReaderInput = document.getElementById("teamReaderEdit");
+            const leaderPlayerIdInput = document.getElementById("leaderPlayerIdEdit");
             const pasteTeamNameButton = document.getElementById("pasteTeamNameEditButton");
-            const pasteTeamReaderButton = document.getElementById("pasteTeamReaderEditButton");
+            const pasteLeaderPlayerIdButton = document.getElementById("pasteLeaderPlayerIdEditButton");
 
             // チーム名の貼り付け処理
             pasteTeamNameButton.addEventListener("click", async () => {
@@ -160,11 +172,11 @@
                 }
             });
 
-            // チームリーダーIDの貼り付け処理
-            pasteTeamReaderButton.addEventListener("click", async () => {
+            // リーダーのプレイヤーIDの貼り付け処理
+            pasteLeaderPlayerIdButton.addEventListener("click", async () => {
                 try {
                     const clipboardText = await navigator.clipboard.readText();
-                    teamReaderInput.value = clipboardText.trim();
+                    leaderPlayerIdInput.value = clipboardText.trim();
                     messageDiv.style.display = "none";
                 } catch (error) {
                     messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
@@ -179,20 +191,36 @@
 
                 const teamId = document.getElementById("teamIdDisplay").value;
                 const teamName = teamNameInput.value.trim();
-                const teamReader = teamReaderInput.value.trim();
+                const leaderName = document.getElementById("leaderNameEdit").value.trim();
+                const leaderPlayerId = leaderPlayerIdInput.value.trim();
+                const leaderPassword = document.getElementById("leaderPasswordEdit").value;
 
-                if (teamReader.length !== 12) {
-                    messageDiv.textContent = "チームリーダーIDは12文字ちょうどで入力してください";
+                // リーダーのプレイヤーIDが入力されている場合は12文字チェック
+                if (leaderPlayerId && leaderPlayerId.length !== 12) {
+                    messageDiv.textContent = "リーダーのプレイヤーIDは12文字ちょうどで入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                // パスワードが入力されている場合は8文字以上チェック
+                if (leaderPassword && leaderPassword.length < 8) {
+                    messageDiv.textContent = "パスワードは8文字以上で入力してください";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;
                 }
 
                 try {
+                    const updateData = { teamId, teamName };
+                    if (leaderName) updateData.leaderName = leaderName;
+                    if (leaderPlayerId) updateData.leaderPlayerId = leaderPlayerId;
+                    if (leaderPassword) updateData.leaderPassword = leaderPassword;
+
                     const response = await fetch("/api/teams", {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ teamId, teamName, teamReader }),
+                        body: JSON.stringify(updateData),
                     });
                     const result = await response.json();
 
