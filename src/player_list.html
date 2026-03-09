@@ -23,13 +23,18 @@
             <h2>登録されているプレイヤー</h2>
             <hr>
             <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <label for="playerIdSearch">プレイヤーID検索</label>
-                <input id="playerIdSearch" type="text" placeholder="例: 010100000001"
+                <label for="searchType">検索項目</label>
+                <select id="searchType" style="padding: 6px; min-width: 150px;">
+                    <option value="player_id">プレイヤーID</option>
+                    <option value="player_name">プレイヤー名</option>
+                </select>
+                <input id="playerIdSearch" type="text" placeholder="検索キーワードを入力"
                     style="padding: 6px; min-width: 220px;" />
                 <button id="searchButton" type="button" class="btn">検索</button>
                 <button id="clearButton" type="button" class="btn">クリア</button>
             </div>
             <hr>
+            <div id="copyToast" class="message success toast-bottom hidden">クリップボードにコピーしました。</div>
             <div id="playerListContainer" style="overflow-x: auto;">
                 <table style="border-collapse: collapse; table-layout: auto; width: auto;">
                     <thead>
@@ -80,8 +85,8 @@
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 6px; text-align: center; border-right: 2px solid #999; width: 160px;">
                                 <span>${player.player_id}</span>
-                                <button type="button" onclick="copyPlayerId('${player.player_id}')" aria-label="プレイヤーIDをコピー" title="コピー" style="margin-left: 6px; width: 24px; height: 24px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-                                    📋
+                                <button type="button" onclick="copyPlayerId('${player.player_id}')" aria-label="プレイヤーIDをコピー" title="コピー" style="margin-left: 8px; padding: 0; border: none; background: none; color: #2563eb; text-decoration: underline; cursor: pointer; font-size: 13px;">
+                                    コピー
                                 </button>
                             </td>
                             <td style="padding: 6px; text-align: center; border-right: 2px dotted #ccc;">${player.player_name}</td>
@@ -99,10 +104,30 @@
                 .join("");
         }
 
+        let copyToastTimer = null;
+
+        function showCopyToast() {
+            const copyToast = document.getElementById("copyToast");
+            copyToast.classList.remove("hidden");
+            copyToast.classList.add("show");
+
+            if (copyToastTimer) {
+                clearTimeout(copyToastTimer);
+            }
+
+            copyToastTimer = setTimeout(() => {
+                copyToast.classList.remove("show");
+                setTimeout(() => {
+                    copyToast.classList.add("hidden");
+                }, 250);
+            }, 1800);
+        }
+
         async function loadPlayerList() {
             const adminMessage = document.getElementById("adminMessage");
             const playerListCard = document.getElementById("playerListCard");
             const playerIdSearch = document.getElementById("playerIdSearch");
+            const searchType = document.getElementById("searchType");
             const searchButton = document.getElementById("searchButton");
             const clearButton = document.getElementById("clearButton");
 
@@ -134,19 +159,27 @@
                 renderPlayers(allPlayers);
 
                 searchButton.addEventListener("click", () => {
-                    const keyword = playerIdSearch.value.trim();
+                    const keyword = playerIdSearch.value.trim().toLowerCase();
+                    const selectedType = searchType.value;
+
                     if (!keyword) {
                         renderPlayers(allPlayers);
                         return;
                     }
-                    const filtered = allPlayers.filter((player) =>
-                        player.player_id.includes(keyword),
-                    );
+
+                    const filtered = allPlayers.filter((player) => {
+                        if (selectedType === "player_name") {
+                            return (player.player_name || "").toLowerCase().includes(keyword);
+                        }
+                        return (player.player_id || "").toLowerCase().includes(keyword);
+                    });
+
                     renderPlayers(filtered);
                 });
 
                 clearButton.addEventListener("click", () => {
                     playerIdSearch.value = "";
+                    searchType.value = "player_id";
                     renderPlayers(allPlayers);
                 });
 
@@ -166,6 +199,7 @@
         async function copyPlayerId(playerId) {
             try {
                 await navigator.clipboard.writeText(playerId);
+                showCopyToast();
             } catch (error) {
                 const textArea = document.createElement("textarea");
                 textArea.value = playerId;
@@ -173,6 +207,7 @@
                 textArea.select();
                 document.execCommand("copy");
                 document.body.removeChild(textArea);
+                showCopyToast();
             }
         }
 

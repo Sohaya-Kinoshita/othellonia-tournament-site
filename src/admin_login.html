@@ -33,6 +33,10 @@
             <div id="errorMessage" class="error-message hidden"></div>
 
             <div class="login-footer">
+                <a href="./leader_login.html" class="signup-link">リーダー用ログインページはこちら</a>
+            </div>
+
+            <div class="login-footer">
                 <a href="./login.html" class="signup-link">プレイヤーログインページはこちら</a>
             </div>
         </div>
@@ -57,17 +61,17 @@
             // バリデーション
             if (!adminId) {
                 errorMessage.textContent = '管理者IDを入力してください';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 return;
             }
 
             if (!adminPassword) {
                 errorMessage.textContent = 'パスワードを入力してください';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 return;
             }
 
-            errorMessage.style.display = 'none';
+            errorMessage.classList.add('hidden');
 
             try {
                 // Google reCAPTCHA v3 トークンを取得
@@ -105,11 +109,11 @@
                     location.href = './admin.html';
                 } else {
                     errorMessage.textContent = result.message || 'ログインに失敗しました';
-                    errorMessage.style.display = 'block';
+                    errorMessage.classList.remove('hidden');
                 }
             } catch (error) {
                 errorMessage.textContent = 'エラーが発生しました';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 console.error('Admin login error:', error);
             }
         });

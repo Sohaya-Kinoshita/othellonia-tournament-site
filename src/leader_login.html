@@ -61,17 +61,17 @@
             // バリデーション
             if (!leaderId) {
                 errorMessage.textContent = 'リーダーIDを入力してください';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 return;
             }
 
             if (!leaderPassword) {
                 errorMessage.textContent = 'パスワードを入力してください';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 return;
             }
 
-            errorMessage.style.display = 'none';
+            errorMessage.classList.add('hidden');
 
             try {
                 // Google reCAPTCHA v3 トークンを取得
@@ -109,11 +109,11 @@
                     location.href = './leader.html';
                 } else {
                     errorMessage.textContent = result.message || 'ログインに失敗しました';
-                    errorMessage.style.display = 'block';
+                    errorMessage.classList.remove('hidden');
                 }
             } catch (error) {
                 errorMessage.textContent = 'エラーが発生しました';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
                 console.error('Leader login error:', error);
             }
         });
