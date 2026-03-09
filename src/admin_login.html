@@ -8,7 +8,7 @@
     <link rel="icon" href="./images/oc_mark.png" type="image/png">
     <title>管理者ログイン - 隊抗戦</title>
     <!-- Google reCAPTCHA v3 -->
-    <script src="https://www.google.com/recaptcha/api.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js?render=6LcfBYUsAAAAAKFBg0zxYsQJTsYJcAmTwTte_wCj"></script>
 </head>
 
 <body>
@@ -25,10 +25,6 @@
 
                 <div class="form-group">
                     <input type="password" id="adminPassword" name="adminPassword" placeholder="パスワード" required>
-                </div>
-
-                <!-- Google reCAPTCHA v3 チェックボックス -->
-                <div class="form-group g-recaptcha" data-sitekey="6LcfBYUsAAAAAKFBg0zxYsQJTsYJcAmTwTte_wCj">
                 </div>
 
                 <button type="submit" class="login-btn">ログインする</button>
@@ -77,7 +73,16 @@
                 // Google reCAPTCHA v3 トークンを取得
                 let captchaToken = '';
                 try {
-                    captchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'admin_login' });
+                    captchaToken = await new Promise((resolve, reject) => {
+                        grecaptcha.ready(async () => {
+                            try {
+                                const token = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'admin_login' });
+                                resolve(token);
+                            } catch (err) {
+                                reject(err);
+                            }
+                        });
+                    });
                 } catch (err) {
                     console.warn('reCAPTCHA token generation failed:', err);
                 }

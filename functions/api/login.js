@@ -12,20 +12,7 @@ export async function onRequest(context) {
     const db = context.env.DB;
     const recaptchaSecretKey = context.env.RECAPTCHA_SECRET_KEY;
 
-    // デバッグ：環境変数の確認
-    console.log("=== Login Debug Info ===");
-    console.log("DB loaded:", !!db);
-    console.log("RECAPTCHA_SECRET_KEY loaded:", !!recaptchaSecretKey);
-    if (recaptchaSecretKey) {
-      console.log(
-        "Secret Key (最初の20文字):",
-        recaptchaSecretKey.substring(0, 20) + "...",
-      );
-    }
-    console.log("========================");
-
     // キャプチャ検証（リーダーと管理者は必須、プレイヤーは任意）
-    let captchaValid = true;
     if (leaderId || userId) {
       if (!captchaToken) {
         return new Response(
