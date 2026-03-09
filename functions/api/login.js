@@ -7,11 +7,12 @@ export async function onRequest(context) {
   }
 
   try {
-    const { playerId, userId, password } = await context.request.json();
+    const { playerId, leaderId, userId, password } =
+      await context.request.json();
     const db = context.env.DB;
 
     // 参加者ログイン（プレイヤーIDのみ）
-    if (playerId && !userId) {
+    if (playerId && !leaderId && !userId) {
       const player = await db
         .prepare(
           "SELECT player_id, player_name FROM players WHERE player_id = ?",
@@ -58,8 +59,69 @@ export async function onRequest(context) {
       return response;
     }
 
+    // リーダー・サブリーダーログイン（leader_idとpassword）
+    if (leaderId && password && !userId) {
+      const leader = await db
+        .prepare(
+          "SELECT leader_id, leader_name, team_id, leader_role, pass FROM leaders WHERE leader_id = ?",
+        )
+        .bind(leaderId)
+        .first();
+
+      if (!leader) {
+        return new Response(
+          JSON.stringify({ message: "IDまたはパスワードが間違っています。" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // パスワードを検証
+      if (leader.pass !== password) {
+        return new Response(
+          JSON.stringify({ message: "IDまたはパスワードが間違っています。" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      // セッションIDを生成（leader_idをBase64エンコード）
+      const sessionId = btoa("leader:" + leader.leader_id + ":" + Date.now());
+
+      const response = new Response(
+        JSON.stringify({
+          success: true,
+          type: "leader",
+          leader: {
+            leaderId: leader.leader_id,
+            leaderName: leader.leader_name,
+            teamId: leader.team_id,
+            leaderRole: leader.leader_role,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      // 本番環境ではSecure; 開発環境ではなし
+      const isProduction = new URL(context.request.url).protocol === "https:";
+      const secureFlag = isProduction ? "; Secure" : "";
+      response.headers.set(
+        "Set-Cookie",
+        `sessionId=${sessionId}; Path=/; HttpOnly${secureFlag}; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`,
+      );
+
+      return response;
+    }
+
     // 管理者ログイン（ユーザーIDとパスワード）
-    if (userId && password) {
+    if (userId && password && !leaderId) {
       const user = await db
         .prepare("SELECT user_id, user_name, pass FROM users WHERE user_id = ?")
         .bind(userId)
@@ -114,7 +176,8 @@ export async function onRequest(context) {
 
     return new Response(
       JSON.stringify({
-        message: "プレイヤーIDまたはユーザーIDとパスワードが必要です",
+        message:
+          "プレイヤーID、リーダーID、またはユーザーIDとパスワードが必要です",
       }),
       {
         status: 400,

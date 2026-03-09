@@ -5,4 +5,4 @@ pages_build_output_dir = "src"
 [[d1_databases]]
 binding = "DB"
 database_name = "othellonia_tournament_db"
-database_id = "f17f8050-dd79-4c1a-b18f-b226e7cd065c"
+database_id = "19cbd9bf-f1fa-4448-a773-e48fee2fc4c6"
