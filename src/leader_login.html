@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="icon" href="./images/oc_mark.png" type="image/png">
-    <title>管理者ログイン - 隊抗戦</title>
+    <title>リーダーログイン - 隊抗戦</title>
     <!-- Google reCAPTCHA v3 -->
     <script src="https://www.google.com/recaptcha/api.js"></script>
 </head>
@@ -16,15 +16,15 @@
 
     <main class="login-container">
         <div class="login-box">
-            <h1>管理者ログイン</h1>
+            <h1>リーダーログイン</h1>
 
-            <form id="adminLoginForm" class="login-form">
+            <form id="leaderLoginForm" class="login-form">
                 <div class="form-group">
-                    <input type="text" id="adminId" name="adminId" placeholder="管理者ID" required>
+                    <input type="text" id="leaderId" name="leaderId" placeholder="リーダーID" required>
                 </div>
 
                 <div class="form-group">
-                    <input type="password" id="adminPassword" name="adminPassword" placeholder="パスワード" required>
+                    <input type="password" id="leaderPassword" name="leaderPassword" placeholder="パスワード" required>
                 </div>
 
                 <!-- Google reCAPTCHA v3 チェックボックス -->
@@ -39,6 +39,10 @@
             <div class="login-footer">
                 <a href="./login.html" class="signup-link">プレイヤーログインページはこちら</a>
             </div>
+
+            <div class="login-footer">
+                <a href="./admin_login.html" class="signup-link">管理者用ログイン</a>
+            </div>
         </div>
     </main>
 
@@ -46,26 +50,26 @@
 
     <script src="./js/layout.js"></script>
     <script>
-        const adminLoginForm = document.getElementById('adminLoginForm');
+        const leaderLoginForm = document.getElementById('leaderLoginForm');
         const errorMessage = document.getElementById('errorMessage');
-        const adminIdInput = document.getElementById('adminId');
-        const adminPasswordInput = document.getElementById('adminPassword');
+        const leaderIdInput = document.getElementById('leaderId');
+        const leaderPasswordInput = document.getElementById('leaderPassword');
         const RECAPTCHA_SITE_KEY = '6LcfBYUsAAAAAKFBg0zxYsQJTsYJcAmTwTte_wCj';
 
-        adminLoginForm.addEventListener('submit', async (event) => {
+        leaderLoginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const adminId = adminIdInput.value.trim();
-            const adminPassword = adminPasswordInput.value.trim();
+            const leaderId = leaderIdInput.value.trim();
+            const leaderPassword = leaderPasswordInput.value.trim();
 
             // バリデーション
-            if (!adminId) {
-                errorMessage.textContent = '管理者IDを入力してください';
+            if (!leaderId) {
+                errorMessage.textContent = 'リーダーIDを入力してください';
                 errorMessage.style.display = 'block';
                 return;
             }
 
-            if (!adminPassword) {
+            if (!leaderPassword) {
                 errorMessage.textContent = 'パスワードを入力してください';
                 errorMessage.style.display = 'block';
                 return;
@@ -77,7 +81,7 @@
                 // Google reCAPTCHA v3 トークンを取得
                 let captchaToken = '';
                 try {
-                    captchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'admin_login' });
+                    captchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'leader_login' });
                 } catch (err) {
                     console.warn('reCAPTCHA token generation failed:', err);
                 }
@@ -88,8 +92,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        userId: adminId,
-                        password: adminPassword,
+                        leaderId: leaderId,
+                        password: leaderPassword,
                         captchaToken: captchaToken  // キャプチャトークンを追加
                     })
                 });
@@ -97,7 +101,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    location.href = './admin.html';
+                    location.href = './leader.html';
                 } else {
                     errorMessage.textContent = result.message || 'ログインに失敗しました';
                     errorMessage.style.display = 'block';
@@ -105,7 +109,7 @@
             } catch (error) {
                 errorMessage.textContent = 'エラーが発生しました';
                 errorMessage.style.display = 'block';
-                console.error('Admin login error:', error);
+                console.error('Leader login error:', error);
             }
         });
     </script>
