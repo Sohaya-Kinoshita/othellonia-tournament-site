@@ -23,6 +23,21 @@
             <h2>プレイヤーの情報を更新する</h2>
 
             <div style="margin-bottom: 20px;">
+                <label for="playerSearchKeyword">プレイヤー検索（初期: プレイヤー名）</label>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 5px;">
+                    <select id="playerSearchType" title="検索条件"
+                        style="width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 0;">
+                        <option value="name" selected>プレイヤー名で検索</option>
+                        <option value="id">プレイヤーIDで検索</option>
+                    </select>
+                    <input type="text" id="playerSearchKeyword" placeholder="プレイヤー名を入力" style="flex: 1; margin: 0;">
+                    <button type="button" class="btn" id="searchPlayerButton"
+                        style="margin: 0; white-space: nowrap;">検索</button>
+                </div>
+                <div style="margin-top: 8px; font-size: 13px; color: #666;">※ 空欄で検索すると全プレイヤーを表示します</div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
                 <label for="playerSelect">更新するプレイヤー（プレイヤーID - プレイヤー名）</label>
                 <select id="playerSelect"
                     style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
@@ -72,6 +87,85 @@
         let allTeams = [];
         let currentPlayerId = null;
 
+        function renderPlayerOptions(playersToRender) {
+            const playerSelect = document.getElementById("playerSelect");
+            const teamAssignmentContainer = document.getElementById("teamAssignmentContainer");
+            const selectedValue = playerSelect.value;
+
+            playerSelect.innerHTML = "<option value=\"\">-- プレイヤーを選択してください --</option>";
+
+            playersToRender.forEach((player) => {
+                const option = document.createElement("option");
+                option.value = player.player_id;
+                option.textContent = `${player.player_id} - ${player.player_name}`;
+                playerSelect.appendChild(option);
+            });
+
+            if (selectedValue && playersToRender.some((player) => player.player_id === selectedValue)) {
+                playerSelect.value = selectedValue;
+            } else {
+                playerSelect.value = "";
+                currentPlayerId = null;
+                teamAssignmentContainer.style.display = "none";
+            }
+        }
+
+        function applyPlayerSearch() {
+            const searchTypeSelect = document.getElementById("playerSearchType");
+            const searchKeywordInput = document.getElementById("playerSearchKeyword");
+            const keyword = searchKeywordInput.value.trim().toLowerCase();
+
+            if (!keyword) {
+                renderPlayerOptions(allPlayers);
+                return;
+            }
+
+            const filteredPlayers = allPlayers.filter((player) => {
+                if (searchTypeSelect.value === "id") {
+                    return String(player.player_id || "").toLowerCase().includes(keyword);
+                }
+                return String(player.player_name || "").toLowerCase().includes(keyword);
+            });
+
+            renderPlayerOptions(filteredPlayers);
+        }
+
+        function setupPlayerSearch() {
+            const searchTypeSelect = document.getElementById("playerSearchType");
+            const searchKeywordInput = document.getElementById("playerSearchKeyword");
+            const searchButton = document.getElementById("searchPlayerButton");
+
+            if (searchButton.dataset.bound === "true") {
+                return;
+            }
+
+            const updateSearchPlaceholder = () => {
+                searchKeywordInput.placeholder =
+                    searchTypeSelect.value === "id"
+                        ? "プレイヤーIDを入力"
+                        : "プレイヤー名を入力";
+            };
+
+            searchTypeSelect.addEventListener("change", () => {
+                updateSearchPlaceholder();
+                applyPlayerSearch();
+            });
+
+            searchButton.addEventListener("click", () => {
+                applyPlayerSearch();
+            });
+
+            searchKeywordInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyPlayerSearch();
+                }
+            });
+
+            updateSearchPlaceholder();
+            searchButton.dataset.bound = "true";
+        }
+
         async function checkAdmin() {
             const response = await fetch("/api/me");
             const result = await response.json();
@@ -107,6 +201,7 @@
                 allTeams = teamsResult.teams || [];
 
                 populatePlayerSelect();
+                setupPlayerSearch();
             } catch (error) {
                 console.error("Error loading data:", error);
                 alert("データの読み込みに失敗しました");
@@ -116,12 +211,11 @@
         function populatePlayerSelect() {
             const playerSelect = document.getElementById("playerSelect");
 
-            allPlayers.forEach((player) => {
-                const option = document.createElement("option");
-                option.value = player.player_id;
-                option.textContent = `${player.player_id} - ${player.player_name}`;
-                playerSelect.appendChild(option);
-            });
+            renderPlayerOptions(allPlayers);
+
+            if (playerSelect.dataset.bound === "true") {
+                return;
+            }
 
             playerSelect.addEventListener("change", () => {
                 const selectedPlayerId = playerSelect.value;
@@ -129,9 +223,12 @@
                     currentPlayerId = selectedPlayerId;
                     displayTeamAssignment();
                 } else {
+                    currentPlayerId = null;
                     document.getElementById("teamAssignmentContainer").style.display = "none";
                 }
             });
+
+            playerSelect.dataset.bound = "true";
         }
 
         async function displayTeamAssignment() {
@@ -203,11 +300,8 @@
                                 allPlayers[playerIndex].player_name = playerName;
                             }
 
-                            const playerSelect = document.getElementById("playerSelect");
-                            const selectedOption = playerSelect.options[playerSelect.selectedIndex];
-                            if (selectedOption) {
-                                selectedOption.textContent = `${currentPlayerId} - ${playerName}`;
-                            }
+                            applyPlayerSearch();
+                            document.getElementById("playerSelect").value = currentPlayerId;
 
                             messageDiv.textContent = "プレイヤー名を更新しました！";
                             messageDiv.className = "message success";

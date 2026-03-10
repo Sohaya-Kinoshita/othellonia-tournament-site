@@ -26,7 +26,7 @@
                 <label for="searchType">検索項目</label>
                 <select id="searchType" style="padding: 6px; min-width: 150px;">
                     <option value="player_id">プレイヤーID</option>
-                    <option value="player_name">プレイヤー名</option>
+                    <option value="player_name" selected>プレイヤー名</option>
                 </select>
                 <input id="playerIdSearch" type="text" placeholder="検索キーワードを入力"
                     style="padding: 6px; min-width: 220px;" />
@@ -176,7 +176,7 @@
 
                 clearButton.addEventListener("click", () => {
                     playerIdSearch.value = "";
-                    searchType.value = "player_id";
+                    searchType.value = "player_name";
                     renderPlayers(allPlayers);
                 });
 
