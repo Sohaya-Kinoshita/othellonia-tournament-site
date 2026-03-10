@@ -45,7 +45,9 @@
                         <button type="button" class="btn" id="searchLeaderPlayerButton"
                             style="margin: 0; white-space: nowrap;">名前で検索</button>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                    <div id="leaderSuggestionMessage"
+                        style="margin-top: 6px; font-size: 13px; color: #666; display: none;"></div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
                         <select id="leaderPlayerSearchResults"
                             style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
                         </select>
@@ -69,7 +71,9 @@
                         <button type="button" class="btn" id="searchSubleaderPlayerButton"
                             style="margin: 0; white-space: nowrap;">名前で検索</button>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                    <div id="subleaderSuggestionMessage"
+                        style="margin-top: 6px; font-size: 13px; color: #666; display: none;"></div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
                         <select id="subleaderPlayerSearchResults"
                             style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
                         </select>
@@ -126,6 +130,8 @@
             const subleaderPlayerNameSearchInput = document.getElementById("subleaderPlayerNameSearch");
             const leaderPlayerSearchResults = document.getElementById("leaderPlayerSearchResults");
             const subleaderPlayerSearchResults = document.getElementById("subleaderPlayerSearchResults");
+            const leaderSuggestionMessage = document.getElementById("leaderSuggestionMessage");
+            const subleaderSuggestionMessage = document.getElementById("subleaderSuggestionMessage");
             const pasteTeamNameButton = document.getElementById("pasteTeamNameButton");
             const pasteLeaderPlayerIdButton = document.getElementById("pasteLeaderPlayerIdButton");
             const pasteSubleaderPlayerIdButton = document.getElementById("pasteSubleaderPlayerIdButton");
@@ -151,10 +157,12 @@
                 return cachedPlayers;
             }
 
-            function hideSearchResult(selectEl, applyButtonEl) {
+            function hideSearchResult(selectEl, applyButtonEl, suggestionEl) {
                 selectEl.style.display = "none";
                 applyButtonEl.style.display = "none";
                 selectEl.innerHTML = "";
+                suggestionEl.textContent = "";
+                suggestionEl.style.display = "none";
             }
 
             function renderSearchResult(matches, selectEl, applyButtonEl) {
@@ -185,10 +193,10 @@
                     });
             }
 
-            async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, roleLabel) {
+            async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, suggestionEl, roleLabel) {
                 const keyword = nameInputEl.value.trim();
                 if (!keyword) {
-                    hideSearchResult(selectEl, applyButtonEl);
+                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                     return;
                 }
 
@@ -197,27 +205,26 @@
                     const matches = getMatchingPlayers(players, keyword).slice(0, 5);
 
                     if (matches.length === 0) {
-                        hideSearchResult(selectEl, applyButtonEl);
+                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                         return;
                     }
 
                     renderSearchResult(matches, selectEl, applyButtonEl);
-                    messageDiv.textContent = `${roleLabel}候補: もしかして ${matches.map((m) => m.player_name).join(" / ")}`;
-                    messageDiv.className = "message success";
-                    messageDiv.style.display = "block";
+                    suggestionEl.textContent = `${roleLabel}候補: もしかして ${matches.map((m) => m.player_name).join(" / ")}`;
+                    suggestionEl.style.display = "block";
                 } catch (error) {
-                    hideSearchResult(selectEl, applyButtonEl);
+                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                 }
             }
 
-            async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, roleLabel) {
+            async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, suggestionEl, roleLabel) {
                 try {
                     const keyword = nameInputEl.value.trim();
                     if (!keyword) {
                         messageDiv.textContent = `${roleLabel}の検索名を入力してください`;
                         messageDiv.className = "message error";
                         messageDiv.style.display = "block";
-                        hideSearchResult(selectEl, applyButtonEl);
+                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                         return;
                     }
 
@@ -228,23 +235,22 @@
                         messageDiv.textContent = `${roleLabel}の該当プレイヤーが見つかりません`;
                         messageDiv.className = "message error";
                         messageDiv.style.display = "block";
-                        hideSearchResult(selectEl, applyButtonEl);
+                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                         return;
                     }
 
                     renderSearchResult(matches, selectEl, applyButtonEl);
-                    messageDiv.textContent = `${roleLabel}候補が${matches.length}件あります。候補を選んでIDを反映してください`;
-                    messageDiv.className = "message success";
-                    messageDiv.style.display = "block";
+                    suggestionEl.textContent = `${roleLabel}候補: ${matches.length}件`;
+                    suggestionEl.style.display = "block";
                 } catch (error) {
                     messageDiv.textContent = error.message || "プレイヤー検索に失敗しました";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
-                    hideSearchResult(selectEl, applyButtonEl);
+                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
                 }
             }
 
-            function applySelectedPlayerId(selectEl, targetIdInputEl, roleLabel) {
+            function applySelectedPlayerId(selectEl, applyButtonEl, suggestionEl, targetIdInputEl, roleLabel) {
                 if (!selectEl.value) {
                     messageDiv.textContent = `${roleLabel}候補を選択してください`;
                     messageDiv.className = "message error";
@@ -256,6 +262,7 @@
                 messageDiv.textContent = `${roleLabel}のIDを反映しました: ${selectEl.value}`;
                 messageDiv.className = "message success";
                 messageDiv.style.display = "block";
+                hideSearchResult(selectEl, applyButtonEl, suggestionEl);
             }
 
             searchLeaderPlayerButton.addEventListener("click", async () => {
@@ -263,6 +270,7 @@
                     leaderPlayerNameSearchInput,
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
+                    leaderSuggestionMessage,
                     "リーダー",
                 );
             });
@@ -272,6 +280,7 @@
                     leaderPlayerNameSearchInput,
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
+                    leaderSuggestionMessage,
                     "リーダー",
                 );
             });
@@ -281,6 +290,7 @@
                     subleaderPlayerNameSearchInput,
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
+                    subleaderSuggestionMessage,
                     "サブリーダー",
                 );
             });
@@ -290,16 +300,29 @@
                     subleaderPlayerNameSearchInput,
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
+                    subleaderSuggestionMessage,
                     "サブリーダー",
                 );
             });
 
             applyLeaderPlayerSelectionButton.addEventListener("click", () => {
-                applySelectedPlayerId(leaderPlayerSearchResults, leaderPlayerIdInput, "リーダー");
+                applySelectedPlayerId(
+                    leaderPlayerSearchResults,
+                    applyLeaderPlayerSelectionButton,
+                    leaderSuggestionMessage,
+                    leaderPlayerIdInput,
+                    "リーダー",
+                );
             });
 
             applySubleaderPlayerSelectionButton.addEventListener("click", () => {
-                applySelectedPlayerId(subleaderPlayerSearchResults, subleaderPlayerIdInput, "サブリーダー");
+                applySelectedPlayerId(
+                    subleaderPlayerSearchResults,
+                    applySubleaderPlayerSelectionButton,
+                    subleaderSuggestionMessage,
+                    subleaderPlayerIdInput,
+                    "サブリーダー",
+                );
             });
 
             // チーム名の貼り付け処理
