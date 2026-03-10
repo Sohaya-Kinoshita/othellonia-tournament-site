@@ -60,11 +60,42 @@
                         <button type="button" class="btn" id="pasteLeaderPlayerIdEditButton"
                             style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                        <input type="text" id="leaderPlayerNameSearchEdit" maxlength="10" placeholder="プレイヤー名で検索"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="searchLeaderPlayerEditButton"
+                            style="margin: 0; white-space: nowrap;">名前で検索</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                        <select id="leaderPlayerSearchResultsEdit"
+                            style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
+                        </select>
+                        <button type="button" class="btn" id="applyLeaderPlayerSelectionEditButton"
+                            style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label>リーダーのパスワード（変更する場合のみ入力・8文字以上）</label>
-                    <input type="password" id="leaderPasswordEdit" minlength="8" placeholder="変更しない場合は空欄">
+                    <label>サブリーダーのプレイヤーID（12文字・任意）</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="subleaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000002"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteSubleaderPlayerIdEditButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                        <input type="text" id="subleaderPlayerNameSearchEdit" maxlength="10" placeholder="プレイヤー名で検索"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="searchSubleaderPlayerEditButton"
+                            style="margin: 0; white-space: nowrap;">名前で検索</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                        <select id="subleaderPlayerSearchResultsEdit"
+                            style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
+                        </select>
+                        <button type="button" class="btn" id="applySubleaderPlayerSelectionEditButton"
+                            style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn">チーム情報を更新</button>
@@ -145,7 +176,7 @@
                 document.getElementById("teamNameEdit").value = selectedTeam.team_name;
                 document.getElementById("leaderNameEdit").value = selectedTeam.leader_name || "";
                 document.getElementById("leaderPlayerIdEdit").value = selectedTeam.player_id || "";
-                document.getElementById("leaderPasswordEdit").value = "";
+                document.getElementById("subleaderPlayerIdEdit").value = selectedTeam.subleader_player_id || "";
                 teamEditForm.style.display = "block";
                 setupEditForm();
             }
@@ -156,8 +187,141 @@
             const messageDiv = document.getElementById("teamMessage");
             const teamNameInput = document.getElementById("teamNameEdit");
             const leaderPlayerIdInput = document.getElementById("leaderPlayerIdEdit");
+            const subleaderPlayerIdInput = document.getElementById("subleaderPlayerIdEdit");
+            const leaderPlayerNameSearchInput = document.getElementById("leaderPlayerNameSearchEdit");
+            const subleaderPlayerNameSearchInput = document.getElementById("subleaderPlayerNameSearchEdit");
+            const leaderPlayerSearchResults = document.getElementById("leaderPlayerSearchResultsEdit");
+            const subleaderPlayerSearchResults = document.getElementById("subleaderPlayerSearchResultsEdit");
             const pasteTeamNameButton = document.getElementById("pasteTeamNameEditButton");
             const pasteLeaderPlayerIdButton = document.getElementById("pasteLeaderPlayerIdEditButton");
+            const pasteSubleaderPlayerIdButton = document.getElementById("pasteSubleaderPlayerIdEditButton");
+            const searchLeaderPlayerButton = document.getElementById("searchLeaderPlayerEditButton");
+            const searchSubleaderPlayerButton = document.getElementById("searchSubleaderPlayerEditButton");
+            const applyLeaderPlayerSelectionButton = document.getElementById("applyLeaderPlayerSelectionEditButton");
+            const applySubleaderPlayerSelectionButton = document.getElementById("applySubleaderPlayerSelectionEditButton");
+
+            let cachedPlayers = [];
+
+            async function loadPlayers() {
+                if (cachedPlayers.length > 0) {
+                    return cachedPlayers;
+                }
+
+                const response = await fetch("/api/players");
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || "プレイヤー一覧の取得に失敗しました");
+                }
+
+                cachedPlayers = result.players || [];
+                return cachedPlayers;
+            }
+
+            function hideSearchResult(selectEl, applyButtonEl) {
+                selectEl.style.display = "none";
+                applyButtonEl.style.display = "none";
+                selectEl.innerHTML = "";
+            }
+
+            function renderSearchResult(matches, selectEl, applyButtonEl) {
+                selectEl.innerHTML = "";
+                matches.forEach((player) => {
+                    const option = document.createElement("option");
+                    option.value = player.player_id;
+                    option.textContent = `${player.player_name} (${player.player_id})`;
+                    selectEl.appendChild(option);
+                });
+                selectEl.style.display = "block";
+                applyButtonEl.style.display = "inline-block";
+            }
+
+            async function searchPlayerByName(nameInputEl, targetIdInputEl, selectEl, applyButtonEl, roleLabel) {
+                try {
+                    const keyword = nameInputEl.value.trim();
+                    if (!keyword) {
+                        messageDiv.textContent = `${roleLabel}の検索名を入力してください`;
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                        hideSearchResult(selectEl, applyButtonEl);
+                        return;
+                    }
+
+                    const players = await loadPlayers();
+                    const lowerKeyword = keyword.toLowerCase();
+                    const matches = players.filter((player) =>
+                        String(player.player_name || "").toLowerCase().includes(lowerKeyword),
+                    );
+
+                    if (matches.length === 0) {
+                        messageDiv.textContent = `${roleLabel}の該当プレイヤーが見つかりません`;
+                        messageDiv.className = "message error";
+                        messageDiv.style.display = "block";
+                        hideSearchResult(selectEl, applyButtonEl);
+                        return;
+                    }
+
+                    if (matches.length === 1) {
+                        targetIdInputEl.value = matches[0].player_id;
+                        messageDiv.textContent = `${roleLabel}のIDを反映しました: ${matches[0].player_id}`;
+                        messageDiv.className = "message success";
+                        messageDiv.style.display = "block";
+                        hideSearchResult(selectEl, applyButtonEl);
+                        return;
+                    }
+
+                    renderSearchResult(matches, selectEl, applyButtonEl);
+                    messageDiv.textContent = `${roleLabel}候補が${matches.length}件あります。候補を選んでIDを反映してください`;
+                    messageDiv.className = "message success";
+                    messageDiv.style.display = "block";
+                } catch (error) {
+                    messageDiv.textContent = error.message || "プレイヤー検索に失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    hideSearchResult(selectEl, applyButtonEl);
+                }
+            }
+
+            function applySelectedPlayerId(selectEl, targetIdInputEl, roleLabel) {
+                if (!selectEl.value) {
+                    messageDiv.textContent = `${roleLabel}候補を選択してください`;
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                targetIdInputEl.value = selectEl.value;
+                messageDiv.textContent = `${roleLabel}のIDを反映しました: ${selectEl.value}`;
+                messageDiv.className = "message success";
+                messageDiv.style.display = "block";
+            }
+
+            searchLeaderPlayerButton.addEventListener("click", async () => {
+                await searchPlayerByName(
+                    leaderPlayerNameSearchInput,
+                    leaderPlayerIdInput,
+                    leaderPlayerSearchResults,
+                    applyLeaderPlayerSelectionButton,
+                    "リーダー",
+                );
+            });
+
+            searchSubleaderPlayerButton.addEventListener("click", async () => {
+                await searchPlayerByName(
+                    subleaderPlayerNameSearchInput,
+                    subleaderPlayerIdInput,
+                    subleaderPlayerSearchResults,
+                    applySubleaderPlayerSelectionButton,
+                    "サブリーダー",
+                );
+            });
+
+            applyLeaderPlayerSelectionButton.addEventListener("click", () => {
+                applySelectedPlayerId(leaderPlayerSearchResults, leaderPlayerIdInput, "リーダー");
+            });
+
+            applySubleaderPlayerSelectionButton.addEventListener("click", () => {
+                applySelectedPlayerId(subleaderPlayerSearchResults, subleaderPlayerIdInput, "サブリーダー");
+            });
 
             // チーム名の貼り付け処理
             pasteTeamNameButton.addEventListener("click", async () => {
@@ -185,6 +349,19 @@
                 }
             });
 
+            // サブリーダーのプレイヤーIDの貼り付け処理
+            pasteSubleaderPlayerIdButton.addEventListener("click", async () => {
+                try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    subleaderPlayerIdInput.value = clipboardText.trim();
+                    messageDiv.style.display = "none";
+                } catch (error) {
+                    messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                }
+            });
+
             // フォーム送信
             teamEditForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -193,7 +370,7 @@
                 const teamName = teamNameInput.value.trim();
                 const leaderName = document.getElementById("leaderNameEdit").value.trim();
                 const leaderPlayerId = leaderPlayerIdInput.value.trim();
-                const leaderPassword = document.getElementById("leaderPasswordEdit").value;
+                const subleaderPlayerId = subleaderPlayerIdInput.value.trim();
 
                 // リーダーのプレイヤーIDが入力されている場合は12文字チェック
                 if (leaderPlayerId && leaderPlayerId.length !== 12) {
@@ -203,9 +380,9 @@
                     return;
                 }
 
-                // パスワードが入力されている場合は8文字以上チェック
-                if (leaderPassword && leaderPassword.length < 8) {
-                    messageDiv.textContent = "パスワードは8文字以上で入力してください";
+                // サブリーダーのプレイヤーIDが入力されている場合は12文字チェック
+                if (subleaderPlayerId && subleaderPlayerId.length !== 12) {
+                    messageDiv.textContent = "サブリーダーのプレイヤーIDは12文字ちょうどで入力してください";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;
@@ -215,7 +392,7 @@
                     const updateData = { teamId, teamName };
                     if (leaderName) updateData.leaderName = leaderName;
                     if (leaderPlayerId) updateData.leaderPlayerId = leaderPlayerId;
-                    if (leaderPassword) updateData.leaderPassword = leaderPassword;
+                    if (subleaderPlayerId) updateData.subleaderPlayerId = subleaderPlayerId;
 
                     const response = await fetch("/api/teams", {
                         method: "PUT",
