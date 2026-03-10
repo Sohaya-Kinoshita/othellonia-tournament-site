@@ -23,6 +23,22 @@
             <h2>チーム情報を編集</h2>
 
             <div style="margin-bottom: 20px;">
+                <label for="teamSearchKeyword">チーム検索（初期: チーム名）</label>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 5px;">
+                    <select id="teamSearchType" title="検索条件"
+                        style="width: 180px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin: 0;">
+                        <option value="name" selected>チーム名で検索</option>
+                        <option value="id">チームIDで検索</option>
+                    </select>
+                    <input type="text" id="teamSearchKeyword" placeholder="チーム名を入力"
+                        style="flex: 1; margin: 0;">
+                    <button type="button" class="btn" id="searchTeamButton"
+                        style="margin: 0; white-space: nowrap;">検索</button>
+                </div>
+                <div style="margin-top: 8px; font-size: 13px; color: #666;">※ 空欄で検索すると全チームを表示します</div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
                 <label for="teamSelect">編集するチーム（チームID - チーム名）</label>
                 <select id="teamSelect"
                     style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
@@ -56,8 +72,6 @@
                         <button type="button" class="btn" id="searchLeaderPlayerEditButton"
                             style="margin: 0; white-space: nowrap;">名前で検索</button>
                     </div>
-                    <div id="leaderSuggestionMessageEdit"
-                        style="margin-top: 6px; font-size: 13px; color: #666; display: none;"></div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
                         <select id="leaderPlayerSearchResultsEdit"
                             style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
@@ -65,6 +79,8 @@
                         <button type="button" class="btn" id="applyLeaderPlayerSelectionEditButton"
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
+                    <div id="leaderApplyStatusEdit"
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="leaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000001"
@@ -83,8 +99,6 @@
                         <button type="button" class="btn" id="searchSubleaderPlayerEditButton"
                             style="margin: 0; white-space: nowrap;">名前で検索</button>
                     </div>
-                    <div id="subleaderSuggestionMessageEdit"
-                        style="margin-top: 6px; font-size: 13px; color: #666; display: none;"></div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
                         <select id="subleaderPlayerSearchResultsEdit"
                             style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
@@ -92,6 +106,8 @@
                         <button type="button" class="btn" id="applySubleaderPlayerSelectionEditButton"
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
+                    <div id="subleaderApplyStatusEdit"
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="subleaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000002"
@@ -111,6 +127,8 @@
 
     <script src="./js/layout.js"></script>
     <script>
+        let allTeams = [];
+
         async function checkAdmin() {
             const response = await fetch("/api/me");
             const result = await response.json();
@@ -143,23 +161,93 @@
                     return;
                 }
 
+                allTeams = result.teams || [];
+                renderTeamOptions(allTeams);
+                setupTeamSearch();
+
                 const teamSelect = document.getElementById("teamSelect");
-                const teams = result.teams || [];
-
-                teams.forEach((team) => {
-                    const option = document.createElement("option");
-                    option.value = team.team_id;
-                    option.textContent = `${team.team_id} - ${team.team_name}`;
-                    teamSelect.appendChild(option);
-                });
-
                 teamSelect.addEventListener("change", () => {
-                    selectTeam(teams);
+                    selectTeam(allTeams);
                 });
             } catch (error) {
                 console.error("Error loading teams:", error);
                 alert("チーム一覧の読み込みに失敗しました");
             }
+        }
+
+        function renderTeamOptions(teamsToRender) {
+            const teamSelect = document.getElementById("teamSelect");
+            const teamEditForm = document.getElementById("teamEditForm");
+            const selectedValue = teamSelect.value;
+
+            teamSelect.innerHTML = "<option value=\"\">-- チームを選択してください --</option>";
+
+            teamsToRender.forEach((team) => {
+                const option = document.createElement("option");
+                option.value = team.team_id;
+                option.textContent = `${team.team_id} - ${team.team_name}`;
+                teamSelect.appendChild(option);
+            });
+
+            if (selectedValue && teamsToRender.some((team) => team.team_id === selectedValue)) {
+                teamSelect.value = selectedValue;
+            } else {
+                teamSelect.value = "";
+                teamEditForm.style.display = "none";
+            }
+        }
+
+        function setupTeamSearch() {
+            const searchTypeSelect = document.getElementById("teamSearchType");
+            const searchKeywordInput = document.getElementById("teamSearchKeyword");
+            const searchButton = document.getElementById("searchTeamButton");
+
+            if (searchButton.dataset.bound === "true") {
+                return;
+            }
+
+            const updateSearchPlaceholder = () => {
+                searchKeywordInput.placeholder =
+                    searchTypeSelect.value === "id" ? "チームIDを入力" : "チーム名を入力";
+            };
+
+            const runTeamSearch = () => {
+                const searchType = searchTypeSelect.value;
+                const keyword = searchKeywordInput.value.trim().toLowerCase();
+
+                if (!keyword) {
+                    renderTeamOptions(allTeams);
+                    return;
+                }
+
+                const filteredTeams = allTeams.filter((team) => {
+                    if (searchType === "id") {
+                        return String(team.team_id || "").toLowerCase().includes(keyword);
+                    }
+                    return String(team.team_name || "").toLowerCase().includes(keyword);
+                });
+
+                renderTeamOptions(filteredTeams);
+            };
+
+            searchTypeSelect.addEventListener("change", () => {
+                updateSearchPlaceholder();
+                runTeamSearch();
+            });
+
+            searchButton.addEventListener("click", () => {
+                runTeamSearch();
+            });
+
+            searchKeywordInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    runTeamSearch();
+                }
+            });
+
+            updateSearchPlaceholder();
+            searchButton.dataset.bound = "true";
         }
 
         function selectTeam(teams) {
@@ -194,8 +282,8 @@
             const subleaderPlayerNameSearchInput = document.getElementById("subleaderPlayerNameSearchEdit");
             const leaderPlayerSearchResults = document.getElementById("leaderPlayerSearchResultsEdit");
             const subleaderPlayerSearchResults = document.getElementById("subleaderPlayerSearchResultsEdit");
-            const leaderSuggestionMessage = document.getElementById("leaderSuggestionMessageEdit");
-            const subleaderSuggestionMessage = document.getElementById("subleaderSuggestionMessageEdit");
+            const leaderApplyStatus = document.getElementById("leaderApplyStatusEdit");
+            const subleaderApplyStatus = document.getElementById("subleaderApplyStatusEdit");
             const pasteTeamNameButton = document.getElementById("pasteTeamNameEditButton");
             const pasteLeaderPlayerIdButton = document.getElementById("pasteLeaderPlayerIdEditButton");
             const pasteSubleaderPlayerIdButton = document.getElementById("pasteSubleaderPlayerIdEditButton");
@@ -221,15 +309,24 @@
                 return cachedPlayers;
             }
 
-            function hideSearchResult(selectEl, applyButtonEl, suggestionEl) {
+            function hideSearchResult(selectEl, applyButtonEl) {
                 selectEl.style.display = "none";
                 applyButtonEl.style.display = "none";
                 selectEl.innerHTML = "";
-                suggestionEl.textContent = "";
-                suggestionEl.style.display = "none";
             }
 
-            function renderSearchResult(matches, selectEl, applyButtonEl) {
+            function hideApplyStatus(statusEl) {
+                statusEl.style.display = "none";
+                statusEl.textContent = "";
+            }
+
+            function showApplyStatus(statusEl, text) {
+                statusEl.textContent = text;
+                statusEl.style.display = "block";
+            }
+
+            function renderSearchResult(matches, selectEl, applyButtonEl, statusEl) {
+                hideApplyStatus(statusEl);
                 selectEl.innerHTML = "";
                 matches.forEach((player) => {
                     const option = document.createElement("option");
@@ -257,10 +354,10 @@
                     });
             }
 
-            async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, suggestionEl, roleLabel) {
+            async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, statusEl) {
                 const keyword = nameInputEl.value.trim();
                 if (!keyword) {
-                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                    hideSearchResult(selectEl, applyButtonEl);
                     return;
                 }
 
@@ -269,26 +366,24 @@
                     const matches = getMatchingPlayers(players, keyword).slice(0, 5);
 
                     if (matches.length === 0) {
-                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                        hideSearchResult(selectEl, applyButtonEl);
                         return;
                     }
 
-                    renderSearchResult(matches, selectEl, applyButtonEl);
-                    suggestionEl.textContent = `${roleLabel}候補: もしかして ${matches.map((m) => m.player_name).join(" / ")}`;
-                    suggestionEl.style.display = "block";
+                    renderSearchResult(matches, selectEl, applyButtonEl, statusEl);
                 } catch (error) {
-                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                    hideSearchResult(selectEl, applyButtonEl);
                 }
             }
 
-            async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, suggestionEl, roleLabel) {
+            async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, statusEl, roleLabel) {
                 try {
                     const keyword = nameInputEl.value.trim();
                     if (!keyword) {
                         messageDiv.textContent = `${roleLabel}の検索名を入力してください`;
                         messageDiv.className = "message error";
                         messageDiv.style.display = "block";
-                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                        hideSearchResult(selectEl, applyButtonEl);
                         return;
                     }
 
@@ -299,22 +394,20 @@
                         messageDiv.textContent = `${roleLabel}の該当プレイヤーが見つかりません`;
                         messageDiv.className = "message error";
                         messageDiv.style.display = "block";
-                        hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                        hideSearchResult(selectEl, applyButtonEl);
                         return;
                     }
 
-                    renderSearchResult(matches, selectEl, applyButtonEl);
-                    suggestionEl.textContent = `${roleLabel}候補: ${matches.length}件`;
-                    suggestionEl.style.display = "block";
+                    renderSearchResult(matches, selectEl, applyButtonEl, statusEl);
                 } catch (error) {
                     messageDiv.textContent = error.message || "プレイヤー検索に失敗しました";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
-                    hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                    hideSearchResult(selectEl, applyButtonEl);
                 }
             }
 
-            function applySelectedPlayerId(selectEl, applyButtonEl, suggestionEl, targetIdInputEl, roleLabel) {
+            function applySelectedPlayerId(selectEl, applyButtonEl, statusEl, targetIdInputEl, roleLabel) {
                 if (!selectEl.value) {
                     messageDiv.textContent = `${roleLabel}候補を選択してください`;
                     messageDiv.className = "message error";
@@ -323,10 +416,8 @@
                 }
 
                 targetIdInputEl.value = selectEl.value;
-                messageDiv.textContent = `${roleLabel}のIDを反映しました: ${selectEl.value}`;
-                messageDiv.className = "message success";
-                messageDiv.style.display = "block";
-                hideSearchResult(selectEl, applyButtonEl, suggestionEl);
+                hideSearchResult(selectEl, applyButtonEl);
+                showApplyStatus(statusEl, `${roleLabel}のIDを反映しました: ${selectEl.value}`);
             }
 
             searchLeaderPlayerButton.addEventListener("click", async () => {
@@ -334,7 +425,7 @@
                     leaderPlayerNameSearchInput,
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
-                    leaderSuggestionMessage,
+                    leaderApplyStatus,
                     "リーダー",
                 );
             });
@@ -344,8 +435,7 @@
                     leaderPlayerNameSearchInput,
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
-                    leaderSuggestionMessage,
-                    "リーダー",
+                    leaderApplyStatus,
                 );
             });
 
@@ -354,7 +444,7 @@
                     subleaderPlayerNameSearchInput,
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
-                    subleaderSuggestionMessage,
+                    subleaderApplyStatus,
                     "サブリーダー",
                 );
             });
@@ -364,8 +454,7 @@
                     subleaderPlayerNameSearchInput,
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
-                    subleaderSuggestionMessage,
-                    "サブリーダー",
+                    subleaderApplyStatus,
                 );
             });
 
@@ -373,7 +462,7 @@
                 applySelectedPlayerId(
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
-                    leaderSuggestionMessage,
+                    leaderApplyStatus,
                     leaderPlayerIdInput,
                     "リーダー",
                 );
@@ -383,7 +472,7 @@
                 applySelectedPlayerId(
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
-                    subleaderSuggestionMessage,
+                    subleaderApplyStatus,
                     subleaderPlayerIdInput,
                     "サブリーダー",
                 );
@@ -407,6 +496,8 @@
                 try {
                     const clipboardText = await navigator.clipboard.readText();
                     leaderPlayerIdInput.value = clipboardText.trim();
+                    hideSearchResult(leaderPlayerSearchResults, applyLeaderPlayerSelectionButton);
+                    showApplyStatus(leaderApplyStatus, `リーダーのIDを反映しました: ${leaderPlayerIdInput.value}`);
                     messageDiv.style.display = "none";
                 } catch (error) {
                     messageDiv.textContent = "クリップボードの貼り付けに失敗しました";
@@ -420,6 +511,8 @@
                 try {
                     const clipboardText = await navigator.clipboard.readText();
                     subleaderPlayerIdInput.value = clipboardText.trim();
+                    hideSearchResult(subleaderPlayerSearchResults, applySubleaderPlayerSelectionButton);
+                    showApplyStatus(subleaderApplyStatus, `サブリーダーのIDを反映しました: ${subleaderPlayerIdInput.value}`);
                     messageDiv.style.display = "none";
                 } catch (error) {
                     messageDiv.textContent = "クリップボードの貼り付けに失敗しました";

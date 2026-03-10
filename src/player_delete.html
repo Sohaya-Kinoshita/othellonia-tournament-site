@@ -21,18 +21,35 @@
 
         <div class="card hidden" id="playerDeleteCard">
             <h2>削除するプレイヤーを選択</h2>
+            <p style="margin: 0 0 12px; color: #666; font-size: 14px;">
+                チームに参加しているプレイヤーは削除できません。未参加のプレイヤーのみ表示しています。
+            </p>
             <div id="playerListContainer" style="overflow-x: auto;"></div>
             <p id="noPlayersMessage" style="text-align: center; color: #666; display: none;">
-                プレイヤーが登録されていません
+                削除可能なプレイヤー（未参加）がいません
             </p>
             <div id="deleteMessage" class="message" style="display: none;"></div>
         </div>
     </main>
 
+    <div id="confirmDeleteModal" class="confirm-delete-modal hidden" aria-hidden="true">
+        <div class="confirm-delete-overlay" id="confirmDeleteOverlay"></div>
+        <div class="confirm-delete-panel" role="dialog" aria-modal="true" aria-labelledby="confirmDeleteTitle">
+            <h3 id="confirmDeleteTitle" class="confirm-delete-title">削除確認</h3>
+            <p id="confirmDeleteText" class="confirm-delete-text"></p>
+            <div class="confirm-delete-actions">
+                <button type="button" class="btn confirm-btn-no" id="confirmDeleteNo">いいえ</button>
+                <button type="button" class="btn" id="confirmDeleteYes">はい</button>
+            </div>
+        </div>
+    </div>
+
     <div id="footerSlot"></div>
 
     <script src="./js/layout.js"></script>
     <script>
+        let resolveDeleteConfirm = null;
+
         async function checkAdmin() {
             const response = await fetch("/api/me");
             const result = await response.json();
@@ -69,7 +86,11 @@
                 }
 
                 const players = result.players || [];
-                if (players.length === 0) {
+                const deletablePlayers = players.filter(
+                    (player) => Number(player.is_team_participant || 0) === 0,
+                );
+
+                if (deletablePlayers.length === 0) {
                     playerListContainer.innerHTML = "";
                     noPlayersMessage.style.display = "block";
                     return;
@@ -86,7 +107,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${players
+                            ${deletablePlayers
                         .map(
                             (player) => `
                                 <tr style="border-bottom: 1px solid #eee;">
@@ -108,10 +129,9 @@
                         const playerId = button.getAttribute("data-player-id");
                         const playerName =
                             button.closest("tr")?.children?.[1]?.textContent?.trim() || "";
-                        const playerLabel = playerName
-                            ? `${playerId}-${playerName}`
-                            : playerId;
-                        const confirmed = confirm(`プレイヤー ${playerLabel} を削除します。よろしいですか？`);
+                        const confirmed = await openDeleteConfirm(
+                            `プレイヤー ${playerId}（${playerName}）を削除します。`,
+                        );
                         if (!confirmed) return;
 
                         const deleteResponse = await fetch("/api/players", {
@@ -132,6 +152,46 @@
             } catch (error) {
                 showMessage("通信エラーが発生しました", "error");
             }
+        }
+
+        function setupDeleteConfirmDialog() {
+            const modal = document.getElementById("confirmDeleteModal");
+            const overlay = document.getElementById("confirmDeleteOverlay");
+            const yesButton = document.getElementById("confirmDeleteYes");
+            const noButton = document.getElementById("confirmDeleteNo");
+
+            const closeDialog = (confirmed) => {
+                modal.classList.add("hidden");
+                modal.setAttribute("aria-hidden", "true");
+
+                if (resolveDeleteConfirm) {
+                    const resolver = resolveDeleteConfirm;
+                    resolveDeleteConfirm = null;
+                    resolver(confirmed);
+                }
+            };
+
+            yesButton.addEventListener("click", () => closeDialog(true));
+            noButton.addEventListener("click", () => closeDialog(false));
+            overlay.addEventListener("click", () => closeDialog(false));
+        }
+
+        function openDeleteConfirm(message) {
+            const modal = document.getElementById("confirmDeleteModal");
+            const text = document.getElementById("confirmDeleteText");
+            const yesButton = document.getElementById("confirmDeleteYes");
+
+            text.textContent = message;
+            modal.classList.remove("hidden");
+            modal.setAttribute("aria-hidden", "false");
+
+            setTimeout(() => {
+                yesButton.focus();
+            }, 0);
+
+            return new Promise((resolve) => {
+                resolveDeleteConfirm = resolve;
+            });
         }
 
         let toastTimer = null;
@@ -161,7 +221,10 @@
             }, 2800);
         }
 
-        document.addEventListener("DOMContentLoaded", checkAdmin);
+        document.addEventListener("DOMContentLoaded", () => {
+            setupDeleteConfirmDialog();
+            checkAdmin();
+        });
     </script>
 </body>
 

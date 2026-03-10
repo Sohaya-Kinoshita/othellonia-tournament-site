@@ -1468,6 +1468,59 @@ th {
   padding: 20px;
 }
 
+.confirm-delete-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+}
+
+.confirm-delete-modal.hidden {
+  display: none;
+}
+
+.confirm-delete-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.confirm-delete-panel {
+  position: relative;
+  width: min(92vw, 460px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+  z-index: 1;
+}
+
+.confirm-delete-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.confirm-delete-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.confirm-delete-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-btn-no {
+  background: #6b7280;
+}
+
 .urgent-notice {
   background: #fef08a;
   border: 1px solid #fcd34d;
@@ -1601,6 +1654,12 @@ th {
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s;
+}
+
+a.btn:link,
+a.btn:visited {
+  color: white;
+  text-decoration: none;
 }
 
 .btn:hover {

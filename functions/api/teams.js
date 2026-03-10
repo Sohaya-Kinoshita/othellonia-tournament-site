@@ -16,7 +16,14 @@ export async function onRequest(context) {
             subleader.leader_id AS subleader_id,
             subleader.leader_name AS subleader_name,
             subleader.player_id AS subleader_player_id,
-            subleaderPlayer.player_name AS subleader_player_name
+            subleaderPlayer.player_name AS subleader_player_name,
+            (
+              SELECT COUNT(*)
+              FROM matches m
+              WHERE m.team_a_id = teams.team_id
+                 OR m.team_b_id = teams.team_id
+                 OR m.winner_team_id = teams.team_id
+            ) AS match_count
           FROM teams 
           LEFT JOIN leaders AS leader ON teams.team_id = leader.team_id AND leader.leader_role = 'leader'
           LEFT JOIN players AS leaderPlayer ON leader.player_id = leaderPlayer.player_id

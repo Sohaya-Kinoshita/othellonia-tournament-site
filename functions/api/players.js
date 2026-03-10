@@ -24,6 +24,22 @@ export async function onRequest(context) {
             players.player_id,
             players.player_name,
             players.mirrativ_id,
+            CASE
+              WHEN EXISTS (
+                SELECT 1 FROM team_members tm
+                WHERE tm.player_id = players.player_id
+              )
+              OR EXISTS (
+                SELECT 1 FROM teams t
+                WHERE t.team_reader = players.player_id
+              )
+              OR EXISTS (
+                SELECT 1 FROM leaders l
+                WHERE l.player_id = players.player_id
+              )
+              THEN 1
+              ELSE 0
+            END AS is_team_participant,
             COALESCE(GROUP_CONCAT(teams.team_name, ' / '), '') AS team_names
           FROM players
           LEFT JOIN team_members ON players.player_id = team_members.player_id
@@ -248,6 +264,43 @@ export async function onRequest(context) {
           JSON.stringify({ message: "プレイヤーが見つかりません" }),
           {
             status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const participation = await db
+        .prepare(
+          `
+          SELECT
+            CASE
+              WHEN EXISTS (
+                SELECT 1 FROM team_members tm
+                WHERE tm.player_id = ?
+              )
+              OR EXISTS (
+                SELECT 1 FROM teams t
+                WHERE t.team_reader = ?
+              )
+              OR EXISTS (
+                SELECT 1 FROM leaders l
+                WHERE l.player_id = ?
+              )
+              THEN 1
+              ELSE 0
+            END AS is_team_participant
+          `,
+        )
+        .bind(normalizedPlayerId, normalizedPlayerId, normalizedPlayerId)
+        .first();
+
+      if (Number(participation?.is_team_participant || 0) > 0) {
+        return new Response(
+          JSON.stringify({
+            message: "チームに参加しているプレイヤーは削除できません",
+          }),
+          {
+            status: 400,
             headers: { "Content-Type": "application/json" },
           },
         );
