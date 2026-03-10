@@ -30,10 +30,6 @@ export async function onRequest(context) {
                 WHERE tm.player_id = players.player_id
               )
               OR EXISTS (
-                SELECT 1 FROM teams t
-                WHERE t.team_reader = players.player_id
-              )
-              OR EXISTS (
                 SELECT 1 FROM leaders l
                 WHERE l.player_id = players.player_id
               )
@@ -279,10 +275,6 @@ export async function onRequest(context) {
                 WHERE tm.player_id = ?
               )
               OR EXISTS (
-                SELECT 1 FROM teams t
-                WHERE t.team_reader = ?
-              )
-              OR EXISTS (
                 SELECT 1 FROM leaders l
                 WHERE l.player_id = ?
               )
@@ -291,36 +283,13 @@ export async function onRequest(context) {
             END AS is_team_participant
           `,
         )
-        .bind(normalizedPlayerId, normalizedPlayerId, normalizedPlayerId)
+        .bind(normalizedPlayerId, normalizedPlayerId)
         .first();
 
       if (Number(participation?.is_team_participant || 0) > 0) {
         return new Response(
           JSON.stringify({
             message: "チームに参加しているプレイヤーは削除できません",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      const leaderTeams = await db
-        .prepare(
-          "SELECT team_id, team_name FROM teams WHERE team_reader = ? ORDER BY team_id",
-        )
-        .bind(normalizedPlayerId)
-        .all();
-
-      const leaderTeamList = leaderTeams.results || [];
-      if (leaderTeamList.length > 0) {
-        const teamLabels = leaderTeamList
-          .map((team) => `${team.team_id}-${team.team_name}`)
-          .join(" / ");
-        return new Response(
-          JSON.stringify({
-            message: `チームリーダーに設定されているため削除できません（${teamLabels}）`,
           }),
           {
             status: 400,
