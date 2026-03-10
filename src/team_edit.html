@@ -48,18 +48,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>リーダー氏名（10文字以下）</label>
-                    <input type="text" id="leaderNameEdit" maxlength="10" placeholder="例: 山田太郎">
-                </div>
-
-                <div class="form-group">
                     <label>リーダーのプレイヤーID（12文字）</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="leaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000001"
-                            style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteLeaderPlayerIdEditButton"
-                            style="margin: 0; white-space: nowrap;">貼り付け</button>
-                    </div>
+                    <div style="margin-top: 4px; font-size: 13px; color: #666;">名前で検索</div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
                         <input type="text" id="leaderPlayerNameSearchEdit" maxlength="10" placeholder="プレイヤー名で検索"
                             style="margin-bottom: 0;">
@@ -73,16 +63,18 @@
                         <button type="button" class="btn" id="applyLeaderPlayerSelectionEditButton"
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
+                    <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="leaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000001"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteLeaderPlayerIdEditButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label>サブリーダーのプレイヤーID（12文字・任意）</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="subleaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000002"
-                            style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteSubleaderPlayerIdEditButton"
-                            style="margin: 0; white-space: nowrap;">貼り付け</button>
-                    </div>
+                    <div style="margin-top: 4px; font-size: 13px; color: #666;">名前で検索</div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
                         <input type="text" id="subleaderPlayerNameSearchEdit" maxlength="10" placeholder="プレイヤー名で検索"
                             style="margin-bottom: 0;">
@@ -95,6 +87,13 @@
                         </select>
                         <button type="button" class="btn" id="applySubleaderPlayerSelectionEditButton"
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="subleaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000002"
+                            style="margin-bottom: 0;">
+                        <button type="button" class="btn" id="pasteSubleaderPlayerIdEditButton"
+                            style="margin: 0; white-space: nowrap;">貼り付け</button>
                     </div>
                 </div>
 
@@ -174,7 +173,6 @@
             if (selectedTeam) {
                 document.getElementById("teamIdDisplay").value = selectedTeam.team_id;
                 document.getElementById("teamNameEdit").value = selectedTeam.team_name;
-                document.getElementById("leaderNameEdit").value = selectedTeam.leader_name || "";
                 document.getElementById("leaderPlayerIdEdit").value = selectedTeam.player_id || "";
                 document.getElementById("subleaderPlayerIdEdit").value = selectedTeam.subleader_player_id || "";
                 teamEditForm.style.display = "block";
@@ -235,7 +233,48 @@
                 applyButtonEl.style.display = "inline-block";
             }
 
-            async function searchPlayerByName(nameInputEl, targetIdInputEl, selectEl, applyButtonEl, roleLabel) {
+            function getMatchingPlayers(players, keyword) {
+                const lowerKeyword = keyword.toLowerCase();
+                return players
+                    .filter((player) =>
+                        String(player.player_name || "").toLowerCase().includes(lowerKeyword),
+                    )
+                    .sort((a, b) => {
+                        const aName = String(a.player_name || "").toLowerCase();
+                        const bName = String(b.player_name || "").toLowerCase();
+                        const aStarts = aName.startsWith(lowerKeyword) ? 0 : 1;
+                        const bStarts = bName.startsWith(lowerKeyword) ? 0 : 1;
+                        if (aStarts !== bStarts) return aStarts - bStarts;
+                        return aName.localeCompare(bName, "ja");
+                    });
+            }
+
+            async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, roleLabel) {
+                const keyword = nameInputEl.value.trim();
+                if (!keyword) {
+                    hideSearchResult(selectEl, applyButtonEl);
+                    return;
+                }
+
+                try {
+                    const players = await loadPlayers();
+                    const matches = getMatchingPlayers(players, keyword).slice(0, 5);
+
+                    if (matches.length === 0) {
+                        hideSearchResult(selectEl, applyButtonEl);
+                        return;
+                    }
+
+                    renderSearchResult(matches, selectEl, applyButtonEl);
+                    messageDiv.textContent = `${roleLabel}候補: もしかして ${matches.map((m) => m.player_name).join(" / ")}`;
+                    messageDiv.className = "message success";
+                    messageDiv.style.display = "block";
+                } catch (error) {
+                    hideSearchResult(selectEl, applyButtonEl);
+                }
+            }
+
+            async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, roleLabel) {
                 try {
                     const keyword = nameInputEl.value.trim();
                     if (!keyword) {
@@ -247,23 +286,11 @@
                     }
 
                     const players = await loadPlayers();
-                    const lowerKeyword = keyword.toLowerCase();
-                    const matches = players.filter((player) =>
-                        String(player.player_name || "").toLowerCase().includes(lowerKeyword),
-                    );
+                    const matches = getMatchingPlayers(players, keyword);
 
                     if (matches.length === 0) {
                         messageDiv.textContent = `${roleLabel}の該当プレイヤーが見つかりません`;
                         messageDiv.className = "message error";
-                        messageDiv.style.display = "block";
-                        hideSearchResult(selectEl, applyButtonEl);
-                        return;
-                    }
-
-                    if (matches.length === 1) {
-                        targetIdInputEl.value = matches[0].player_id;
-                        messageDiv.textContent = `${roleLabel}のIDを反映しました: ${matches[0].player_id}`;
-                        messageDiv.className = "message success";
                         messageDiv.style.display = "block";
                         hideSearchResult(selectEl, applyButtonEl);
                         return;
@@ -298,7 +325,15 @@
             searchLeaderPlayerButton.addEventListener("click", async () => {
                 await searchPlayerByName(
                     leaderPlayerNameSearchInput,
-                    leaderPlayerIdInput,
+                    leaderPlayerSearchResults,
+                    applyLeaderPlayerSelectionButton,
+                    "リーダー",
+                );
+            });
+
+            leaderPlayerNameSearchInput.addEventListener("input", async () => {
+                await suggestPlayersByName(
+                    leaderPlayerNameSearchInput,
                     leaderPlayerSearchResults,
                     applyLeaderPlayerSelectionButton,
                     "リーダー",
@@ -308,7 +343,15 @@
             searchSubleaderPlayerButton.addEventListener("click", async () => {
                 await searchPlayerByName(
                     subleaderPlayerNameSearchInput,
-                    subleaderPlayerIdInput,
+                    subleaderPlayerSearchResults,
+                    applySubleaderPlayerSelectionButton,
+                    "サブリーダー",
+                );
+            });
+
+            subleaderPlayerNameSearchInput.addEventListener("input", async () => {
+                await suggestPlayersByName(
+                    subleaderPlayerNameSearchInput,
                     subleaderPlayerSearchResults,
                     applySubleaderPlayerSelectionButton,
                     "サブリーダー",
@@ -368,7 +411,6 @@
 
                 const teamId = document.getElementById("teamIdDisplay").value;
                 const teamName = teamNameInput.value.trim();
-                const leaderName = document.getElementById("leaderNameEdit").value.trim();
                 const leaderPlayerId = leaderPlayerIdInput.value.trim();
                 const subleaderPlayerId = subleaderPlayerIdInput.value.trim();
 
@@ -390,7 +432,6 @@
 
                 try {
                     const updateData = { teamId, teamName };
-                    if (leaderName) updateData.leaderName = leaderName;
                     if (leaderPlayerId) updateData.leaderPlayerId = leaderPlayerId;
                     if (subleaderPlayerId) updateData.subleaderPlayerId = subleaderPlayerId;
 

@@ -83,13 +83,8 @@ export async function onRequest(context) {
         });
       }
 
-      const {
-        teamId,
-        teamName,
-        leaderName,
-        leaderPlayerId,
-        subleaderPlayerId,
-      } = await context.request.json();
+      const { teamId, teamName, leaderPlayerId, subleaderPlayerId } =
+        await context.request.json();
 
       if (!teamId || !teamName) {
         return new Response(
@@ -128,7 +123,7 @@ export async function onRequest(context) {
         .run();
 
       // リーダー情報が提供されている場合は更新
-      if (leaderName || leaderPlayerId) {
+      if (leaderPlayerId) {
         // 既存のリーダーを取得
         const existingLeader = await db
           .prepare(
@@ -147,49 +142,46 @@ export async function onRequest(context) {
           );
         }
 
-        // 更新するフィールドを決定
-        const updatedLeaderName = leaderName || existingLeader.leader_name;
-        const updatedPlayerId = leaderPlayerId || existingLeader.player_id;
-
-        // プレイヤーIDが変更される場合、存在チェック
-        if (leaderPlayerId && leaderPlayerId !== existingLeader.player_id) {
-          const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
-          if (normalizedLeaderPlayerId.length !== 12) {
-            return new Response(
-              JSON.stringify({
-                message:
-                  "リーダーのプレイヤーIDは12文字ちょうどで入力してください",
-              }),
-              {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-              },
-            );
-          }
-
-          const playerExists = await db
-            .prepare("SELECT player_id FROM players WHERE player_id = ?")
-            .bind(normalizedLeaderPlayerId)
-            .first();
-
-          if (!playerExists) {
-            return new Response(
-              JSON.stringify({
-                message: "指定されたプレイヤーIDが見つかりません",
-              }),
-              {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-              },
-            );
-          }
+        const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+        if (normalizedLeaderPlayerId.length !== 12) {
+          return new Response(
+            JSON.stringify({
+              message:
+                "リーダーのプレイヤーIDは12文字ちょうどで入力してください",
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
         }
 
-        let updateQuery = "UPDATE leaders SET leader_name = ?, player_id = ?";
-        const updateParams = [updatedLeaderName, updatedPlayerId];
+        const leaderPlayer = await db
+          .prepare(
+            "SELECT player_id, player_name FROM players WHERE player_id = ?",
+          )
+          .bind(normalizedLeaderPlayerId)
+          .first();
 
-        updateQuery += " WHERE leader_id = ?";
-        updateParams.push(existingLeader.leader_id);
+        if (!leaderPlayer) {
+          return new Response(
+            JSON.stringify({
+              message: "指定されたリーダーのプレイヤーIDが見つかりません",
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const updateQuery =
+          "UPDATE leaders SET leader_name = ?, player_id = ? WHERE leader_id = ?";
+        const updateParams = [
+          leaderPlayer.player_name,
+          normalizedLeaderPlayerId,
+          existingLeader.leader_id,
+        ];
 
         await db
           .prepare(updateQuery)
@@ -454,14 +446,13 @@ export async function onRequest(context) {
     }
 
     // リクエストボディを解析
-    const { teamId, teamName, leaderName, leaderPlayerId, subleaderPlayerId } =
+    const { teamId, teamName, leaderPlayerId, subleaderPlayerId } =
       await context.request.json();
 
-    if (!teamId || !teamName || !leaderName || !leaderPlayerId) {
+    if (!teamId || !teamName || !leaderPlayerId) {
       return new Response(
         JSON.stringify({
-          message:
-            "チームID、チーム名、リーダー氏名、リーダーのプレイヤーIDが必要です",
+          message: "チームID、チーム名、リーダーのプレイヤーIDが必要です",
         }),
         {
           status: 400,
@@ -520,7 +511,7 @@ export async function onRequest(context) {
 
     // プレイヤーが存在するか確認
     const existingPlayer = await db
-      .prepare("SELECT player_id FROM players WHERE player_id = ?")
+      .prepare("SELECT player_id, player_name FROM players WHERE player_id = ?")
       .bind(normalizedLeaderPlayerId)
       .first();
 
@@ -581,7 +572,7 @@ export async function onRequest(context) {
           normalizedLeaderPlayerId,
           "leader",
           "",
-          leaderName,
+          existingPlayer.player_name,
         )
         .run();
 
