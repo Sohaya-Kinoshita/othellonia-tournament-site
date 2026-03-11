@@ -515,7 +515,8 @@
 
                 allMatches = result.matches || [];
 
-                visibleMatches = allMatches;
+                // 試合が確定済み（winner_team_id あり）のものは除外
+                visibleMatches = allMatches.filter((match) => !match.winner_team_id);
 
                 displayMatchList();
                 setupSearchBox();
@@ -528,8 +529,17 @@
         function setupSearchBox() {
             const searchBox = document.getElementById("searchBox");
             searchBox.addEventListener("input", () => {
-                const searchTerm = searchBox.value.toLowerCase();
+                const searchTerm = searchBox.value.toLowerCase().trim();
                 displayMatchList(searchTerm);
+
+                // マッチIDで完全一致したら自動的に詳細を表示
+                const exactMatch = visibleMatches.find(
+                    (m) => m.match_id.toLowerCase() === searchTerm
+                );
+                if (exactMatch) {
+                    currentMatchId = exactMatch.match_id;
+                    loadGameResults();
+                }
             });
         }
 
