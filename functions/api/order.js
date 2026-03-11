@@ -52,6 +52,25 @@ async function detectOrderSchema(db) {
   return "unknown";
 }
 
+async function hasOrdersConfirmedAtColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(orders)").all();
+  const names = new Set((columns.results || []).map((row) => row.name));
+  return names.has("confirmed_at");
+}
+
+async function ensureOrdersConfirmedAtColumn(db) {
+  const hasConfirmedAt = await hasOrdersConfirmedAtColumn(db);
+  if (hasConfirmedAt) {
+    return;
+  }
+
+  try {
+    await db.prepare("ALTER TABLE orders ADD COLUMN confirmed_at TEXT").run();
+  } catch (_error) {
+    // 他リクエストと競合して既に追加済みの可能性があるため握りつぶす
+  }
+}
+
 function safeParseOrderJson(value) {
   if (!value) {
     return [];
@@ -319,6 +338,8 @@ async function handleGet(context) {
       );
     }
 
+    await ensureOrdersConfirmedAtColumn(db);
+
     const latestOrder = await db
       .prepare(
         `
@@ -404,9 +425,9 @@ async function handlePost(context) {
       );
     }
 
-    if (playerOrder.length !== 7) {
+    if (playerOrder.length !== 5) {
       return new Response(
-        JSON.stringify({ message: "オーダーは7名分を指定してください" }),
+        JSON.stringify({ message: "オーダーは5名分を指定してください" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -433,7 +454,7 @@ async function handlePost(context) {
     const match = await db
       .prepare(
         `
-				SELECT match_id, team_a_id, team_b_id, admin_user_id, order_deadline
+        SELECT match_id, team_a_id, team_b_id, order_deadline
 				FROM matches
 				WHERE match_id = ?
 			`,
@@ -546,7 +567,7 @@ async function handlePost(context) {
 					VALUES (?, ?, ?, datetime('now', '+9 hours'), ?)
 				`,
         )
-        .bind(nextOrderId, matchId, teamId, match.admin_user_id),
+        .bind(nextOrderId, matchId, teamId, auth.leaderId),
     ];
 
     playerOrder.forEach((playerId, index) => {
@@ -578,7 +599,10 @@ async function handlePost(context) {
   } catch (error) {
     console.error("Order POST error:", error);
     return new Response(
-      JSON.stringify({ message: "オーダー提出処理でエラーが発生しました" }),
+      JSON.stringify({
+        message: "オーダー提出処理でエラーが発生しました",
+        error: error.message,
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -614,6 +638,8 @@ async function handlePatch(context) {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    await ensureOrdersConfirmedAtColumn(db);
 
     const result = await db
       .prepare(

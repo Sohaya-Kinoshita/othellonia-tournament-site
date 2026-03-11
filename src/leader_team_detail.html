@@ -58,6 +58,10 @@
             return date.toLocaleString("ja-JP");
         }
 
+        function getBattleModeLabel(gameNumber) {
+            return gameNumber <= 3 ? "シーズン" : "グローリー";
+        }
+
         function createOrderSelect(matchId, index, members, selectedPlayerId) {
             const select = document.createElement("select");
             select.id = `order_${matchId}_${index}`;
@@ -68,7 +72,8 @@
 
             const defaultOption = document.createElement("option");
             defaultOption.value = "";
-            defaultOption.textContent = `第${index + 1}戦の選手を選択`;
+            const gameNumber = index + 1;
+            defaultOption.textContent = `第${gameNumber}戦（${getBattleModeLabel(gameNumber)}）の選手を選択`;
             select.appendChild(defaultOption);
 
             members.forEach((member) => {
@@ -144,7 +149,7 @@
                 }
 
                 orderList.innerHTML = "";
-                for (let index = 0; index < 7; index += 1) {
+                for (let index = 0; index < 5; index += 1) {
                     orderList.appendChild(
                         createOrderSelect(matchId, index, members, currentOrder[index] || ""),
                     );
@@ -177,7 +182,7 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
                 html += '</div>';
             });
@@ -188,7 +193,7 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
                 html += '</div>';
             });
@@ -200,14 +205,14 @@
 
         async function submitOrder(matchId, teamId, members) {
             const selects = [];
-            for (let index = 0; index < 7; index += 1) {
+            for (let index = 0; index < 5; index += 1) {
                 selects.push(document.getElementById(`order_${matchId}_${index}`));
             }
 
             const playerOrder = selects.map((select) => select?.value || "");
 
             if (playerOrder.some((playerId) => !playerId)) {
-                alert("7戦分すべての選手を選択してください。");
+                alert("5戦分すべての選手を選択してください。");
                 return;
             }
 
@@ -379,7 +384,8 @@
                                 </div>
 
                                 <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                                    <div style="font-weight: 700; margin-bottom: 8px;">オーダー提出（1〜7戦）</div>
+                                    <div style="font-weight: 700; margin-bottom: 8px;">オーダー提出（1〜5戦）</div>
+                                    <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">1〜3戦: シーズン / 4〜5戦: グローリー</div>
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>

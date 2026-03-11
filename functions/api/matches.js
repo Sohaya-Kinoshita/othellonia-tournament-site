@@ -672,10 +672,10 @@ export async function onRequest(context) {
         );
       }
 
-      if (playersA.length !== 7 || playersB.length !== 7) {
+      if (playersA.length !== 5 || playersB.length !== 5) {
         return new Response(
           JSON.stringify({
-            message: "オーダーが不正です（7名である必要があります）",
+            message: "オーダーが不正です（5名である必要があります）",
           }),
           {
             status: 400,
@@ -692,17 +692,18 @@ export async function onRequest(context) {
 
       // 新しいゲームレコードを作成
       const statements = [];
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 5; i++) {
         const gameId = `${matchId}${String(i + 1).padStart(2, "0")}`;
+        const battleMode = i < 3 ? "S" : "G";
         statements.push(
           db
             .prepare(
               `
-              INSERT INTO games (game_id, match_id, game_number, player_a_id, player_b_id)
-              VALUES (?, ?, ?, ?, ?)
+              INSERT INTO games (game_id, match_id, game_number, battle_mode, player_a_id, player_b_id)
+              VALUES (?, ?, ?, ?, ?, ?)
             `,
             )
-            .bind(gameId, matchId, i + 1, playersA[i], playersB[i]),
+            .bind(gameId, matchId, i + 1, battleMode, playersA[i], playersB[i]),
         );
       }
 
