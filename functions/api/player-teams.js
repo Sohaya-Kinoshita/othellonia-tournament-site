@@ -100,6 +100,7 @@ export async function onRequest(context) {
           m.match_id,
           m.scheduled_at,
           g.game_number,
+          g.battle_mode,
           CASE
             WHEN g.player_a_id = ? THEN ta.team_name
             ELSE tb.team_name

@@ -6,6 +6,26 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./style.css" />
     <title>プレイヤーページ</title>
+    <style>
+        .player-section-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+            background: #fff;
+        }
+
+        .player-section-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+        }
+
+        .player-section-content {
+            color: #333;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 
 <body>
@@ -23,16 +43,20 @@
             <h2>プレイヤーメニュー</h2>
             <hr>
 
-            <h3>これまでの個人勝率</h3>
-            <div id="personalStatsBox">読込中...</div>
+            <section class="player-section-box">
+                <h3>これまでの個人勝率</h3>
+                <div id="personalStatsBox" class="player-section-content">読込中...</div>
+            </section>
 
-            <h3>自分の所属チーム情報</h3>
-            <div id="teamInfoBox">読込中...</div>
+            <section class="player-section-box">
+                <h3>自分の所属チーム情報</h3>
+                <div id="teamInfoBox" class="player-section-content">読込中...</div>
+            </section>
 
-            <div id="opponentSection">
+            <section id="opponentSection" class="player-section-box">
                 <h3>確定済み対戦の相手情報</h3>
-                <div id="opponentInfoBox">読込中...</div>
-            </div>
+                <div id="opponentInfoBox" class="player-section-content">読込中...</div>
+            </section>
 
             <h3>今後追加予定</h3>
             <ul>
@@ -55,6 +79,16 @@
                 return datetimeText;
             }
             return date.toLocaleString("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        }
+
+        function getBattleModeLabel(battleMode) {
+            if (battleMode === "S") {
+                return "シーズンマッチ";
+            }
+            if (battleMode === "G") {
+                return "グローリーモード";
+            }
+            return "-";
         }
 
         async function copyPlayerId(playerId) {
@@ -109,6 +143,7 @@
                         .map((item) => `
                             <div style="margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 <div><strong>${item.my_team_name || "-"}</strong> vs <strong>${item.opponent_team_name || "-"}</strong> / 第${item.game_number}戦</div>
+                                <div>対戦形式: ${getBattleModeLabel(item.battle_mode)}</div>
                                 <div>対戦日: ${formatDateTime(item.scheduled_at)}</div>
                                 <div>
                                     相手: 
