@@ -73,11 +73,42 @@ export async function onRequest(context) {
       ? gamesResult
       : gamesResult?.results || [];
 
+    const reservesResult = await db
+      .prepare(
+        `
+        SELECT
+          r.team_id,
+          r.reserve_number,
+          r.player_id,
+          p.player_name
+        FROM reserves r
+        LEFT JOIN players p ON r.player_id = p.player_id
+        WHERE r.match_id = ?
+        ORDER BY r.team_id, r.reserve_number
+      `,
+      )
+      .bind(matchId)
+      .all();
+
+    const reserveRows = Array.isArray(reservesResult)
+      ? reservesResult
+      : reservesResult?.results || [];
+
+    const reservesByTeam = {
+      [match.team_a_id]: reserveRows.filter(
+        (row) => row.team_id === match.team_a_id,
+      ),
+      [match.team_b_id]: reserveRows.filter(
+        (row) => row.team_id === match.team_b_id,
+      ),
+    };
+
     return new Response(
       JSON.stringify({
         success: true,
         match,
         games,
+        reservesByTeam,
       }),
       {
         status: 200,

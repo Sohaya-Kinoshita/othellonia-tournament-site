@@ -241,10 +241,27 @@
         }
 
         function generateMatchCardHTML(cardData) {
-            const { match, games } = cardData;
+            const { match, games, reservesByTeam } = cardData;
             if (!games || games.length === 0) {
                 return "<p style=\"color: #999;\">対戦情報がありません</p>";
             }
+
+            const teamAReserves = (reservesByTeam && reservesByTeam[match.team_a_id]) || [];
+            const teamBReserves = (reservesByTeam && reservesByTeam[match.team_b_id]) || [];
+
+            const renderReserves = (reserves) => {
+                if (!reserves || reserves.length === 0) {
+                    return '<div style="font-size: 0.9em; color: #999;">リザーブ: なし</div>';
+                }
+
+                return reserves.map((reserve) => {
+                    const playerLabel = reserve.player_name || reserve.player_id;
+                    return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.9em;">`
+                        + `<div><strong>リザーブ${reserve.reserve_number}</strong></div>`
+                        + `<div style="text-align: right;">${playerLabel}</div>`
+                        + `</div>`;
+                }).join("");
+            };
 
             let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
 
@@ -257,6 +274,10 @@
                 html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
                 html += '</div>';
             });
+            html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
+            html += '<div style="font-weight: bold; margin-bottom: 6px;">リザーブ</div>';
+            html += renderReserves(teamAReserves);
+            html += '</div>';
             html += '</div>';
 
             // Team B
@@ -268,6 +289,10 @@
                 html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
                 html += '</div>';
             });
+            html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
+            html += '<div style="font-weight: bold; margin-bottom: 6px;">リザーブ</div>';
+            html += renderReserves(teamBReserves);
+            html += '</div>';
             html += '</div>';
 
             html += '</div>';
