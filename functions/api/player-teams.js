@@ -72,6 +72,26 @@ export async function onRequest(context) {
       .bind(playerId)
       .all();
 
+    const statsRow = await db
+      .prepare(
+        `
+        SELECT
+          COUNT(*) AS total_games,
+          SUM(CASE WHEN g.winner_player_id = ? THEN 1 ELSE 0 END) AS wins
+        FROM games g
+        WHERE (g.player_a_id = ? OR g.player_b_id = ?)
+          AND g.winner_player_id IS NOT NULL
+      `,
+      )
+      .bind(playerId, playerId, playerId)
+      .first();
+
+    const totalGames = Number(statsRow?.total_games || 0);
+    const wins = Number(statsRow?.wins || 0);
+    const losses = totalGames - wins;
+    const winRate =
+      totalGames > 0 ? Math.round((wins / totalGames) * 1000) / 10 : null;
+
     // 確定済み対戦（games作成済み）から、プレイヤー本人の対戦相手を取得
     const opponents = await db
       .prepare(
@@ -80,6 +100,14 @@ export async function onRequest(context) {
           m.match_id,
           m.scheduled_at,
           g.game_number,
+          CASE
+            WHEN g.player_a_id = ? THEN ta.team_name
+            ELSE tb.team_name
+          END AS my_team_name,
+          CASE
+            WHEN g.player_a_id = ? THEN tb.team_name
+            ELSE ta.team_name
+          END AS opponent_team_name,
           CASE
             WHEN g.player_a_id = ? THEN g.player_b_id
             ELSE g.player_a_id
@@ -90,13 +118,16 @@ export async function onRequest(context) {
           END AS opponent_player_name
         FROM games g
         INNER JOIN matches m ON m.match_id = g.match_id
+        LEFT JOIN teams ta ON ta.team_id = m.team_a_id
+        LEFT JOIN teams tb ON tb.team_id = m.team_b_id
         LEFT JOIN players pa ON pa.player_id = g.player_a_id
         LEFT JOIN players pb ON pb.player_id = g.player_b_id
-        WHERE g.player_a_id = ? OR g.player_b_id = ?
+        WHERE (g.player_a_id = ? OR g.player_b_id = ?)
+          AND m.winner_team_id IS NULL
         ORDER BY m.scheduled_at DESC, m.match_id, g.game_number
       `,
       )
-      .bind(playerId, playerId, playerId, playerId)
+      .bind(playerId, playerId, playerId, playerId, playerId, playerId)
       .all();
 
     return new Response(
@@ -105,6 +136,12 @@ export async function onRequest(context) {
         player: {
           playerId: player.player_id,
           playerName: player.player_name,
+        },
+        personalStats: {
+          totalGames,
+          wins,
+          losses,
+          winRate,
         },
         teams: teams.results || [],
         opponents: opponents.results || [],

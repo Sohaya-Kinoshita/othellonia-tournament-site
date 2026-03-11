@@ -22,13 +22,17 @@
         <div class="card hidden" id="playerCard">
             <h2>プレイヤーメニュー</h2>
             <hr>
-            <p id="playerSummary">読込中...</p>
+
+            <h3>これまでの個人勝率</h3>
+            <div id="personalStatsBox">読込中...</div>
 
             <h3>自分の所属チーム情報</h3>
             <div id="teamInfoBox">読込中...</div>
 
-            <h3>確定済み対戦の相手情報</h3>
-            <div id="opponentInfoBox">読込中...</div>
+            <div id="opponentSection">
+                <h3>確定済み対戦の相手情報</h3>
+                <div id="opponentInfoBox">読込中...</div>
+            </div>
 
             <h3>今後追加予定</h3>
             <ul>
@@ -64,8 +68,9 @@
         }
 
         async function loadMyTeams() {
-            const summary = document.getElementById("playerSummary");
+            const personalStatsBox = document.getElementById("personalStatsBox");
             const teamInfoBox = document.getElementById("teamInfoBox");
+            const opponentSection = document.getElementById("opponentSection");
             const opponentInfoBox = document.getElementById("opponentInfoBox");
 
             try {
@@ -73,16 +78,20 @@
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    summary.textContent = "プレイヤー情報の取得に失敗しました。";
+                    personalStatsBox.textContent = "個人勝率の取得に失敗しました。";
                     teamInfoBox.textContent = result.message || "所属チーム情報を取得できませんでした。";
                     return;
                 }
 
-                const player = result.player;
+                const stats = result.personalStats || { totalGames: 0, wins: 0, losses: 0, winRate: null };
                 const teams = result.teams || [];
                 const opponents = result.opponents || [];
 
-                summary.textContent = `${player.playerId} - ${player.playerName}`;
+                if (stats.totalGames === 0) {
+                    personalStatsBox.textContent = "まだ試合結果がありません。";
+                } else {
+                    personalStatsBox.textContent = `勝率: ${stats.winRate}%（${stats.wins}勝 ${stats.losses}敗 / ${stats.totalGames}戦）`;
+                }
 
                 if (teams.length === 0) {
                     teamInfoBox.textContent = "現在、所属チームはありません。";
@@ -93,12 +102,14 @@
                 }
 
                 if (opponents.length === 0) {
-                    opponentInfoBox.textContent = "確定済みの対戦相手情報はありません。";
+                    opponentSection.style.display = "none";
                 } else {
+                    opponentSection.style.display = "block";
                     opponentInfoBox.innerHTML = opponents
                         .map((item) => `
                             <div style="margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                <div><strong>${item.match_id}</strong> / 第${item.game_number}戦 / 対戦日: ${formatDateTime(item.scheduled_at)}</div>
+                                <div><strong>${item.my_team_name || "-"}</strong> vs <strong>${item.opponent_team_name || "-"}</strong> / 第${item.game_number}戦</div>
+                                <div>対戦日: ${formatDateTime(item.scheduled_at)}</div>
                                 <div>
                                     相手: 
                                     <a href="#" onclick="event.preventDefault(); copyPlayerId('${item.opponent_player_id}')" style="color: #2563eb; text-decoration: underline; cursor: pointer;" title="クリックしてコピー">${item.opponent_player_id}</a>
@@ -110,9 +121,9 @@
                 }
             } catch (error) {
                 console.error("Load my teams error:", error);
-                summary.textContent = "プレイヤー情報の取得に失敗しました。";
+                personalStatsBox.textContent = "個人勝率の取得に失敗しました。";
                 teamInfoBox.textContent = "所属チーム情報の取得に失敗しました。";
-                opponentInfoBox.textContent = "対戦相手情報の取得に失敗しました。";
+                opponentSection.style.display = "none";
             }
         }
 
