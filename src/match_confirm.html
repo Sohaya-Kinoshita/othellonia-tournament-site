@@ -696,8 +696,16 @@
                     </div>
                     <span class="expand-icon">▼</span>
                 `;
-                gameHeader.onclick = () => {
-                    gameCard.classList.toggle("expanded");
+                gameHeader.onclick = (e) => {
+                    // ボタン類のクリックは開閉に反応しない
+                    if (e.target.closest("button")) return;
+                    const isExpanded = gameCard.classList.contains("expanded");
+                    // 他の全カードを閉じる
+                    document.querySelectorAll(".game-result-card").forEach(c => c.classList.remove("expanded"));
+                    // 既に開いていた場合はそのまま閉じる、それ以外は開く
+                    if (!isExpanded) {
+                        gameCard.classList.add("expanded");
+                    }
                 };
                 gameCard.appendChild(gameHeader);
 
