@@ -36,6 +36,7 @@
                     <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
                     <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
                     <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
+                    <p><strong>対戦開始日時:</strong> <span id="displayScheduledAt"></span></p>
                     <p><strong>提出期限:</strong> <span id="displayDeadline"></span></p>
 
                     <h3 style="margin-top: 20px;">オーダー確認</h3>
@@ -151,6 +152,7 @@
             const displayMatchId = document.getElementById("displayMatchId");
             const displayTeamA = document.getElementById("displayTeamA");
             const displayTeamB = document.getElementById("displayTeamB");
+            const displayScheduledAt = document.getElementById("displayScheduledAt");
             const displayDeadline = document.getElementById("displayDeadline");
             const teamAHeader = document.getElementById("teamAHeader");
             const teamBHeader = document.getElementById("teamBHeader");
@@ -164,6 +166,7 @@
             displayMatchId.textContent = match.match_id;
             displayTeamA.textContent = `${match.team_a_id} - ${match.team_a_name}`;
             displayTeamB.textContent = `${match.team_b_id} - ${match.team_b_name}`;
+            displayScheduledAt.textContent = formatDateTime(match.scheduled_at);
             displayDeadline.textContent = formatDateTime(match.order_deadline);
 
             teamAHeader.textContent = `${match.team_a_id} - ${match.team_a_name}`;

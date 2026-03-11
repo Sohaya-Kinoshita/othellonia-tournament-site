@@ -16,6 +16,7 @@ export async function onRequest(context) {
             tb.team_name as team_b_name,
             m.best_of,
             m.created_at,
+            m.scheduled_at,
             m.order_deadline,
             m.winner_team_id,
             m.admin_user_id
@@ -160,12 +161,13 @@ export async function onRequest(context) {
       }
 
       // リクエストボディを解析
-      const { matchId, teamAId, teamBId } = await context.request.json();
+      const { matchId, teamAId, teamBId, scheduledAt } =
+        await context.request.json();
 
-      if (!matchId || !teamAId || !teamBId) {
+      if (!matchId || !teamAId || !teamBId || !scheduledAt) {
         return new Response(
           JSON.stringify({
-            message: "マッチID、チームA ID、チームB IDが必要です",
+            message: "マッチID、チームA ID、チームB ID、対戦開始日時が必要です",
           }),
           {
             status: 400,
@@ -173,6 +175,19 @@ export async function onRequest(context) {
           },
         );
       }
+
+      const normalizedScheduledAt = String(scheduledAt).trim();
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalizedScheduledAt)) {
+        return new Response(
+          JSON.stringify({ message: "対戦開始日時の形式が正しくありません" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const scheduledAtForDb = `${normalizedScheduledAt.replace("T", " ")}:00`;
 
       // マッチIDが3文字か確認
       if (String(matchId).trim().length !== 3) {
@@ -261,12 +276,13 @@ export async function onRequest(context) {
             admin_user_id,
             best_of,
             created_at,
+            scheduled_at,
             order_deadline
           )
-          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
+          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), ?, datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
         `,
         )
-        .bind(matchId, teamAId, teamBId, adminUserId)
+        .bind(matchId, teamAId, teamBId, adminUserId, scheduledAtForDb)
         .run();
 
       return new Response(
@@ -709,34 +725,26 @@ export async function onRequest(context) {
 
       await db.batch(statements);
 
-      // orders の confirmed_at 更新は、現行DBスキーマ不整合時に失敗する可能性があるため
-      // ゲーム初期化完了を優先してベストエフォートで実行する
-      let confirmedUpdated = true;
-      try {
-        await db
-          .prepare(
-            "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
-          )
-          .bind(matchId, match.team_a_id)
-          .run();
+      await ensureOrdersConfirmedAtColumn(db);
 
-        await db
-          .prepare(
-            "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
-          )
-          .bind(matchId, match.team_b_id)
-          .run();
-      } catch (confirmError) {
-        confirmedUpdated = false;
-        console.warn("confirmed_at update skipped:", confirmError);
-      }
+      await db
+        .prepare(
+          "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
+        )
+        .bind(matchId, match.team_a_id)
+        .run();
+
+      await db
+        .prepare(
+          "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
+        )
+        .bind(matchId, match.team_b_id)
+        .run();
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: confirmedUpdated
-            ? "マッチのゲームを初期化しました"
-            : "マッチのゲームを初期化しました（確定時刻の更新はスキップされました）",
+          message: "マッチのゲームを初期化しました",
         }),
         {
           status: 200,
@@ -778,6 +786,14 @@ async function detectOrderSchema(db) {
   }
 
   return "unknown";
+}
+
+async function ensureOrdersConfirmedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE orders ADD COLUMN confirmed_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
 }
 
 async function getLatestOrderPlayers(db, schemaType, matchId, teamId) {

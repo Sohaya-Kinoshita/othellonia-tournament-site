@@ -415,6 +415,7 @@
                     <p><strong>マッチID:</strong> <span id="displayMatchId"></span></p>
                     <p><strong>チームA:</strong> <span id="displayTeamA"></span></p>
                     <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
+                    <p><strong>対戦開始日時:</strong> <span id="displayScheduledAt"></span></p>
 
                     <div class="score-summary" id="scoreSummary">
                         <span id="teamAName"></span>: <span id="teamAWins">0</span>勝　-　
@@ -461,6 +462,17 @@
             confirmMessage.textContent = message || "このマッチはまだ確定されていないため、試合結果を入力できません。";
             confirmMessage.className = "message error";
             confirmMessage.style.display = "block";
+        }
+
+        function formatDateTime(datetimeText) {
+            if (!datetimeText) {
+                return "-";
+            }
+            const date = new Date(datetimeText);
+            if (Number.isNaN(date.getTime())) {
+                return datetimeText;
+            }
+            return date.toLocaleString("ja-JP");
         }
 
         async function checkAdmin() {
@@ -567,6 +579,9 @@
                     <div class="match-item-teams">
                         ${match.team_a_name} vs ${match.team_b_name}
                     </div>
+                    <div style="margin-top: 6px; font-size: 0.9em; color: #666;">
+                        対戦開始日時: ${formatDateTime(match.scheduled_at)}
+                    </div>
                 `;
 
                 matchItem.onclick = async () => {
@@ -608,7 +623,7 @@
                     };
                 });
 
-                if (!result.games || result.games.length === 0) {
+                if (!result.isMatchConfirmed) {
                     setResultInputEnabled(false, "このマッチはまだ確定されていないため、試合結果を入力できません。先に『オーダーの確定』でマッチを確定してください。");
                 } else {
                     setResultInputEnabled(true);
@@ -628,6 +643,7 @@
             document.getElementById("displayMatchId").textContent = match.match_id;
             document.getElementById("displayTeamA").textContent = `${match.team_a_id} - ${match.team_a_name}`;
             document.getElementById("displayTeamB").textContent = `${match.team_b_id} - ${match.team_b_name}`;
+            document.getElementById("displayScheduledAt").textContent = formatDateTime(match.scheduled_at);
             document.getElementById("teamAName").textContent = match.team_a_name;
             document.getElementById("teamBName").textContent = match.team_b_name;
 
@@ -636,7 +652,7 @@
             gamesContainer.innerHTML = "";
 
             if (!games || games.length === 0) {
-                gamesContainer.innerHTML = '<p style="color: #999;">マッチ確定前のため、まだゲームが作成されていません。</p>';
+                gamesContainer.innerHTML = '<p style="color: #999;">マッチ確定後のゲーム情報がまだありません。</p>';
                 return;
             }
 

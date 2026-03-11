@@ -69,6 +69,14 @@ export async function onRequest(context) {
   }
 }
 
+async function ensureOrdersConfirmedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE orders ADD COLUMN confirmed_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 // GET: 指定されたマッチのゲーム一覧を取得
 async function handleGet(env, url, corsHeaders, adminUserId) {
   const matchId = url.searchParams.get("match_id");
@@ -164,6 +172,32 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
     });
   }
 
+  await ensureOrdersConfirmedAtColumn(env.DB);
+
+  const confirmedOrderA = await env.DB.prepare(
+    `
+      SELECT 1
+      FROM orders
+      WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+      LIMIT 1
+    `,
+  )
+    .bind(matchId, match.team_a_id)
+    .first();
+
+  const confirmedOrderB = await env.DB.prepare(
+    `
+      SELECT 1
+      FROM orders
+      WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+      LIMIT 1
+    `,
+  )
+    .bind(matchId, match.team_b_id)
+    .first();
+
+  const isMatchConfirmed = Boolean(confirmedOrderA && confirmedOrderB);
+
   // ゲーム一覧を取得
   let gamesResult;
   try {
@@ -238,6 +272,7 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
       games,
       teamAWins,
       teamBWins,
+      isMatchConfirmed,
     }),
     {
       status: 200,
@@ -327,6 +362,60 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
     .first();
 
   if (Number(existingGamesCount?.count || 0) === 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "このマッチは未確定のため試合結果を入力できません。先にオーダーの確定でマッチを確定してください。",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  const match = await env.DB.prepare(
+    `
+      SELECT team_a_id, team_b_id
+      FROM matches
+      WHERE match_id = ?
+    `,
+  )
+    .bind(match_id)
+    .first();
+
+  if (!match) {
+    return new Response(JSON.stringify({ error: "マッチが見つかりません" }), {
+      status: 404,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  await ensureOrdersConfirmedAtColumn(env.DB);
+
+  const confirmedOrderA = await env.DB.prepare(
+    `
+      SELECT 1
+      FROM orders
+      WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+      LIMIT 1
+    `,
+  )
+    .bind(match_id, match.team_a_id)
+    .first();
+
+  const confirmedOrderB = await env.DB.prepare(
+    `
+      SELECT 1
+      FROM orders
+      WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+      LIMIT 1
+    `,
+  )
+    .bind(match_id, match.team_b_id)
+    .first();
+
+  if (!confirmedOrderA || !confirmedOrderB) {
     return new Response(
       JSON.stringify({
         error:
