@@ -394,6 +394,20 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
 
   await ensureOrdersConfirmedAtColumn(env.DB);
 
+  // 不戦勝保存時の整合性をサーバー側で担保するため、ゲームの選手情報を取得
+  const gameRows = await env.DB.prepare(
+    `
+      SELECT game_id, player_a_id, player_b_id
+      FROM games
+      WHERE match_id = ?
+    `,
+  )
+    .bind(match_id)
+    .all();
+  const gameInfoMap = new Map(
+    (gameRows.results || []).map((g) => [g.game_id, g]),
+  );
+
   const confirmedOrderA = await env.DB.prepare(
     `
       SELECT 1
@@ -464,6 +478,25 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
         forfeit_winner,
       } = result;
 
+      const gameInfo = gameInfoMap.get(game_id);
+      let resolvedWinnerPlayerId = winner_player_id || null;
+      let resolvedWinnerTeamId = winner_team_id || null;
+      let resolvedPlayerAScore = Number(player_a_score || 0);
+      let resolvedPlayerBScore = Number(player_b_score || 0);
+      let resolvedForfeitWinner = forfeit_winner || null;
+
+      if (resolvedForfeitWinner === "a" && gameInfo) {
+        resolvedWinnerPlayerId = gameInfo.player_a_id || null;
+        resolvedWinnerTeamId = match.team_a_id || null;
+        resolvedPlayerAScore = 2;
+        resolvedPlayerBScore = 0;
+      } else if (resolvedForfeitWinner === "b" && gameInfo) {
+        resolvedWinnerPlayerId = gameInfo.player_b_id || null;
+        resolvedWinnerTeamId = match.team_b_id || null;
+        resolvedPlayerAScore = 0;
+        resolvedPlayerBScore = 2;
+      }
+
       // BO3スコアと勝者を更新
       try {
         await env.DB.prepare(
@@ -474,11 +507,11 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
         `,
         )
           .bind(
-            winner_player_id || null,
-            winner_team_id || null,
-            player_a_score || 0,
-            player_b_score || 0,
-            forfeit_winner || null,
+            resolvedWinnerPlayerId,
+            resolvedWinnerTeamId,
+            resolvedPlayerAScore,
+            resolvedPlayerBScore,
+            resolvedForfeitWinner,
             game_id,
           )
           .run();
@@ -495,7 +528,7 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
           WHERE game_id = ?
         `,
         )
-          .bind(winner_player_id || null, winner_team_id || null, game_id)
+          .bind(resolvedWinnerPlayerId, resolvedWinnerTeamId, game_id)
           .run();
       }
     }
