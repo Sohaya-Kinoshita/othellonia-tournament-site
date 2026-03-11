@@ -468,7 +468,7 @@ async function handlePost(context) {
     const normalizedReservePlayers = Array.isArray(reservePlayers)
       ? reservePlayers
           .map((playerId) => String(playerId || "").trim())
-          .filter((playerId) => playerId)
+          .filter((playerId) => playerId && playerId !== "__NONE__")
       : [];
 
     if (!matchId || !teamId || !Array.isArray(playerOrder)) {
