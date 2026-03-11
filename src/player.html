@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>プレイヤーページ</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤーページ</h1>
+            <hr>
+            <p id="playerMessage">確認中...</p>
+            <a href="./index.html" class="btn">トップページへ戻る</a>
+        </div>
+
+        <div class="card hidden" id="playerCard">
+            <h2>プレイヤーメニュー</h2>
+            <hr>
+            <p id="playerSummary">読込中...</p>
+
+            <h3>自分の所属チーム情報</h3>
+            <div id="teamInfoBox">読込中...</div>
+
+            <h3>今後追加予定</h3>
+            <ul>
+                <li>対戦結果の確認</li>
+                <li>お知らせ表示</li>
+            </ul>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        async function loadMyTeams() {
+            const summary = document.getElementById("playerSummary");
+            const teamInfoBox = document.getElementById("teamInfoBox");
+
+            try {
+                const response = await fetch("/api/player-teams");
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    summary.textContent = "プレイヤー情報の取得に失敗しました。";
+                    teamInfoBox.textContent = result.message || "所属チーム情報を取得できませんでした。";
+                    return;
+                }
+
+                const player = result.player;
+                const teams = result.teams || [];
+
+                summary.textContent = `${player.playerId} - ${player.playerName}`;
+
+                if (teams.length === 0) {
+                    teamInfoBox.textContent = "現在、所属チームはありません。";
+                    return;
+                }
+
+                teamInfoBox.innerHTML = teams
+                    .map((team) => `<div>${team.team_id} - ${team.team_name}</div>`)
+                    .join("");
+            } catch (error) {
+                console.error("Load my teams error:", error);
+                summary.textContent = "プレイヤー情報の取得に失敗しました。";
+                teamInfoBox.textContent = "所属チーム情報の取得に失敗しました。";
+            }
+        }
+
+        async function checkPlayer() {
+            try {
+                const response = await fetch("/api/me");
+                const result = await response.json();
+
+                const playerMessage = document.getElementById("playerMessage");
+                const playerCard = document.getElementById("playerCard");
+
+                if (!result.isLoggedIn) {
+                    location.href = "./login.html";
+                    return;
+                }
+
+                if (result.type !== "player") {
+                    playerMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                    return;
+                }
+
+                playerMessage.style.display = "none";
+                playerCard.classList.remove("hidden");
+                await loadMyTeams();
+            } catch (error) {
+                console.error("Player page error:", error);
+                const playerMessage = document.getElementById("playerMessage");
+                playerMessage.textContent = "プレイヤー情報の取得に失敗しました。";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkPlayer();
+        });
+    </script>
+</body>
+
+</html>
