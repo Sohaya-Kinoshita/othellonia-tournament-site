@@ -45,8 +45,15 @@
             <h3>進行中のマッチ</h3>
             <div id="ongoingMatchesList"></div>
 
-            <h3 style="margin-top: 20px;">試合終了したマッチ</h3>
-            <div id="finishedMatchesList"></div>
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 8px;">
+                <h3 style="margin: 0;">試合終了したマッチ</h3>
+                <button type="button" id="toggleFinishedMatchesButton" class="btn" style="margin: 0;">▽
+                    試合終了したマッチを開く</button>
+            </div>
+            <div id="finishedMatchesSection" style="display: none;">
+                <div id="finishedMatchesList"></div>
+            </div>
         </div>
     </main>
 
@@ -83,6 +90,30 @@
                 toggleButton.textContent = isOpen
                     ? "△ メンバー一覧を閉じる"
                     : "▽ メンバー一覧を開く";
+            };
+
+            toggleButton.addEventListener("click", () => {
+                isOpen = !isOpen;
+                render();
+            });
+
+            render();
+        }
+
+        function setupFinishedMatchesToggle() {
+            const toggleButton = document.getElementById("toggleFinishedMatchesButton");
+            const section = document.getElementById("finishedMatchesSection");
+            if (!toggleButton || !section) {
+                return;
+            }
+
+            let isOpen = false;
+
+            const render = () => {
+                section.style.display = isOpen ? "block" : "none";
+                toggleButton.textContent = isOpen
+                    ? "△ 試合終了したマッチを閉じる"
+                    : "▽ 試合終了したマッチを開く";
             };
 
             toggleButton.addEventListener("click", () => {
@@ -248,6 +279,8 @@
 
             const teamAReserves = (reservesByTeam && reservesByTeam[match.team_a_id]) || [];
             const teamBReserves = (reservesByTeam && reservesByTeam[match.team_b_id]) || [];
+            const teamAWins = games.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const teamBWins = games.filter((game) => game.winner_team_id === match.team_b_id).length;
 
             const renderReserves = (reserves) => {
                 if (!reserves || reserves.length === 0) {
@@ -268,6 +301,7 @@
             // Team A
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
+            html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamAWins}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
@@ -283,6 +317,7 @@
             // Team B
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
+            html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamBWins}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
@@ -555,6 +590,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             setupMembersToggle();
+            setupFinishedMatchesToggle();
             loadTeamDetail();
         });
     </script>

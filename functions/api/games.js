@@ -501,6 +501,26 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
 
     // 確定の場合、マッチの勝者も更新
     if (confirmed) {
+      const matchInfo = await env.DB.prepare(
+        `
+          SELECT team_a_id, team_b_id
+          FROM matches
+          WHERE match_id = ?
+        `,
+      )
+        .bind(match_id)
+        .first();
+
+      if (!matchInfo) {
+        return new Response(
+          JSON.stringify({ error: "マッチが見つかりません" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
       // 現在の勝利数を集計
       const gamesResult = await env.DB.prepare(
         `
@@ -530,6 +550,33 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
         }
       }
 
+      const teamAWins = Number(winCounts[matchInfo.team_a_id] || 0);
+      const teamBWins = Number(winCounts[matchInfo.team_b_id] || 0);
+
+      if (teamAWins === teamBWins) {
+        return new Response(
+          JSON.stringify({
+            error: "引き分け状態のため確定できません。勝敗を入力してください。",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (Math.max(teamAWins, teamBWins) < 3) {
+        return new Response(
+          JSON.stringify({
+            error: "勝者が確定していないため確定できません（3勝が必要です）。",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
       // マッチの勝者を更新
       if (winnerTeamId) {
         await env.DB.prepare(
@@ -541,6 +588,16 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
         )
           .bind(winnerTeamId, match_id)
           .run();
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: "勝者チームを判定できないため確定できません。",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
     }
 
