@@ -193,7 +193,9 @@
                     if (hasSubmittedA) {
                         teamAOrderStatus.style.backgroundColor = "#e8f5e9";
                         teamAOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultA.submittedAt)}`;
-                        teamAOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderA.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}`;
+                        const reserveA = (resultA.reservePlayers || []).slice(0, 2);
+                        const reserveAText = reserveA.length > 0 ? reserveA.join(", ") : "未設定";
+                        teamAOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderA.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}<br><strong>リザーブ:</strong> ${reserveAText}`;
                     } else {
                         teamAOrderStatus.style.backgroundColor = "#fff3e0";
                         teamAOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
@@ -207,7 +209,9 @@
                     if (hasSubmittedB) {
                         teamBOrderStatus.style.backgroundColor = "#e8f5e9";
                         teamBOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultB.submittedAt)}`;
-                        teamBOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderB.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}`;
+                        const reserveB = (resultB.reservePlayers || []).slice(0, 2);
+                        const reserveBText = reserveB.length > 0 ? reserveB.join(", ") : "未設定";
+                        teamBOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderB.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}<br><strong>リザーブ:</strong> ${reserveBText}`;
                     } else {
                         teamBOrderStatus.style.backgroundColor = "#fff3e0";
                         teamBOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;

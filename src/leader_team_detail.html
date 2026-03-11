@@ -24,8 +24,12 @@
             <hr>
             <div id="teamInfo" style="margin-bottom: 16px;"></div>
 
-            <h3>メンバー一覧</h3>
-            <div style="overflow-x: auto; margin-bottom: 16px;">
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+                <h3 style="margin: 0;">メンバー一覧</h3>
+                <button type="button" id="toggleMembersButton" class="btn" style="margin: 0;">▽ メンバー一覧を開く</button>
+            </div>
+            <div id="membersSection" style="display: none; overflow-x: auto; margin-bottom: 16px;">
                 <table id="memberTable">
                     <thead>
                         <tr>
@@ -38,8 +42,11 @@
                 </table>
             </div>
 
-            <h3>関連マッチ</h3>
-            <div id="matchesList"></div>
+            <h3>進行中のマッチ</h3>
+            <div id="ongoingMatchesList"></div>
+
+            <h3 style="margin-top: 20px;">試合終了したマッチ</h3>
+            <div id="finishedMatchesList"></div>
         </div>
     </main>
 
@@ -60,6 +67,30 @@
 
         function getBattleModeLabel(gameNumber) {
             return gameNumber <= 3 ? "シーズン" : "グローリー";
+        }
+
+        function setupMembersToggle() {
+            const toggleButton = document.getElementById("toggleMembersButton");
+            const membersSection = document.getElementById("membersSection");
+            if (!toggleButton || !membersSection) {
+                return;
+            }
+
+            let isOpen = false;
+
+            const render = () => {
+                membersSection.style.display = isOpen ? "block" : "none";
+                toggleButton.textContent = isOpen
+                    ? "△ メンバー一覧を閉じる"
+                    : "▽ メンバー一覧を開く";
+            };
+
+            toggleButton.addEventListener("click", () => {
+                isOpen = !isOpen;
+                render();
+            });
+
+            render();
         }
 
         function createOrderSelect(matchId, index, members, selectedPlayerId) {
@@ -89,9 +120,36 @@
             return select;
         }
 
+        function createReserveSelect(matchId, reserveIndex, members, selectedPlayerId) {
+            const select = document.createElement("select");
+            select.id = `reserve_${matchId}_${reserveIndex}`;
+            select.style.padding = "8px";
+            select.style.border = "1px solid #ddd";
+            select.style.borderRadius = "4px";
+            select.style.width = "100%";
+
+            const defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.textContent = `リザーブ${reserveIndex + 1}を選択`;
+            select.appendChild(defaultOption);
+
+            members.forEach((member) => {
+                const option = document.createElement("option");
+                option.value = member.player_id;
+                option.textContent = `${member.player_name} (${member.player_id})`;
+                if (selectedPlayerId === member.player_id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            return select;
+        }
+
         async function loadMatchOrder(matchId, teamId, members, match) {
             const orderStatus = document.getElementById(`orderStatus_${matchId}`);
             const orderList = document.getElementById(`orderList_${matchId}`);
+            const reserveList = document.getElementById(`reserveList_${matchId}`);
             const submitButton = document.getElementById(`submitOrderBtn_${matchId}`);
             const matchCardSection = document.getElementById(`matchCardSection_${matchId}`);
             const matchCardDiv = document.getElementById(`matchCard_${matchId}`);
@@ -109,6 +167,7 @@
                 }
 
                 const currentOrder = result.playerOrder || [];
+                const currentReserves = result.reservePlayers || [];
                 const hasSubmitted = currentOrder.length > 0;
                 const isConfirmed = result.confirmedAt !== null && result.confirmedAt !== undefined;
 
@@ -118,6 +177,7 @@
                         orderStatus.style.color = "#1b5e20";
                         submitButton.style.display = "none";
                         orderList.style.display = "none";
+                        reserveList.style.display = "none";
 
                         // 対戦カードを読み込み・表示
                         try {
@@ -138,6 +198,7 @@
                         orderStatus.style.color = "#2e7d32";
                         submitButton.style.display = "block";
                         orderList.style.display = "grid";
+                        reserveList.style.display = "grid";
                         matchCardSection.style.display = "none";
                     }
                 } else {
@@ -145,6 +206,7 @@
                     orderStatus.style.color = "#f57f17";
                     submitButton.style.display = "block";
                     orderList.style.display = "grid";
+                    reserveList.style.display = "grid";
                     matchCardSection.style.display = "none";
                 }
 
@@ -155,10 +217,21 @@
                     );
                 }
 
+                reserveList.innerHTML = "";
+                for (let index = 0; index < 2; index += 1) {
+                    reserveList.appendChild(
+                        createReserveSelect(matchId, index, members, currentReserves[index] || ""),
+                    );
+                }
+
                 // 確定済みなら選択を無効化
                 if (isConfirmed) {
                     const selects = orderList.querySelectorAll("select");
                     selects.forEach((select) => {
+                        select.disabled = true;
+                    });
+                    const reserveSelects = reserveList.querySelectorAll("select");
+                    reserveSelects.forEach((select) => {
                         select.disabled = true;
                     });
                 }
@@ -208,8 +281,13 @@
             for (let index = 0; index < 5; index += 1) {
                 selects.push(document.getElementById(`order_${matchId}_${index}`));
             }
+            const reserveSelects = [];
+            for (let index = 0; index < 2; index += 1) {
+                reserveSelects.push(document.getElementById(`reserve_${matchId}_${index}`));
+            }
 
             const playerOrder = selects.map((select) => select?.value || "");
+            const reservePlayers = reserveSelects.map((select) => select?.value || "");
 
             if (playerOrder.some((playerId) => !playerId)) {
                 alert("5戦分すべての選手を選択してください。");
@@ -222,6 +300,22 @@
                 return;
             }
 
+            if (reservePlayers.some((playerId) => !playerId)) {
+                alert("リザーブ2名を選択してください。");
+                return;
+            }
+
+            const uniqueReserveCount = new Set(reservePlayers).size;
+            if (uniqueReserveCount !== reservePlayers.length) {
+                alert("リザーブに同じ選手は指定できません。");
+                return;
+            }
+
+            if (reservePlayers.some((playerId) => playerOrder.includes(playerId))) {
+                alert("リザーブにオーダー選手は指定できません。");
+                return;
+            }
+
             try {
                 const response = await fetch("/api/order", {
                     method: "POST",
@@ -230,6 +324,7 @@
                         matchId,
                         teamId,
                         playerOrder,
+                        reservePlayers,
                     }),
                 });
 
@@ -254,10 +349,12 @@
             const teamNameDiv = document.getElementById("teamName");
             const teamInfoDiv = document.getElementById("teamInfo");
             const memberTableBody = document.getElementById("memberTableBody");
-            const matchesList = document.getElementById("matchesList");
+            const ongoingMatchesList = document.getElementById("ongoingMatchesList");
+            const finishedMatchesList = document.getElementById("finishedMatchesList");
 
             memberTableBody.innerHTML = "";
-            matchesList.innerHTML = "";
+            ongoingMatchesList.innerHTML = "";
+            finishedMatchesList.innerHTML = "";
 
             // 認証確認
             const meResponse = await fetch("/api/me");
@@ -325,28 +422,36 @@
                     });
                 }
 
-                // マッチ一覧を表示
-                if (matches.length === 0) {
-                    matchesList.innerHTML = `<p style="color: #999;">関連するマッチがありません</p>`;
-                } else {
-                    matches.forEach((match) => {
-                        const isTeamA = match.team_a_id === teamId;
-                        const opponentName = isTeamA
-                            ? match.team_b_name
-                            : match.team_a_name;
-                        const opponentId = isTeamA
-                            ? match.team_b_id
-                            : match.team_a_id;
-                        const status =
-                            match.winner_team_id === teamId
-                                ? "勝利"
-                                : match.winner_team_id === null
-                                    ? "進行中"
-                                    : "敗北";
+                // マッチ一覧を表示（進行中 / 試合終了で分割）
+                const ongoingMatches = matches.filter((match) => match.winner_team_id === null);
+                const finishedMatches = matches.filter((match) => match.winner_team_id !== null);
 
-                        const matchElement = document.createElement("div");
-                        matchElement.style.marginBottom = "12px";
-                        matchElement.innerHTML = `
+                if (ongoingMatches.length === 0) {
+                    ongoingMatchesList.innerHTML = `<p style="color: #999;">進行中のマッチはありません</p>`;
+                }
+
+                if (finishedMatches.length === 0) {
+                    finishedMatchesList.innerHTML = `<p style="color: #999;">試合終了したマッチはありません</p>`;
+                }
+
+                const renderMatchCard = (match, targetList) => {
+                    const isTeamA = match.team_a_id === teamId;
+                    const opponentName = isTeamA
+                        ? match.team_b_name
+                        : match.team_a_name;
+                    const opponentId = isTeamA
+                        ? match.team_b_id
+                        : match.team_a_id;
+                    const status =
+                        match.winner_team_id === teamId
+                            ? "勝利"
+                            : match.winner_team_id === null
+                                ? "進行中"
+                                : "敗北";
+
+                    const matchElement = document.createElement("div");
+                    matchElement.style.marginBottom = "12px";
+                    matchElement.innerHTML = `
                             <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                     <div>
@@ -361,17 +466,17 @@
                                         font-size: 0.85em;
                                         font-weight: bold;
                                         background-color: ${status === "勝利"
-                                ? "#c8e6c9"
-                                : status === "進行中"
-                                    ? "#fff9c4"
-                                    : "#ffcccc"
-                            };
+                            ? "#c8e6c9"
+                            : status === "進行中"
+                                ? "#fff9c4"
+                                : "#ffcccc"
+                        };
                                         color: ${status === "勝利"
-                                ? "#2e7d32"
-                                : status === "進行中"
-                                    ? "#f57f17"
-                                    : "#c62828"
-                            };
+                            ? "#2e7d32"
+                            : status === "進行中"
+                                ? "#f57f17"
+                                : "#c62828"
+                        };
                                     ">
                                         ${status}
                                     </span>
@@ -388,6 +493,8 @@
                                     <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">1〜3戦: シーズン / 4〜5戦: グローリー</div>
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
+                                    <div style="font-weight: 700; margin-bottom: 8px;">リザーブ（2名）</div>
+                                    <div id="reserveList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
                                 </div>
 
@@ -397,16 +504,23 @@
                                 </div>
                             </div>
                         `;
-                        matchesList.appendChild(matchElement);
+                    targetList.appendChild(matchElement);
 
-                        const submitButton = document.getElementById(`submitOrderBtn_${match.match_id}`);
-                        submitButton.addEventListener("click", () => {
-                            submitOrder(match.match_id, teamId, members);
-                        });
-
-                        loadMatchOrder(match.match_id, teamId, members, match);
+                    const submitButton = document.getElementById(`submitOrderBtn_${match.match_id}`);
+                    submitButton.addEventListener("click", () => {
+                        submitOrder(match.match_id, teamId, members);
                     });
-                }
+
+                    loadMatchOrder(match.match_id, teamId, members, match);
+                };
+
+                ongoingMatches.forEach((match) => {
+                    renderMatchCard(match, ongoingMatchesList);
+                });
+
+                finishedMatches.forEach((match) => {
+                    renderMatchCard(match, finishedMatchesList);
+                });
 
                 teamDetailCard.classList.remove("hidden");
             } catch (error) {
@@ -416,6 +530,7 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
+            setupMembersToggle();
             loadTeamDetail();
         });
     </script>

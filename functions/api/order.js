@@ -71,6 +71,28 @@ async function ensureOrdersConfirmedAtColumn(db) {
   }
 }
 
+async function ensureReservesTable(db) {
+  await db
+    .prepare(
+      `
+        CREATE TABLE IF NOT EXISTS reserves (
+          match_id CHAR(3) NOT NULL,
+          team_id CHAR(3) NOT NULL,
+          player_id CHAR(12) NOT NULL,
+          reserve_number INTEGER NOT NULL,
+          CHECK (reserve_number IN (1, 2)),
+          UNIQUE (match_id, team_id, reserve_number),
+          UNIQUE (match_id, team_id, player_id),
+          PRIMARY KEY (match_id, team_id, reserve_number),
+          FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE ON UPDATE CASCADE,
+          FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+          FOREIGN KEY (player_id) REFERENCES players(player_id) ON DELETE RESTRICT ON UPDATE CASCADE
+        )
+      `,
+    )
+    .run();
+}
+
 function safeParseOrderJson(value) {
   if (!value) {
     return [];
@@ -82,6 +104,22 @@ function safeParseOrderJson(value) {
   } catch (_error) {
     return [];
   }
+}
+
+async function loadReservePlayers(db, matchId, teamId) {
+  const reserveRows = await db
+    .prepare(
+      `
+        SELECT reserve_number, player_id
+        FROM reserves
+        WHERE match_id = ? AND team_id = ?
+        ORDER BY reserve_number
+      `,
+    )
+    .bind(matchId, teamId)
+    .all();
+
+  return (reserveRows.results || []).map((row) => row.player_id);
 }
 
 async function authenticateLeader(db, request, teamId) {
@@ -258,6 +296,7 @@ async function authenticateLeaderOrAdmin(db, request, teamId) {
 async function handleGet(context) {
   try {
     const db = context.env.DB;
+    await ensureReservesTable(db);
     const url = new URL(context.request.url);
     const matchId = (url.searchParams.get("matchId") || "").trim();
     const teamId = (url.searchParams.get("teamId") || "").trim();
@@ -293,6 +332,8 @@ async function handleGet(context) {
         .bind(matchId, teamId)
         .first();
 
+      const reservePlayers = await loadReservePlayers(db, matchId, teamId);
+
       if (!legacyOrder) {
         return new Response(
           JSON.stringify({
@@ -303,6 +344,7 @@ async function handleGet(context) {
             submittedAt: null,
             confirmedAt: null,
             playerOrder: [],
+            reservePlayers,
           }),
           {
             status: 200,
@@ -320,6 +362,7 @@ async function handleGet(context) {
           submittedAt: legacyOrder.submitted_at,
           confirmedAt: legacyOrder.confirmed_at,
           playerOrder: safeParseOrderJson(legacyOrder.player_order),
+          reservePlayers,
         }),
         {
           status: 200,
@@ -354,6 +397,7 @@ async function handleGet(context) {
       .first();
 
     if (!latestOrder) {
+      const reservePlayers = await loadReservePlayers(db, matchId, teamId);
       return new Response(
         JSON.stringify({
           success: true,
@@ -363,6 +407,7 @@ async function handleGet(context) {
           submittedAt: null,
           confirmedAt: null,
           playerOrder: [],
+          reservePlayers,
         }),
         {
           status: 200,
@@ -383,6 +428,8 @@ async function handleGet(context) {
       .bind(latestOrder.order_id)
       .all();
 
+    const reservePlayers = await loadReservePlayers(db, matchId, teamId);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -392,6 +439,7 @@ async function handleGet(context) {
         submittedAt: latestOrder.submitted_at,
         confirmedAt: latestOrder.confirmed_at,
         playerOrder: (details.results || []).map((row) => row.player_id),
+        reservePlayers,
       }),
       {
         status: 200,
@@ -413,11 +461,37 @@ async function handleGet(context) {
 async function handlePost(context) {
   try {
     const db = context.env.DB;
-    const { matchId, teamId, playerOrder } = await context.request.json();
+    await ensureReservesTable(db);
+    const { matchId, teamId, playerOrder, reservePlayers } =
+      await context.request.json();
+
+    const normalizedReservePlayers = Array.isArray(reservePlayers)
+      ? reservePlayers.map((playerId) => String(playerId || "").trim())
+      : [];
 
     if (!matchId || !teamId || !Array.isArray(playerOrder)) {
       return new Response(
         JSON.stringify({ message: "matchId, teamId, playerOrder が必要です" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (normalizedReservePlayers.length !== 2) {
+      return new Response(
+        JSON.stringify({ message: "リザーブは2名分を指定してください" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (normalizedReservePlayers.some((playerId) => !playerId)) {
+      return new Response(
+        JSON.stringify({ message: "リザーブ2名を選択してください" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -439,6 +513,32 @@ async function handlePost(context) {
     if (uniquePlayers.size !== playerOrder.length) {
       return new Response(
         JSON.stringify({ message: "同じプレイヤーは重複して指定できません" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const uniqueReserves = new Set(normalizedReservePlayers);
+    if (uniqueReserves.size !== normalizedReservePlayers.length) {
+      return new Response(
+        JSON.stringify({
+          message: "リザーブに同じプレイヤーは重複して指定できません",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const overlapWithOrder = normalizedReservePlayers.some((playerId) =>
+      uniquePlayers.has(playerId),
+    );
+    if (overlapWithOrder) {
+      return new Response(
+        JSON.stringify({ message: "リザーブにオーダー選手は指定できません" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -514,6 +614,34 @@ async function handlePost(context) {
       );
     }
 
+    const reservePlaceholders = normalizedReservePlayers
+      .map(() => "?")
+      .join(", ");
+    const reserveRows = await db
+      .prepare(
+        `
+        SELECT player_id
+        FROM team_members
+        WHERE team_id = ? AND player_id IN (${reservePlaceholders})
+      `,
+      )
+      .bind(teamId, ...normalizedReservePlayers)
+      .all();
+
+    if (
+      (reserveRows.results || []).length !== normalizedReservePlayers.length
+    ) {
+      return new Response(
+        JSON.stringify({
+          message: "リザーブにチーム外のプレイヤーが含まれています",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
     const schemaType = await detectOrderSchema(db);
 
     if (schemaType === "legacy") {
@@ -530,11 +658,33 @@ async function handlePost(context) {
         .bind(matchId, teamId, JSON.stringify(playerOrder))
         .run();
 
+      const reserveStatements = [
+        db
+          .prepare("DELETE FROM reserves WHERE match_id = ? AND team_id = ?")
+          .bind(matchId, teamId),
+      ];
+
+      normalizedReservePlayers.forEach((playerId, index) => {
+        reserveStatements.push(
+          db
+            .prepare(
+              `
+                INSERT INTO reserves (match_id, team_id, player_id, reserve_number)
+                VALUES (?, ?, ?, ?)
+              `,
+            )
+            .bind(matchId, teamId, playerId, index + 1),
+        );
+      });
+
+      await db.batch(reserveStatements);
+
       return new Response(
         JSON.stringify({
           success: true,
           message: "オーダーを提出しました",
           orderId: null,
+          reservePlayers: normalizedReservePlayers,
         }),
         {
           status: 200,
@@ -583,6 +733,25 @@ async function handlePost(context) {
       );
     });
 
+    statements.push(
+      db
+        .prepare("DELETE FROM reserves WHERE match_id = ? AND team_id = ?")
+        .bind(matchId, teamId),
+    );
+
+    normalizedReservePlayers.forEach((playerId, index) => {
+      statements.push(
+        db
+          .prepare(
+            `
+              INSERT INTO reserves (match_id, team_id, player_id, reserve_number)
+              VALUES (?, ?, ?, ?)
+            `,
+          )
+          .bind(matchId, teamId, playerId, index + 1),
+      );
+    });
+
     await db.batch(statements);
 
     return new Response(
@@ -590,6 +759,7 @@ async function handlePost(context) {
         success: true,
         message: "オーダーを提出しました",
         orderId: nextOrderId,
+        reservePlayers: normalizedReservePlayers,
       }),
       {
         status: 200,
