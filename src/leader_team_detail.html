@@ -288,6 +288,7 @@
 
             const playerOrder = selects.map((select) => select?.value || "");
             const reservePlayers = reserveSelects.map((select) => select?.value || "");
+            const selectedReservePlayers = reservePlayers.filter((playerId) => playerId);
 
             if (playerOrder.some((playerId) => !playerId)) {
                 alert("5戦分すべての選手を選択してください。");
@@ -300,18 +301,18 @@
                 return;
             }
 
-            if (reservePlayers.some((playerId) => !playerId)) {
-                alert("リザーブ2名を選択してください。");
+            if (selectedReservePlayers.length > 2) {
+                alert("リザーブは最大2名まで指定できます。");
                 return;
             }
 
-            const uniqueReserveCount = new Set(reservePlayers).size;
-            if (uniqueReserveCount !== reservePlayers.length) {
+            const uniqueReserveCount = new Set(selectedReservePlayers).size;
+            if (uniqueReserveCount !== selectedReservePlayers.length) {
                 alert("リザーブに同じ選手は指定できません。");
                 return;
             }
 
-            if (reservePlayers.some((playerId) => playerOrder.includes(playerId))) {
+            if (selectedReservePlayers.some((playerId) => playerOrder.includes(playerId))) {
                 alert("リザーブにオーダー選手は指定できません。");
                 return;
             }
@@ -324,7 +325,7 @@
                         matchId,
                         teamId,
                         playerOrder,
-                        reservePlayers,
+                        reservePlayers: selectedReservePlayers,
                     }),
                 });
 
@@ -493,7 +494,7 @@
                                     <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">1〜3戦: シーズン / 4〜5戦: グローリー</div>
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
-                                    <div style="font-weight: 700; margin-bottom: 8px;">リザーブ（2名）</div>
+                                    <div style="font-weight: 700; margin-bottom: 8px;">リザーブ（最大2名・任意）</div>
                                     <div id="reserveList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
                                 </div>

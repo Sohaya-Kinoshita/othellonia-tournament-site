@@ -466,7 +466,9 @@ async function handlePost(context) {
       await context.request.json();
 
     const normalizedReservePlayers = Array.isArray(reservePlayers)
-      ? reservePlayers.map((playerId) => String(playerId || "").trim())
+      ? reservePlayers
+          .map((playerId) => String(playerId || "").trim())
+          .filter((playerId) => playerId)
       : [];
 
     if (!matchId || !teamId || !Array.isArray(playerOrder)) {
@@ -479,19 +481,9 @@ async function handlePost(context) {
       );
     }
 
-    if (normalizedReservePlayers.length !== 2) {
+    if (normalizedReservePlayers.length > 2) {
       return new Response(
-        JSON.stringify({ message: "リザーブは2名分を指定してください" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    if (normalizedReservePlayers.some((playerId) => !playerId)) {
-      return new Response(
-        JSON.stringify({ message: "リザーブ2名を選択してください" }),
+        JSON.stringify({ message: "リザーブは最大2名まで指定できます" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -614,32 +606,34 @@ async function handlePost(context) {
       );
     }
 
-    const reservePlaceholders = normalizedReservePlayers
-      .map(() => "?")
-      .join(", ");
-    const reserveRows = await db
-      .prepare(
-        `
-        SELECT player_id
-        FROM team_members
-        WHERE team_id = ? AND player_id IN (${reservePlaceholders})
-      `,
-      )
-      .bind(teamId, ...normalizedReservePlayers)
-      .all();
+    if (normalizedReservePlayers.length > 0) {
+      const reservePlaceholders = normalizedReservePlayers
+        .map(() => "?")
+        .join(", ");
+      const reserveRows = await db
+        .prepare(
+          `
+          SELECT player_id
+          FROM team_members
+          WHERE team_id = ? AND player_id IN (${reservePlaceholders})
+        `,
+        )
+        .bind(teamId, ...normalizedReservePlayers)
+        .all();
 
-    if (
-      (reserveRows.results || []).length !== normalizedReservePlayers.length
-    ) {
-      return new Response(
-        JSON.stringify({
-          message: "リザーブにチーム外のプレイヤーが含まれています",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      if (
+        (reserveRows.results || []).length !== normalizedReservePlayers.length
+      ) {
+        return new Response(
+          JSON.stringify({
+            message: "リザーブにチーム外のプレイヤーが含まれています",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const schemaType = await detectOrderSchema(db);
