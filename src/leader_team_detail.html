@@ -180,6 +180,7 @@
         async function loadMatchOrder(matchId, teamId, members, match) {
             const orderStatus = document.getElementById(`orderStatus_${matchId}`);
             const orderList = document.getElementById(`orderList_${matchId}`);
+            const reserveLabel = document.getElementById(`reserveLabel_${matchId}`);
             const reserveList = document.getElementById(`reserveList_${matchId}`);
             const submitButton = document.getElementById(`submitOrderBtn_${matchId}`);
             const matchCardSection = document.getElementById(`matchCardSection_${matchId}`);
@@ -208,6 +209,7 @@
                         orderStatus.style.color = "#1b5e20";
                         submitButton.style.display = "none";
                         orderList.style.display = "none";
+                        if (reserveLabel) reserveLabel.style.display = "none";
                         reserveList.style.display = "none";
 
                         // 対戦カードを読み込み・表示
@@ -307,7 +309,7 @@
                     ? "勝ち"
                     : game.winner_team_id === match.team_b_id
                         ? "負け"
-                        : "未確定";
+                        : "勝敗未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}　${teamAResult}</div>`;
@@ -328,7 +330,7 @@
                     ? "勝ち"
                     : game.winner_team_id === match.team_a_id
                         ? "負け"
-                        : "未確定";
+                        : "勝敗未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}　${teamBResult}</div>`;
@@ -544,6 +546,7 @@
                                     </span>
                                 </div>
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">Best of ${match.best_of}</div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
                                 <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
                                 <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
@@ -606,6 +609,9 @@
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
                                     Best of ${match.best_of}
                                 </div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">
+                                    対戦日: ${formatDateTime(match.scheduled_at)}
+                                </div>
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 12px;">
                                     提出期限: ${formatDateTime(match.order_deadline)}
                                 </div>
@@ -615,7 +621,7 @@
                                     <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">1〜3戦: シーズン / 4〜5戦: グローリー</div>
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
-                                    <div style="font-weight: 700; margin-bottom: 8px;">リザーブ（最大2名・任意）</div>
+                                    <div id="reserveLabel_${match.match_id}" style="font-weight: 700; margin-bottom: 8px;">リザーブ（最大2名・任意）</div>
                                     <div id="reserveList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
                                 </div>
