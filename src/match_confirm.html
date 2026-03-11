@@ -426,7 +426,6 @@
                     <div id="gamesContainer"></div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-save" id="saveButton">一時保存</button>
                         <button type="button" class="btn btn-confirm" id="confirmButton">確定</button>
                     </div>
                     <div id="confirmMessage" class="message"></div>
@@ -451,7 +450,7 @@
             const confirmButton = document.getElementById("confirmButton");
             const confirmMessage = document.getElementById("confirmMessage");
 
-            saveButton.disabled = !enabled;
+            if (saveButton) saveButton.disabled = !enabled;
             confirmButton.disabled = !enabled;
 
             if (enabled) {
@@ -796,6 +795,16 @@
 
                 gameCard.appendChild(gameBody);
                 gamesContainer.appendChild(gameCard);
+
+                // 各戦の下に一時保存ボタンを追加
+                const savePerGame = document.createElement("button");
+                savePerGame.type = "button";
+                savePerGame.className = "btn btn-save";
+                savePerGame.style.marginTop = "4px";
+                savePerGame.style.marginBottom = "12px";
+                savePerGame.textContent = `第${game.game_number}戦を一時保存`;
+                savePerGame.onclick = () => saveResults(false);
+                gamesContainer.appendChild(savePerGame);
             });
 
             const matchDetailsContainer = document.getElementById("matchDetailsContainer");
@@ -949,7 +958,6 @@
         document.addEventListener("DOMContentLoaded", () => {
             checkAdmin();
 
-            document.getElementById("saveButton").onclick = () => saveResults(false);
             document.getElementById("confirmButton").onclick = () => {
                 if (confirm("結果を確定してもよろしいですか？")) {
                     saveResults(true);

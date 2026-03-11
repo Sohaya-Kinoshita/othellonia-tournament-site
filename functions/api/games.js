@@ -154,6 +154,7 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
       m.team_a_id,
       m.team_b_id,
       m.best_of,
+      m.scheduled_at,
       ta.team_name as team_a_name,
       tb.team_name as team_b_name
     FROM matches m
