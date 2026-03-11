@@ -303,9 +303,14 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
             html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamAWins}</div>`;
             games.forEach((game) => {
+                const teamAResult = game.winner_team_id === match.team_a_id
+                    ? "勝ち"
+                    : game.winner_team_id === match.team_b_id
+                        ? "負け"
+                        : "未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
+                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}　${teamAResult}</div>`;
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
@@ -319,9 +324,14 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
             html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamBWins}</div>`;
             games.forEach((game) => {
+                const teamBResult = game.winner_team_id === match.team_b_id
+                    ? "勝ち"
+                    : game.winner_team_id === match.team_a_id
+                        ? "負け"
+                        : "未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
+                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}　${teamBResult}</div>`;
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
@@ -493,7 +503,7 @@
                     finishedMatchesList.innerHTML = `<p style="color: #999;">試合終了したマッチはありません</p>`;
                 }
 
-                const renderMatchCard = (match, targetList) => {
+                const renderMatchCard = (match, targetList, isFinished = false) => {
                     const isTeamA = match.team_a_id === teamId;
                     const opponentName = isTeamA
                         ? match.team_b_name
@@ -510,6 +520,36 @@
 
                     const matchElement = document.createElement("div");
                     matchElement.style.marginBottom = "12px";
+
+                    if (isFinished) {
+                        matchElement.innerHTML = `
+                            <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div>
+                                        <strong>${match.match_id}</strong>
+                                        <span style="margin-left: 8px; font-size: 0.9em;">
+                                            ${team.team_name} vs ${opponentName} (${opponentId})
+                                        </span>
+                                    </div>
+                                    <span style="
+                                        padding: 4px 8px;
+                                        border-radius: 4px;
+                                        font-size: 0.85em;
+                                        font-weight: bold;
+                                        background-color: ${status === "勝利" ? "#c8e6c9" : "#ffcccc"};
+                                        color: ${status === "勝利" ? "#2e7d32" : "#c62828"};
+                                    ">
+                                        ${status}
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">Best of ${match.best_of}</div>
+                                <div style="font-size: 0.9em; color: #666;">提出期限: ${formatDateTime(match.order_deadline)}</div>
+                            </div>
+                        `;
+                        targetList.appendChild(matchElement);
+                        return;
+                    }
+
                     matchElement.innerHTML = `
                             <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -524,18 +564,8 @@
                                         border-radius: 4px;
                                         font-size: 0.85em;
                                         font-weight: bold;
-                                        background-color: ${status === "勝利"
-                            ? "#c8e6c9"
-                            : status === "進行中"
-                                ? "#fff9c4"
-                                : "#ffcccc"
-                        };
-                                        color: ${status === "勝利"
-                            ? "#2e7d32"
-                            : status === "進行中"
-                                ? "#f57f17"
-                                : "#c62828"
-                        };
+                                        background-color: ${status === "進行中" ? "#fff9c4" : "#ffcccc"};
+                                        color: ${status === "進行中" ? "#f57f17" : "#c62828"};
                                     ">
                                         ${status}
                                     </span>
@@ -574,11 +604,11 @@
                 };
 
                 ongoingMatches.forEach((match) => {
-                    renderMatchCard(match, ongoingMatchesList);
+                    renderMatchCard(match, ongoingMatchesList, false);
                 });
 
                 finishedMatches.forEach((match) => {
-                    renderMatchCard(match, finishedMatchesList);
+                    renderMatchCard(match, finishedMatchesList, true);
                 });
 
                 teamDetailCard.classList.remove("hidden");
