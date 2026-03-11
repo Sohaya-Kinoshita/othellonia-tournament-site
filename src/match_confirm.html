@@ -444,6 +444,7 @@
         let currentAdminId = null;
         let currentMatchData = null;
         let gameResults = {};
+        let expandedGameId = null;
 
         function setResultInputEnabled(enabled, message = "") {
             const saveButton = document.getElementById("saveButton");
@@ -620,6 +621,7 @@
 
                 currentMatchData = result;
                 gameResults = {};
+                expandedGameId = null;
 
                 // 既存の結果をgameResultsに保存
                 result.games.forEach(game => {
@@ -668,7 +670,13 @@
             games.forEach((game, index) => {
                 const gameCard = document.createElement("div");
                 gameCard.className = "game-result-card";
-                if (index === 0) gameCard.classList.add("expanded"); // 最初のゲームだけ開く
+                const shouldExpand = expandedGameId
+                    ? expandedGameId === game.game_id
+                    : index === 0;
+                if (shouldExpand) {
+                    gameCard.classList.add("expanded");
+                    expandedGameId = game.game_id;
+                }
 
                 // BO3スコア表示
                 const result = gameResults[game.game_id] || {};
@@ -699,12 +707,13 @@
                     // ボタン類のクリックは開閉に反応しない
                     if (e.target.closest("button")) return;
                     const isExpanded = gameCard.classList.contains("expanded");
+                    if (isExpanded) {
+                        return;
+                    }
                     // 他の全カードを閉じる
                     document.querySelectorAll(".game-result-card").forEach(c => c.classList.remove("expanded"));
-                    // 既に開いていた場合はそのまま閉じる、それ以外は開く
-                    if (!isExpanded) {
-                        gameCard.classList.add("expanded");
-                    }
+                    gameCard.classList.add("expanded");
+                    expandedGameId = game.game_id;
                 };
                 gameCard.appendChild(gameHeader);
 
@@ -793,18 +802,17 @@
                 `;
                 gameBody.appendChild(rowB);
 
-                gameCard.appendChild(gameBody);
-                gamesContainer.appendChild(gameCard);
-
-                // 各戦の下に一時保存ボタンを追加
                 const savePerGame = document.createElement("button");
                 savePerGame.type = "button";
                 savePerGame.className = "btn btn-save";
-                savePerGame.style.marginTop = "4px";
-                savePerGame.style.marginBottom = "12px";
+                savePerGame.style.marginTop = "8px";
+                savePerGame.style.width = "100%";
                 savePerGame.textContent = `第${game.game_number}戦を一時保存`;
                 savePerGame.onclick = () => saveResults(false);
-                gamesContainer.appendChild(savePerGame);
+                gameBody.appendChild(savePerGame);
+
+                gameCard.appendChild(gameBody);
+                gamesContainer.appendChild(gameCard);
             });
 
             const matchDetailsContainer = document.getElementById("matchDetailsContainer");
