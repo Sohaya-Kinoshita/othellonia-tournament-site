@@ -472,7 +472,7 @@
             if (Number.isNaN(date.getTime())) {
                 return datetimeText;
             }
-            return date.toLocaleString("ja-JP");
+            return date.toLocaleString("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
         }
 
         async function checkAdmin() {

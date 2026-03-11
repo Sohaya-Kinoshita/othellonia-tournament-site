@@ -19,7 +19,12 @@ export async function onRequest(context) {
             m.scheduled_at,
             m.order_deadline,
             m.winner_team_id,
-            m.admin_user_id
+            m.admin_user_id,
+            (
+              SELECT COUNT(*) FROM orders o
+              WHERE o.match_id = m.match_id
+                AND o.confirmed_at IS NOT NULL
+            ) AS confirmed_order_count
           FROM matches m
           LEFT JOIN teams ta ON m.team_a_id = ta.team_id
           LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -279,10 +284,17 @@ export async function onRequest(context) {
             scheduled_at,
             order_deadline
           )
-          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), ?, datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
+          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), ?, datetime(date(?, '-3 days') || ' 23:59:00'))
         `,
         )
-        .bind(matchId, teamAId, teamBId, adminUserId, scheduledAtForDb)
+        .bind(
+          matchId,
+          teamAId,
+          teamBId,
+          adminUserId,
+          scheduledAtForDb,
+          scheduledAtForDb,
+        )
         .run();
 
       return new Response(

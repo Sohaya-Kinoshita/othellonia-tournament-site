@@ -69,7 +69,7 @@
             if (Number.isNaN(date.getTime())) {
                 return datetimeText;
             }
-            return date.toLocaleString("ja-JP");
+            return date.toLocaleString("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
         }
 
         function getBattleModeLabel(gameNumber) {
@@ -522,6 +522,7 @@
                     matchElement.style.marginBottom = "12px";
 
                     if (isFinished) {
+                        const cardId = `finishedCard_${match.match_id}`;
                         matchElement.innerHTML = `
                             <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -542,11 +543,43 @@
                                         ${status}
                                     </span>
                                 </div>
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">Best of ${match.best_of}</div>
-                                <div style="font-size: 0.9em; color: #666;">提出期限: ${formatDateTime(match.order_deadline)}</div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">Best of ${match.best_of}</div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
+                                <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
+                                <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
+                                    <div id="matchCard_${match.match_id}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;">読込中...</div>
+                                </div>
                             </div>
                         `;
                         targetList.appendChild(matchElement);
+
+                        const toggleBtn = document.getElementById(`toggleBtn_${match.match_id}`);
+                        const cardSection = document.getElementById(cardId);
+                        const matchCardDiv = document.getElementById(`matchCard_${match.match_id}`);
+                        let isCardOpen = false;
+                        let isLoaded = false;
+
+                        toggleBtn.addEventListener("click", async () => {
+                            isCardOpen = !isCardOpen;
+                            cardSection.style.display = isCardOpen ? "block" : "none";
+                            toggleBtn.textContent = isCardOpen ? "△ 対戦カードを閉じる" : "▽ 対戦カードを見る";
+
+                            if (isCardOpen && !isLoaded) {
+                                isLoaded = true;
+                                try {
+                                    const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                    const cardData = await cardResponse.json();
+                                    if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                                        matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                                    } else {
+                                        matchCardDiv.textContent = "対戦カードがありません";
+                                    }
+                                } catch (e) {
+                                    matchCardDiv.textContent = "対戦カードの取得に失敗しました";
+                                }
+                            }
+                        });
+
                         return;
                     }
 
