@@ -79,8 +79,6 @@ IF NOT EXISTS leaders
 (10)   NOT NULL,
   pass         VARCHAR
 (255) NOT NULL,
-  leader_name  VARCHAR
-(10)  NOT NULL,
   
   -- 制約
   CHECK

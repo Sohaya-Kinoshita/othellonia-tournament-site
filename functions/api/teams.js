@@ -10,11 +10,9 @@ export async function onRequest(context) {
             teams.team_id, 
             teams.team_name, 
             leader.leader_id,
-            leader.leader_name,
             leader.player_id,
             leaderPlayer.player_name,
             subleader.leader_id AS subleader_id,
-            subleader.leader_name AS subleader_name,
             subleader.player_id AS subleader_player_id,
             subleaderPlayer.player_name AS subleader_player_name,
             (
@@ -134,7 +132,7 @@ export async function onRequest(context) {
         // 既存のリーダーを取得
         const existingLeader = await db
           .prepare(
-            "SELECT leader_id, leader_name, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
+            "SELECT leader_id, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
           )
           .bind(teamId, "leader")
           .first();
@@ -183,9 +181,8 @@ export async function onRequest(context) {
         }
 
         const updateQuery =
-          "UPDATE leaders SET leader_name = ?, player_id = ? WHERE leader_id = ?";
+          "UPDATE leaders SET player_id = ? WHERE leader_id = ?";
         const updateParams = [
-          leaderPlayer.player_name,
           normalizedLeaderPlayerId,
           existingLeader.leader_id,
         ];
@@ -201,7 +198,7 @@ export async function onRequest(context) {
       if (shouldHandleSubleader) {
         const existingSubleader = await db
           .prepare(
-            "SELECT leader_id, leader_name, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
+            "SELECT leader_id, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
           )
           .bind(teamId, "subleader")
           .first();
@@ -241,13 +238,11 @@ export async function onRequest(context) {
           );
         }
 
-        const subleaderName = subleaderPlayer.player_name;
-
         if (!existingSubleader) {
           const subleaderId = `L${teamId}00002`;
           await db
             .prepare(
-              "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass, leader_name) VALUES (?, ?, ?, ?, ?, ?)",
+              "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass) VALUES (?, ?, ?, ?, ?)",
             )
             .bind(
               subleaderId,
@@ -255,19 +250,12 @@ export async function onRequest(context) {
               normalizedSubleaderPlayerId,
               "subleader",
               "",
-              subleaderName,
             )
             .run();
         } else {
           await db
-            .prepare(
-              "UPDATE leaders SET leader_name = ?, player_id = ? WHERE leader_id = ?",
-            )
-            .bind(
-              subleaderName,
-              normalizedSubleaderPlayerId,
-              existingSubleader.leader_id,
-            )
+            .prepare("UPDATE leaders SET player_id = ? WHERE leader_id = ?")
+            .bind(normalizedSubleaderPlayerId, existingSubleader.leader_id)
             .run();
         }
       }
@@ -484,7 +472,6 @@ export async function onRequest(context) {
 
     const normalizedSubleaderPlayerId = String(subleaderPlayerId || "").trim();
     const hasSubleader = Boolean(normalizedSubleaderPlayerId);
-    let resolvedSubleaderName = null;
     if (hasSubleader && normalizedSubleaderPlayerId.length !== 12) {
       return new Response(
         JSON.stringify({
@@ -551,9 +538,6 @@ export async function onRequest(context) {
           },
         );
       }
-
-      // サブリーダー名はプレイヤーテーブルの名前を使用
-      resolvedSubleaderName = existingSubleaderPlayer.player_name;
     }
 
     // leader_idを生成（L + team_id + 00001）
@@ -571,22 +555,15 @@ export async function onRequest(context) {
       // リーダーを作成
       await db
         .prepare(
-          "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass, leader_name) VALUES (?, ?, ?, ?, ?, ?)",
+          "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass) VALUES (?, ?, ?, ?, ?)",
         )
-        .bind(
-          leaderId,
-          teamId,
-          normalizedLeaderPlayerId,
-          "leader",
-          "",
-          existingPlayer.player_name,
-        )
+        .bind(leaderId, teamId, normalizedLeaderPlayerId, "leader", "")
         .run();
 
       if (hasSubleader) {
         await db
           .prepare(
-            "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass, leader_name) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass) VALUES (?, ?, ?, ?, ?)",
           )
           .bind(
             subleaderId,
@@ -594,7 +571,6 @@ export async function onRequest(context) {
             normalizedSubleaderPlayerId,
             "subleader",
             "",
-            resolvedSubleaderName,
           )
           .run();
       }

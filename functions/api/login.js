@@ -102,7 +102,15 @@ export async function onRequest(context) {
     if (leaderId && password && !userId) {
       const leader = await db
         .prepare(
-          "SELECT leader_id, leader_name, team_id, leader_role, pass FROM leaders WHERE leader_id = ?",
+          `SELECT 
+            l.leader_id,
+            l.team_id,
+            l.leader_role,
+            l.pass,
+            p.player_name AS leader_name
+          FROM leaders l
+          LEFT JOIN players p ON l.player_id = p.player_id
+          WHERE l.leader_id = ?`,
         )
         .bind(leaderId)
         .first();
