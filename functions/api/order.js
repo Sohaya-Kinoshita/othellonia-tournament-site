@@ -24,12 +24,9 @@ function getSessionIdFromCookie(cookieHeader) {
     ?.split("=")[1];
 }
 
-function getNextOrderId(lastOrderId) {
-  if (!lastOrderId || !/^O\d{3}$/.test(lastOrderId)) {
-    return "O001";
-  }
-
-  const next = Number(lastOrderId.slice(1)) + 1;
+function getNextOrderId(lastOrderNumber) {
+  const parsed = Number(lastOrderNumber);
+  const next = Number.isFinite(parsed) && parsed > 0 ? parsed + 1 : 1;
   return `O${String(next).padStart(3, "0")}`;
 }
 
@@ -584,6 +581,32 @@ async function handlePost(context) {
       );
     }
 
+    await ensureOrdersConfirmedAtColumn(db);
+
+    const confirmedOrder = await db
+      .prepare(
+        `
+          SELECT 1
+          FROM orders
+          WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+          LIMIT 1
+        `,
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    if (confirmedOrder) {
+      return new Response(
+        JSON.stringify({
+          message: "マッチ確定後はオーダーを変更できません",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
     const placeholders = playerOrder.map(() => "?").join(", ");
     const memberRows = await db
       .prepare(
@@ -698,10 +721,16 @@ async function handlePost(context) {
     }
 
     const lastOrder = await db
-      .prepare("SELECT order_id FROM orders ORDER BY order_id DESC LIMIT 1")
+      .prepare(
+        `
+          SELECT MAX(CAST(SUBSTR(order_id, 2) AS INTEGER)) AS max_order_number
+          FROM orders
+          WHERE order_id GLOB 'O[0-9]*'
+        `,
+      )
       .first();
 
-    const nextOrderId = getNextOrderId(lastOrder?.order_id);
+    const nextOrderId = getNextOrderId(lastOrder?.max_order_number);
 
     const statements = [
       db

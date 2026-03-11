@@ -133,14 +133,6 @@
             defaultOption.textContent = `リザーブ${reserveIndex + 1}を選択`;
             select.appendChild(defaultOption);
 
-            const unsetOption = document.createElement("option");
-            unsetOption.value = "__NONE__";
-            unsetOption.textContent = `リザーブ${reserveIndex + 1}を未設定にする`;
-            if (selectedPlayerId === "__NONE__") {
-                unsetOption.selected = true;
-            }
-            select.appendChild(unsetOption);
-
             members.forEach((member) => {
                 const option = document.createElement("option");
                 option.value = member.player_id;
@@ -200,9 +192,7 @@
                             console.error("Match card load error:", cardError);
                         }
                     } else {
-                        orderStatus.textContent = result.orderId
-                            ? `提出済み（${result.orderId} / ${formatDateTime(result.submittedAt)}）`
-                            : `提出済み（${formatDateTime(result.submittedAt)}）`;
+                        orderStatus.textContent = `提出済み（${formatDateTime(result.submittedAt)}）`;
                         orderStatus.style.color = "#2e7d32";
                         submitButton.style.display = "block";
                         orderList.style.display = "grid";
@@ -296,7 +286,7 @@
 
             const playerOrder = selects.map((select) => select?.value || "");
             const reservePlayers = reserveSelects.map((select) => select?.value || "");
-            const selectedReservePlayers = reservePlayers.filter((playerId) => playerId && playerId !== "__NONE__");
+            const selectedReservePlayers = reservePlayers.filter((playerId) => playerId);
 
             if (playerOrder.some((playerId) => !playerId)) {
                 alert("5戦分すべての選手を選択してください。");
@@ -503,7 +493,6 @@
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <div style="font-weight: 700; margin-bottom: 8px;">リザーブ（最大2名・任意）</div>
-                                    <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">未設定にする場合は「リザーブXを未設定にする」を選択してください。</div>
                                     <div id="reserveList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
                                 </div>

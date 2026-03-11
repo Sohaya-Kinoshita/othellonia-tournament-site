@@ -316,6 +316,29 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
     );
   }
 
+  const existingGamesCount = await env.DB.prepare(
+    `
+      SELECT COUNT(*) AS count
+      FROM games
+      WHERE match_id = ?
+    `,
+  )
+    .bind(match_id)
+    .first();
+
+  if (Number(existingGamesCount?.count || 0) === 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "このマッチは未確定のため試合結果を入力できません。先にオーダーの確定でマッチを確定してください。",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
   // トランザクション内で更新
   try {
     // gamesテーブルに必要カラムを追加（存在しない場合）

@@ -445,6 +445,24 @@
         let currentMatchData = null;
         let gameResults = {};
 
+        function setResultInputEnabled(enabled, message = "") {
+            const saveButton = document.getElementById("saveButton");
+            const confirmButton = document.getElementById("confirmButton");
+            const confirmMessage = document.getElementById("confirmMessage");
+
+            saveButton.disabled = !enabled;
+            confirmButton.disabled = !enabled;
+
+            if (enabled) {
+                confirmMessage.style.display = "none";
+                return;
+            }
+
+            confirmMessage.textContent = message || "このマッチはまだ確定されていないため、試合結果を入力できません。";
+            confirmMessage.className = "message error";
+            confirmMessage.style.display = "block";
+        }
+
         async function checkAdmin() {
             const response = await fetch("/api/me");
             const result = await response.json();
@@ -576,15 +594,6 @@
                     return;
                 }
 
-                // ゲームが未生成の場合は自動初期化を試行
-                if ((!result.games || result.games.length === 0) && !retried) {
-                    const initialized = await initializeGamesForMatch(currentMatchId);
-                    if (initialized) {
-                        await loadGameResults(true);
-                    }
-                    return;
-                }
-
                 currentMatchData = result;
                 gameResults = {};
 
@@ -599,33 +608,16 @@
                     };
                 });
 
+                if (!result.games || result.games.length === 0) {
+                    setResultInputEnabled(false, "このマッチはまだ確定されていないため、試合結果を入力できません。先に『オーダーの確定』でマッチを確定してください。");
+                } else {
+                    setResultInputEnabled(true);
+                }
+
                 displayGameResults();
             } catch (error) {
                 console.error("Error loading game results:", error);
                 alert("ゲーム情報の読み込みに失敗しました");
-            }
-        }
-
-        async function initializeGamesForMatch(matchId) {
-            try {
-                const response = await fetch("/api/matches", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ matchId })
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    alert(result.message || "ゲーム初期化に失敗しました。オーダー提出状況を確認してください。");
-                    return false;
-                }
-
-                return true;
-            } catch (error) {
-                console.error("Error initializing games:", error);
-                alert("ゲーム初期化中に通信エラーが発生しました");
-                return false;
             }
         }
 
@@ -642,6 +634,11 @@
             updateScoreSummary();
             const gamesContainer = document.getElementById("gamesContainer");
             gamesContainer.innerHTML = "";
+
+            if (!games || games.length === 0) {
+                gamesContainer.innerHTML = '<p style="color: #999;">マッチ確定前のため、まだゲームが作成されていません。</p>';
+                return;
+            }
 
             games.forEach((game, index) => {
                 const gameCard = document.createElement("div");
