@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>チームメンバー一括追加</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>チームメンバー一括追加</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="bulkAddCard">
+            <h2>複数プレイヤーをまとめて追加</h2>
+
+            <div class="form-group">
+                <label for="teamSelect">追加先チーム</label>
+                <select id="teamSelect">
+                    <option value="">-- チームを選択してください --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>プレイヤー名で検索して追加</label>
+                <div style="margin-top: 4px; font-size: 13px; color: #666;">名前を入力すると候補を表示します</div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                    <input type="text" id="playerNameSearch" maxlength="10" placeholder="プレイヤー名で検索"
+                        style="margin-bottom: 0;">
+                    <button type="button" class="btn" id="searchPlayerButton"
+                        style="margin: 0; white-space: nowrap;">名前で検索</button>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
+                    <select id="playerSearchResults"
+                        style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;"></select>
+                    <button type="button" class="btn" id="applyPlayerSelectionButton"
+                        style="margin: 0; white-space: nowrap; display: none;">一覧へ追加</button>
+                </div>
+                <div id="playerApplyStatus"
+                    style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="playerIdsInput">プレイヤーID一覧（1行に1ID）</label>
+                <textarea id="playerIdsInput" rows="10"
+                    placeholder="010100000001&#10;010100000002&#10;010100000003"></textarea>
+                <p style="font-size: 13px; color: #666; margin: 6px 0 0 0;">空行は無視されます。同じIDは1回だけ処理されます。</p>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn" id="pasteButton">貼り付け</button>
+                <button type="button" class="btn" id="bulkAddButton">一括追加</button>
+            </div>
+
+            <div id="resultMessage" class="message" style="display: none; margin-top: 16px;"></div>
+            <div id="resultDetails" style="display: none; margin-top: 12px;"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        let allTeams = [];
+        let cachedPlayers = [];
+
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const bulkAddCard = document.getElementById("bulkAddCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            bulkAddCard.classList.remove("hidden");
+            await loadTeams();
+            setupEvents();
+        }
+
+        async function loadTeams() {
+            const response = await fetch("/api/teams");
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "チーム一覧の取得に失敗しました");
+            }
+
+            allTeams = result.teams || [];
+            const teamSelect = document.getElementById("teamSelect");
+            teamSelect.innerHTML = '<option value="">-- チームを選択してください --</option>';
+
+            allTeams.forEach((team) => {
+                const option = document.createElement("option");
+                option.value = team.team_id;
+                option.textContent = `${team.team_id} - ${team.team_name}`;
+                teamSelect.appendChild(option);
+            });
+        }
+
+        async function loadPlayers() {
+            if (cachedPlayers.length > 0) {
+                return cachedPlayers;
+            }
+
+            const response = await fetch("/api/players");
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "プレイヤー一覧の取得に失敗しました");
+            }
+
+            cachedPlayers = result.players || [];
+            return cachedPlayers;
+        }
+
+        function parsePlayerIds(rawText) {
+            return [...new Set(
+                String(rawText || "")
+                    .split(/\r?\n/)
+                    .map((line) => line.trim())
+                    .filter(Boolean),
+            )];
+        }
+
+        function showMessage(text, type) {
+            const resultMessage = document.getElementById("resultMessage");
+            resultMessage.textContent = text;
+            resultMessage.className = `message ${type}`;
+            resultMessage.style.display = "block";
+        }
+
+        function hideSearchResult(selectEl, applyButtonEl) {
+            selectEl.style.display = "none";
+            applyButtonEl.style.display = "none";
+            selectEl.innerHTML = "";
+        }
+
+        function hideApplyStatus(statusEl) {
+            statusEl.style.display = "none";
+            statusEl.textContent = "";
+        }
+
+        function showApplyStatus(statusEl, text) {
+            statusEl.textContent = text;
+            statusEl.style.display = "block";
+        }
+
+        function getMatchingPlayers(players, keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            return players
+                .filter((player) =>
+                    String(player.player_name || "").toLowerCase().includes(lowerKeyword),
+                )
+                .sort((a, b) => {
+                    const aName = String(a.player_name || "").toLowerCase();
+                    const bName = String(b.player_name || "").toLowerCase();
+                    const aStarts = aName.startsWith(lowerKeyword) ? 0 : 1;
+                    const bStarts = bName.startsWith(lowerKeyword) ? 0 : 1;
+                    if (aStarts !== bStarts) return aStarts - bStarts;
+                    return aName.localeCompare(bName, "ja");
+                });
+        }
+
+        function renderSearchResult(matches, selectEl, applyButtonEl, statusEl) {
+            hideApplyStatus(statusEl);
+            selectEl.innerHTML = "";
+            matches.forEach((player) => {
+                const option = document.createElement("option");
+                option.value = player.player_id;
+                option.textContent = `${player.player_name} (${player.player_id})`;
+                selectEl.appendChild(option);
+            });
+            selectEl.style.display = "block";
+            applyButtonEl.style.display = "inline-block";
+        }
+
+        async function suggestPlayersByName(nameInputEl, selectEl, applyButtonEl, statusEl) {
+            const keyword = nameInputEl.value.trim();
+            if (!keyword) {
+                hideSearchResult(selectEl, applyButtonEl);
+                return;
+            }
+
+            try {
+                const players = await loadPlayers();
+                const matches = getMatchingPlayers(players, keyword).slice(0, 5);
+
+                if (matches.length === 0) {
+                    hideSearchResult(selectEl, applyButtonEl);
+                    return;
+                }
+
+                renderSearchResult(matches, selectEl, applyButtonEl, statusEl);
+            } catch (_error) {
+                hideSearchResult(selectEl, applyButtonEl);
+            }
+        }
+
+        async function searchPlayerByName(nameInputEl, selectEl, applyButtonEl, statusEl) {
+            const keyword = nameInputEl.value.trim();
+            if (!keyword) {
+                showMessage("検索名を入力してください", "error");
+                hideSearchResult(selectEl, applyButtonEl);
+                return;
+            }
+
+            try {
+                const players = await loadPlayers();
+                const matches = getMatchingPlayers(players, keyword);
+
+                if (matches.length === 0) {
+                    showMessage("該当プレイヤーが見つかりません", "error");
+                    hideSearchResult(selectEl, applyButtonEl);
+                    return;
+                }
+
+                renderSearchResult(matches, selectEl, applyButtonEl, statusEl);
+            } catch (error) {
+                showMessage(error.message || "プレイヤー検索に失敗しました", "error");
+                hideSearchResult(selectEl, applyButtonEl);
+            }
+        }
+
+        function appendPlayerIdToTextarea(playerId) {
+            const playerIdsInput = document.getElementById("playerIdsInput");
+            const existingIds = parsePlayerIds(playerIdsInput.value);
+            if (existingIds.includes(playerId)) {
+                return false;
+            }
+
+            existingIds.push(playerId);
+            playerIdsInput.value = existingIds.join("\n");
+            return true;
+        }
+
+        function renderDetails(payload) {
+            const resultDetails = document.getElementById("resultDetails");
+            if (!payload || !payload.results) {
+                resultDetails.style.display = "none";
+                resultDetails.innerHTML = "";
+                return;
+            }
+
+            const added = payload.results.added || [];
+            const skipped = payload.results.skipped || [];
+            const failed = payload.results.failed || [];
+
+            resultDetails.innerHTML = `
+                <div class="card" style="padding: 12px;">
+                    <div><strong>処理結果</strong></div>
+                    <div>追加: ${added.length}件 / スキップ: ${skipped.length}件 / 失敗: ${failed.length}件</div>
+                    ${added.length ? `<div style="margin-top: 8px;"><strong>追加されたID</strong><br>${added.join("<br>")}</div>` : ""}
+                    ${skipped.length ? `<div style="margin-top: 8px;"><strong>スキップ</strong><br>${skipped.map((x) => `${x.playerId} : ${x.reason}`).join("<br>")}</div>` : ""}
+                    ${failed.length ? `<div style="margin-top: 8px;"><strong>失敗</strong><br>${failed.map((x) => `${x.playerId} : ${x.reason}`).join("<br>")}</div>` : ""}
+                </div>
+            `;
+            resultDetails.style.display = "block";
+        }
+
+        function setupEvents() {
+            const pasteButton = document.getElementById("pasteButton");
+            const bulkAddButton = document.getElementById("bulkAddButton");
+            const playerNameSearchInput = document.getElementById("playerNameSearch");
+            const searchPlayerButton = document.getElementById("searchPlayerButton");
+            const playerSearchResults = document.getElementById("playerSearchResults");
+            const applyPlayerSelectionButton = document.getElementById("applyPlayerSelectionButton");
+            const playerApplyStatus = document.getElementById("playerApplyStatus");
+
+            searchPlayerButton.addEventListener("click", async () => {
+                await searchPlayerByName(
+                    playerNameSearchInput,
+                    playerSearchResults,
+                    applyPlayerSelectionButton,
+                    playerApplyStatus,
+                );
+            });
+
+            playerNameSearchInput.addEventListener("input", async () => {
+                await suggestPlayersByName(
+                    playerNameSearchInput,
+                    playerSearchResults,
+                    applyPlayerSelectionButton,
+                    playerApplyStatus,
+                );
+            });
+
+            applyPlayerSelectionButton.addEventListener("click", () => {
+                if (!playerSearchResults.value) {
+                    showMessage("候補を選択してください", "error");
+                    return;
+                }
+
+                const appended = appendPlayerIdToTextarea(playerSearchResults.value);
+                hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                if (appended) {
+                    showApplyStatus(
+                        playerApplyStatus,
+                        `プレイヤーIDを追加しました: ${playerSearchResults.value}`,
+                    );
+                } else {
+                    showApplyStatus(
+                        playerApplyStatus,
+                        `既に追加済みです: ${playerSearchResults.value}`,
+                    );
+                }
+            });
+
+            pasteButton.addEventListener("click", async () => {
+                const playerIdsInput = document.getElementById("playerIdsInput");
+                try {
+                    playerIdsInput.value = (await navigator.clipboard.readText()).trim();
+                } catch (error) {
+                    showMessage("クリップボードの貼り付けに失敗しました", "error");
+                }
+            });
+
+            bulkAddButton.addEventListener("click", async () => {
+                const teamId = document.getElementById("teamSelect").value;
+                const playerIdsRaw = document.getElementById("playerIdsInput").value;
+                const playerIds = parsePlayerIds(playerIdsRaw);
+
+                if (!teamId) {
+                    showMessage("追加先チームを選択してください", "error");
+                    return;
+                }
+
+                if (playerIds.length === 0) {
+                    showMessage("プレイヤーIDを1件以上入力してください", "error");
+                    return;
+                }
+
+                const invalid = playerIds.find((id) => id.length !== 12);
+                if (invalid) {
+                    showMessage(`プレイヤーIDは12文字で入力してください: ${invalid}`, "error");
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/team-members", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ teamId, playerIds }),
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        showMessage(result.message || "一括追加に失敗しました", "error");
+                        renderDetails(null);
+                        return;
+                    }
+
+                    showMessage(result.message || "一括追加が完了しました", "success");
+                    renderDetails(result);
+                } catch (error) {
+                    showMessage("通信エラーが発生しました", "error");
+                    renderDetails(null);
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                await checkAdmin();
+            } catch (error) {
+                const adminMessage = document.getElementById("adminMessage");
+                adminMessage.textContent = "ページの読み込みに失敗しました";
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -34,6 +34,16 @@
                     <button type="button" class="btn" id="searchPlayerButton"
                         style="margin: 0; white-space: nowrap;">検索</button>
                 </div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; max-width: 520px;">
+                    <select id="playerSearchResults"
+                        style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; display: none;">
+                    </select>
+                    <button type="button" class="btn" id="applyPlayerSelectionButton"
+                        style="margin: 0; white-space: nowrap; display: none;">選択</button>
+                </div>
+                <div id="playerApplyStatus"
+                    style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                </div>
                 <div style="margin-top: 8px; font-size: 13px; color: #666;">※ 空欄で検索すると全プレイヤーを表示します</div>
             </div>
 
@@ -87,6 +97,51 @@
         let allTeams = [];
         let currentPlayerId = null;
 
+        function hideSearchResult(selectEl, applyButtonEl) {
+            selectEl.style.display = "none";
+            applyButtonEl.style.display = "none";
+            selectEl.innerHTML = "";
+        }
+
+        function hideApplyStatus(statusEl) {
+            statusEl.style.display = "none";
+            statusEl.textContent = "";
+        }
+
+        function showApplyStatus(statusEl, text) {
+            statusEl.textContent = text;
+            statusEl.style.display = "block";
+        }
+
+        function getMatchingPlayers(players, keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            return players
+                .filter((player) => {
+                    return String(player.player_name || "").toLowerCase().includes(lowerKeyword);
+                })
+                .sort((a, b) => {
+                    const aName = String(a.player_name || "").toLowerCase();
+                    const bName = String(b.player_name || "").toLowerCase();
+                    const aStarts = aName.startsWith(lowerKeyword) ? 0 : 1;
+                    const bStarts = bName.startsWith(lowerKeyword) ? 0 : 1;
+                    if (aStarts !== bStarts) return aStarts - bStarts;
+                    return aName.localeCompare(bName, "ja");
+                });
+        }
+
+        function renderSearchResult(matches, selectEl, applyButtonEl, statusEl) {
+            hideApplyStatus(statusEl);
+            selectEl.innerHTML = "";
+            matches.forEach((player) => {
+                const option = document.createElement("option");
+                option.value = player.player_id;
+                option.textContent = `${player.player_name} (${player.player_id})`;
+                selectEl.appendChild(option);
+            });
+            selectEl.style.display = "block";
+            applyButtonEl.style.display = "inline-block";
+        }
+
         function renderPlayerOptions(playersToRender) {
             const playerSelect = document.getElementById("playerSelect");
             const teamAssignmentContainer = document.getElementById("teamAssignmentContainer");
@@ -134,6 +189,9 @@
             const searchTypeSelect = document.getElementById("playerSearchType");
             const searchKeywordInput = document.getElementById("playerSearchKeyword");
             const searchButton = document.getElementById("searchPlayerButton");
+            const playerSearchResults = document.getElementById("playerSearchResults");
+            const applyPlayerSelectionButton = document.getElementById("applyPlayerSelectionButton");
+            const playerApplyStatus = document.getElementById("playerApplyStatus");
 
             if (searchButton.dataset.bound === "true") {
                 return;
@@ -153,13 +211,101 @@
 
             searchButton.addEventListener("click", () => {
                 applyPlayerSearch();
+
+                if (searchTypeSelect.value === "name") {
+                    const keyword = searchKeywordInput.value.trim();
+                    if (!keyword) {
+                        hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                        return;
+                    }
+
+                    const matches = getMatchingPlayers(allPlayers, keyword);
+                    if (matches.length === 0) {
+                        hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                        return;
+                    }
+
+                    renderSearchResult(
+                        matches,
+                        playerSearchResults,
+                        applyPlayerSelectionButton,
+                        playerApplyStatus,
+                    );
+                } else {
+                    hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                }
             });
 
             searchKeywordInput.addEventListener("keydown", (event) => {
                 if (event.key === "Enter") {
                     event.preventDefault();
                     applyPlayerSearch();
+
+                    if (searchTypeSelect.value === "name") {
+                        const keyword = searchKeywordInput.value.trim();
+                        if (!keyword) {
+                            hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                            return;
+                        }
+
+                        const matches = getMatchingPlayers(allPlayers, keyword);
+                        if (matches.length === 0) {
+                            hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                            return;
+                        }
+
+                        renderSearchResult(
+                            matches,
+                            playerSearchResults,
+                            applyPlayerSelectionButton,
+                            playerApplyStatus,
+                        );
+                    } else {
+                        hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                    }
                 }
+            });
+
+            searchKeywordInput.addEventListener("input", () => {
+                if (searchTypeSelect.value !== "name") {
+                    hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                    return;
+                }
+
+                const keyword = searchKeywordInput.value.trim();
+                if (!keyword) {
+                    hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                    return;
+                }
+
+                const matches = getMatchingPlayers(allPlayers, keyword).slice(0, 5);
+                if (matches.length === 0) {
+                    hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                    return;
+                }
+
+                renderSearchResult(
+                    matches,
+                    playerSearchResults,
+                    applyPlayerSelectionButton,
+                    playerApplyStatus,
+                );
+            });
+
+            applyPlayerSelectionButton.addEventListener("click", () => {
+                if (!playerSearchResults.value) {
+                    return;
+                }
+
+                const playerSelect = document.getElementById("playerSelect");
+                playerSelect.value = playerSearchResults.value;
+                currentPlayerId = playerSearchResults.value;
+                hideSearchResult(playerSearchResults, applyPlayerSelectionButton);
+                showApplyStatus(
+                    playerApplyStatus,
+                    `プレイヤーを選択しました: ${playerSearchResults.value}`,
+                );
+                displayTeamAssignment();
             });
 
             updateSearchPlaceholder();

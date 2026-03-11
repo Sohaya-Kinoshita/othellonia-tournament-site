@@ -16,6 +16,11 @@
             <h1>チーム一覧</h1>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="./team_edit.html" class="btn">チーム情報を編集</a>
+                <a href="./team_admin.html" class="btn">新しいチームを作成</a>
+                <a href="./team_delete.html" class="btn">チームを削除</a>
+            </div>
         </div>
 
         <div class="card hidden" id="teamListCard">
@@ -40,7 +45,10 @@
                             <th
                                 style="padding: 5px; text-align: left; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">
                                 チームリーダー</th>
-                            <th style="padding: 5px; text-align: left; white-space: nowrap; width: 160px;">サブリーダー</th>
+                            <th
+                                style="padding: 5px; text-align: left; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">
+                                サブリーダー</th>
+                            <th style="padding: 5px; text-align: center; white-space: nowrap; width: 120px;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="teamTableBody">
@@ -75,7 +83,10 @@
                             <td style="padding: 5px; border-right: 2px solid #999; width: 80px; text-align: center;">${team.team_id}</td>
                             <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 240px;">${team.team_name}</td>
                             <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.player_name || "(未設定)"}</td>
-                            <td style="padding: 5px; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
+                            <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
+                            <td style="padding: 5px; text-align: center; width: 120px;">
+                                <a href="./team_edit.html?teamId=${encodeURIComponent(team.team_id)}" class="btn" style="display: inline-block; text-decoration: none;">編集</a>
+                            </td>
                         </tr>
                     `,
                     )

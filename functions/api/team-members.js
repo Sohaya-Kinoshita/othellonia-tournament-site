@@ -83,12 +83,12 @@ export async function onRequest(context) {
 
     // POSTメソッド：プレイヤーをチームに追加
     if (context.request.method === "POST") {
-      const { playerId, teamId } = await context.request.json();
+      const { playerId, playerIds, teamId } = await context.request.json();
 
-      if (!playerId || !teamId) {
+      if (!teamId) {
         return new Response(
           JSON.stringify({
-            message: "プレイヤーIDとチームIDが必要です",
+            message: "チームIDが必要です",
           }),
           {
             status: 400,
@@ -98,22 +98,6 @@ export async function onRequest(context) {
       }
 
       try {
-        // プレイヤーが存在するか確認
-        const player = await db
-          .prepare("SELECT player_id FROM players WHERE player_id = ?")
-          .bind(playerId)
-          .first();
-
-        if (!player) {
-          return new Response(
-            JSON.stringify({ message: "プレイヤーが見つかりません" }),
-            {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
         // チームが存在するか確認
         const team = await db
           .prepare("SELECT team_id FROM teams WHERE team_id = ?")
@@ -130,19 +114,17 @@ export async function onRequest(context) {
           );
         }
 
-        // 既に登録されているか確認
-        const existing = await db
-          .prepare(
-            "SELECT team_id FROM team_members WHERE team_id = ? AND player_id = ?",
-          )
-          .bind(teamId, playerId)
-          .first();
+        const requestedPlayerIds = Array.isArray(playerIds)
+          ? [
+              ...new Set(
+                playerIds.map((id) => String(id || "").trim()).filter(Boolean),
+              ),
+            ]
+          : [String(playerId || "").trim()].filter(Boolean);
 
-        if (existing) {
+        if (requestedPlayerIds.length === 0) {
           return new Response(
-            JSON.stringify({
-              message: "このプレイヤーは既にこのチームに登録されています",
-            }),
+            JSON.stringify({ message: "プレイヤーIDが必要です" }),
             {
               status: 400,
               headers: { "Content-Type": "application/json" },
@@ -150,38 +132,164 @@ export async function onRequest(context) {
           );
         }
 
-        // チームメンバーを追加（最大2チームまで）
-        const memberCount = await db
-          .prepare(
-            "SELECT COUNT(*) as count FROM team_members WHERE player_id = ?",
-          )
-          .bind(playerId)
-          .first();
+        if (requestedPlayerIds.length === 1) {
+          const singlePlayerId = requestedPlayerIds[0];
 
-        if (memberCount.count >= 2) {
+          // プレイヤーが存在するか確認
+          const player = await db
+            .prepare("SELECT player_id FROM players WHERE player_id = ?")
+            .bind(singlePlayerId)
+            .first();
+
+          if (!player) {
+            return new Response(
+              JSON.stringify({ message: "プレイヤーが見つかりません" }),
+              {
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          // 既に登録されているか確認
+          const existing = await db
+            .prepare(
+              "SELECT team_id FROM team_members WHERE team_id = ? AND player_id = ?",
+            )
+            .bind(teamId, singlePlayerId)
+            .first();
+
+          if (existing) {
+            return new Response(
+              JSON.stringify({
+                message: "このプレイヤーは既にこのチームに登録されています",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          // チームメンバーを追加（最大2チームまで）
+          const memberCount = await db
+            .prepare(
+              "SELECT COUNT(*) as count FROM team_members WHERE player_id = ?",
+            )
+            .bind(singlePlayerId)
+            .first();
+
+          if (memberCount.count >= 2) {
+            return new Response(
+              JSON.stringify({
+                message: "プレイヤーは最大2つのチームまで登録できます",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          await db
+            .prepare(
+              "INSERT INTO team_members (team_id, player_id) VALUES (?, ?)",
+            )
+            .bind(teamId, singlePlayerId)
+            .run();
+
           return new Response(
             JSON.stringify({
-              message: "プレイヤーは最大2つのチームまで登録できます",
+              success: true,
+              message: "チームメンバーを追加しました",
             }),
             {
-              status: 400,
+              status: 200,
               headers: { "Content-Type": "application/json" },
             },
           );
         }
 
-        // 追加
-        await db
-          .prepare(
-            "INSERT INTO team_members (team_id, player_id) VALUES (?, ?)",
-          )
-          .bind(teamId, playerId)
-          .run();
+        // 一括追加処理
+        const results = {
+          added: [],
+          skipped: [],
+          failed: [],
+        };
+
+        for (const pid of requestedPlayerIds) {
+          try {
+            const player = await db
+              .prepare("SELECT player_id FROM players WHERE player_id = ?")
+              .bind(pid)
+              .first();
+
+            if (!player) {
+              results.failed.push({
+                playerId: pid,
+                reason: "プレイヤーが見つかりません",
+              });
+              continue;
+            }
+
+            const existing = await db
+              .prepare(
+                "SELECT team_id FROM team_members WHERE team_id = ? AND player_id = ?",
+              )
+              .bind(teamId, pid)
+              .first();
+
+            if (existing) {
+              results.skipped.push({
+                playerId: pid,
+                reason: "既にこのチームに登録済み",
+              });
+              continue;
+            }
+
+            const memberCount = await db
+              .prepare(
+                "SELECT COUNT(*) as count FROM team_members WHERE player_id = ?",
+              )
+              .bind(pid)
+              .first();
+
+            if (memberCount.count >= 2) {
+              results.failed.push({
+                playerId: pid,
+                reason: "登録可能チーム数の上限(2)に達しています",
+              });
+              continue;
+            }
+
+            await db
+              .prepare(
+                "INSERT INTO team_members (team_id, player_id) VALUES (?, ?)",
+              )
+              .bind(teamId, pid)
+              .run();
+
+            results.added.push(pid);
+          } catch (error) {
+            results.failed.push({
+              playerId: pid,
+              reason: "追加処理でエラーが発生しました",
+            });
+          }
+        }
 
         return new Response(
           JSON.stringify({
             success: true,
-            message: "チームメンバーを追加しました",
+            message: "一括追加処理が完了しました",
+            teamId,
+            summary: {
+              requested: requestedPlayerIds.length,
+              added: results.added.length,
+              skipped: results.skipped.length,
+              failed: results.failed.length,
+            },
+            results,
           }),
           {
             status: 200,

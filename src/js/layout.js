@@ -89,23 +89,43 @@ function setupMenu() {
         if (logoutLink) logoutLink.style.display = "flex";
         if (playerStatusDisplay && playerNameDisplay) {
           playerStatusDisplay.style.setProperty("display", "flex", "important");
-          // 管理者かプレイヤーかで表示を分ける
+          // ログイン種別で表示を分ける
           if (result.type === "admin") {
             playerNameDisplay.textContent = `(admin)${result.user.userName}`;
             playerStatusDisplay.classList.add("admin-status");
-            // 管理者ページリンクを表示
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "flex", "important");
-          } else {
-            playerNameDisplay.textContent =
-              result.player.playerName || "ユーザー";
-            // プレイヤーページリンクを表示
             if (leaderPageLink)
-              leaderPageLink.style.setProperty("display", "flex", "important");
+              leaderPageLink.style.setProperty("display", "none", "important");
+          } else if (result.type === "leader") {
+            playerNameDisplay.textContent =
+              result.leader?.leaderName ||
+              result.leader?.leaderId ||
+              "リーダー";
             playerStatusDisplay.classList.remove("admin-status");
-            // 管理者ページリンクを非表示
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "none", "important");
+            if (leaderPageLink)
+              leaderPageLink.style.setProperty("display", "flex", "important");
+          } else if (result.type === "player") {
+            playerNameDisplay.textContent =
+              result.player.playerName || "ユーザー";
+            playerStatusDisplay.classList.remove("admin-status");
+            if (adminPageLink)
+              adminPageLink.style.setProperty("display", "none", "important");
+            if (leaderPageLink)
+              leaderPageLink.style.setProperty("display", "none", "important");
+          } else {
+            if (playerStatusDisplay)
+              playerStatusDisplay.style.setProperty(
+                "display",
+                "none",
+                "important",
+              );
+            if (adminPageLink)
+              adminPageLink.style.setProperty("display", "none", "important");
+            if (leaderPageLink)
+              leaderPageLink.style.setProperty("display", "none", "important");
           }
         }
       } else {
@@ -113,9 +133,10 @@ function setupMenu() {
         if (logoutLink) logoutLink.style.display = "none";
         if (playerStatusDisplay)
           playerStatusDisplay.style.setProperty("display", "none", "important");
-        // 管理者ページリンクを非表示
         if (adminPageLink)
           adminPageLink.style.setProperty("display", "none", "important");
+        if (leaderPageLink)
+          leaderPageLink.style.setProperty("display", "none", "important");
       }
     })
     .catch(() => {
@@ -123,9 +144,10 @@ function setupMenu() {
       if (logoutLink) logoutLink.style.display = "none";
       if (playerStatusDisplay)
         playerStatusDisplay.style.setProperty("display", "none", "important");
-      // 管理者ページリンクを非表示
       if (adminPageLink)
         adminPageLink.style.setProperty("display", "none", "important");
+      if (leaderPageLink)
+        leaderPageLink.style.setProperty("display", "none", "important");
     });
 
   // ログアウト処理

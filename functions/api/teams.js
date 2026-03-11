@@ -127,27 +127,51 @@ export async function onRequest(context) {
         .bind(teamName, teamId)
         .run();
 
+      const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+      const normalizedSubleaderPlayerId = String(
+        subleaderPlayerId || "",
+      ).trim();
+      const shouldHandleSubleader = Boolean(normalizedSubleaderPlayerId);
+
+      const existingLeader = await db
+        .prepare(
+          "SELECT leader_id, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
+        )
+        .bind(teamId, "leader")
+        .first();
+
+      if (!existingLeader) {
+        return new Response(
+          JSON.stringify({ message: "リーダーが見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const effectiveLeaderPlayerId =
+        normalizedLeaderPlayerId ||
+        String(existingLeader.player_id || "").trim();
+
+      if (
+        shouldHandleSubleader &&
+        effectiveLeaderPlayerId &&
+        normalizedSubleaderPlayerId === effectiveLeaderPlayerId
+      ) {
+        return new Response(
+          JSON.stringify({
+            message: "リーダーとサブリーダーに同じプレイヤーIDは設定できません",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       // リーダー情報が提供されている場合は更新
-      if (leaderPlayerId) {
-        // 既存のリーダーを取得
-        const existingLeader = await db
-          .prepare(
-            "SELECT leader_id, player_id FROM leaders WHERE team_id = ? AND leader_role = ?",
-          )
-          .bind(teamId, "leader")
-          .first();
-
-        if (!existingLeader) {
-          return new Response(
-            JSON.stringify({ message: "リーダーが見つかりません" }),
-            {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+      if (normalizedLeaderPlayerId) {
         if (normalizedLeaderPlayerId.length !== 12) {
           return new Response(
             JSON.stringify({
@@ -194,7 +218,6 @@ export async function onRequest(context) {
       }
 
       // サブリーダー情報が提供されている場合は追加/更新
-      const shouldHandleSubleader = Boolean(subleaderPlayerId);
       if (shouldHandleSubleader) {
         const existingSubleader = await db
           .prepare(
@@ -203,9 +226,6 @@ export async function onRequest(context) {
           .bind(teamId, "subleader")
           .first();
 
-        const normalizedSubleaderPlayerId = String(
-          subleaderPlayerId || "",
-        ).trim();
         if (normalizedSubleaderPlayerId.length !== 12) {
           return new Response(
             JSON.stringify({
@@ -477,6 +497,21 @@ export async function onRequest(context) {
         JSON.stringify({
           message:
             "サブリーダーのプレイヤーIDは12文字ちょうどで入力してください",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (
+      hasSubleader &&
+      normalizedSubleaderPlayerId === normalizedLeaderPlayerId
+    ) {
+      return new Response(
+        JSON.stringify({
+          message: "リーダーとサブリーダーに同じプレイヤーIDは設定できません",
         }),
         {
           status: 400,

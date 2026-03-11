@@ -17,6 +17,11 @@
             <hr>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="./team_list.html" class="btn">チーム一覧を表示</a>
+                <a href="./team_admin.html" class="btn">新しいチームを作成</a>
+                <a href="./team_delete.html" class="btn">チームを削除</a>
+            </div>
         </div>
 
         <div class="card hidden" id="teamEditCard">
@@ -30,8 +35,7 @@
                         <option value="name" selected>チーム名で検索</option>
                         <option value="id">チームIDで検索</option>
                     </select>
-                    <input type="text" id="teamSearchKeyword" placeholder="チーム名を入力"
-                        style="flex: 1; margin: 0;">
+                    <input type="text" id="teamSearchKeyword" placeholder="チーム名を入力" style="flex: 1; margin: 0;">
                     <button type="button" class="btn" id="searchTeamButton"
                         style="margin: 0; white-space: nowrap;">検索</button>
                 </div>
@@ -80,7 +84,8 @@
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
                     <div id="leaderApplyStatusEdit"
-                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                    </div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="leaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000001"
@@ -107,7 +112,8 @@
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
                     <div id="subleaderApplyStatusEdit"
-                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                    </div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="subleaderPlayerIdEdit" maxlength="12" placeholder="例: 010100000002"
@@ -128,6 +134,11 @@
     <script src="./js/layout.js"></script>
     <script>
         let allTeams = [];
+
+        function getRequestedTeamId() {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get("teamId") || "").trim();
+        }
 
         async function checkAdmin() {
             const response = await fetch("/api/me");
@@ -164,6 +175,15 @@
                 allTeams = result.teams || [];
                 renderTeamOptions(allTeams);
                 setupTeamSearch();
+
+                const requestedTeamId = getRequestedTeamId();
+                if (requestedTeamId) {
+                    const teamSelect = document.getElementById("teamSelect");
+                    if (allTeams.some((team) => team.team_id === requestedTeamId)) {
+                        teamSelect.value = requestedTeamId;
+                        selectTeam(allTeams);
+                    }
+                }
 
                 const teamSelect = document.getElementById("teamSelect");
                 teamSelect.addEventListener("change", () => {
@@ -541,6 +561,13 @@
                 // サブリーダーのプレイヤーIDが入力されている場合は12文字チェック
                 if (subleaderPlayerId && subleaderPlayerId.length !== 12) {
                     messageDiv.textContent = "サブリーダーのプレイヤーIDは12文字ちょうどで入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                if (subleaderPlayerId && subleaderPlayerId === leaderPlayerId) {
+                    messageDiv.textContent = "リーダーとサブリーダーに同じプレイヤーIDは設定できません";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;

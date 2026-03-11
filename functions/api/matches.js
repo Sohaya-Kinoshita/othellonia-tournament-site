@@ -263,7 +263,7 @@ export async function onRequest(context) {
             created_at,
             order_deadline
           )
-          VALUES (?, ?, ?, ?, 7, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
+          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), datetime(date('now', '+9 hours', '+7 days') || ' 23:59:00'))
         `,
         )
         .bind(matchId, teamAId, teamBId, adminUserId)
@@ -279,7 +279,10 @@ export async function onRequest(context) {
     } catch (error) {
       console.error("Match creation error:", error);
       return new Response(
-        JSON.stringify({ message: "マッチ作成処理でエラーが発生しました" }),
+        JSON.stringify({
+          message: "マッチ作成処理でエラーが発生しました",
+          error: error.message,
+        }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },

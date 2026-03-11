@@ -54,7 +54,8 @@
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
                     <div id="leaderApplyStatus"
-                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                    </div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="leaderPlayerId" name="leaderPlayerId" maxlength="12" required
@@ -81,7 +82,8 @@
                             style="margin: 0; white-space: nowrap; display: none;">IDを反映</button>
                     </div>
                     <div id="subleaderApplyStatus"
-                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;"></div>
+                        style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 10px; background: #eef2ff; color: #1e3a8a; border-radius: 6px; font-size: 13px;">
+                    </div>
                     <div style="margin-top: 8px; font-size: 13px; color: #666;">プレイヤーIDを直接入力</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="text" id="subleaderPlayerId" name="subleaderPlayerId" maxlength="12"
@@ -390,6 +392,13 @@
                 // サブリーダーのプレイヤーIDの厳密な12文字チェック
                 if (subleaderPlayerId && subleaderPlayerId.length !== 12) {
                     messageDiv.textContent = "サブリーダーのプレイヤーIDは12文字ちょうどで入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
+
+                if (subleaderPlayerId && subleaderPlayerId === leaderPlayerId) {
+                    messageDiv.textContent = "リーダーとサブリーダーに同じプレイヤーIDは設定できません";
                     messageDiv.className = "message error";
                     messageDiv.style.display = "block";
                     return;
