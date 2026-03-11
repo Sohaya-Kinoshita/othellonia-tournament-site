@@ -27,6 +27,9 @@
             <h3>自分の所属チーム情報</h3>
             <div id="teamInfoBox">読込中...</div>
 
+            <h3>確定済み対戦の相手情報</h3>
+            <div id="opponentInfoBox">読込中...</div>
+
             <h3>今後追加予定</h3>
             <ul>
                 <li>対戦結果の確認</li>
@@ -39,9 +42,31 @@
 
     <script src="./js/layout.js"></script>
     <script>
+        function formatDateTime(datetimeText) {
+            if (!datetimeText) {
+                return "-";
+            }
+            const date = new Date(datetimeText);
+            if (Number.isNaN(date.getTime())) {
+                return datetimeText;
+            }
+            return date.toLocaleString("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        }
+
+        async function copyPlayerId(playerId) {
+            try {
+                await navigator.clipboard.writeText(playerId);
+                alert(`プレイヤーIDをコピーしました: ${playerId}`);
+            } catch (error) {
+                console.error("Copy player ID error:", error);
+                alert("コピーに失敗しました");
+            }
+        }
+
         async function loadMyTeams() {
             const summary = document.getElementById("playerSummary");
             const teamInfoBox = document.getElementById("teamInfoBox");
+            const opponentInfoBox = document.getElementById("opponentInfoBox");
 
             try {
                 const response = await fetch("/api/player-teams");
@@ -55,21 +80,39 @@
 
                 const player = result.player;
                 const teams = result.teams || [];
+                const opponents = result.opponents || [];
 
                 summary.textContent = `${player.playerId} - ${player.playerName}`;
 
                 if (teams.length === 0) {
                     teamInfoBox.textContent = "現在、所属チームはありません。";
-                    return;
+                } else {
+                    teamInfoBox.innerHTML = teams
+                        .map((team) => `<div>${team.team_id} - ${team.team_name}</div>`)
+                        .join("");
                 }
 
-                teamInfoBox.innerHTML = teams
-                    .map((team) => `<div>${team.team_id} - ${team.team_name}</div>`)
-                    .join("");
+                if (opponents.length === 0) {
+                    opponentInfoBox.textContent = "確定済みの対戦相手情報はありません。";
+                } else {
+                    opponentInfoBox.innerHTML = opponents
+                        .map((item) => `
+                            <div style="margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <div><strong>${item.match_id}</strong> / 第${item.game_number}戦 / 対戦日: ${formatDateTime(item.scheduled_at)}</div>
+                                <div>
+                                    相手: 
+                                    <a href="#" onclick="event.preventDefault(); copyPlayerId('${item.opponent_player_id}')" style="color: #2563eb; text-decoration: underline; cursor: pointer;" title="クリックしてコピー">${item.opponent_player_id}</a>
+                                    - ${item.opponent_player_name || "-"}
+                                </div>
+                            </div>
+                        `)
+                        .join("");
+                }
             } catch (error) {
                 console.error("Load my teams error:", error);
                 summary.textContent = "プレイヤー情報の取得に失敗しました。";
                 teamInfoBox.textContent = "所属チーム情報の取得に失敗しました。";
+                opponentInfoBox.textContent = "対戦相手情報の取得に失敗しました。";
             }
         }
 

@@ -72,6 +72,33 @@ export async function onRequest(context) {
       .bind(playerId)
       .all();
 
+    // 確定済み対戦（games作成済み）から、プレイヤー本人の対戦相手を取得
+    const opponents = await db
+      .prepare(
+        `
+        SELECT
+          m.match_id,
+          m.scheduled_at,
+          g.game_number,
+          CASE
+            WHEN g.player_a_id = ? THEN g.player_b_id
+            ELSE g.player_a_id
+          END AS opponent_player_id,
+          CASE
+            WHEN g.player_a_id = ? THEN pb.player_name
+            ELSE pa.player_name
+          END AS opponent_player_name
+        FROM games g
+        INNER JOIN matches m ON m.match_id = g.match_id
+        LEFT JOIN players pa ON pa.player_id = g.player_a_id
+        LEFT JOIN players pb ON pb.player_id = g.player_b_id
+        WHERE g.player_a_id = ? OR g.player_b_id = ?
+        ORDER BY m.scheduled_at DESC, m.match_id, g.game_number
+      `,
+      )
+      .bind(playerId, playerId, playerId, playerId)
+      .all();
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -80,6 +107,7 @@ export async function onRequest(context) {
           playerName: player.player_name,
         },
         teams: teams.results || [],
+        opponents: opponents.results || [],
       }),
       {
         status: 200,

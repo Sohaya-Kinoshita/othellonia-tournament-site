@@ -80,6 +80,7 @@ function setupMenu() {
   const playerNameDisplay = document.getElementById("playerNameDisplay");
   const adminPageLink = document.getElementById("adminPageLink");
   const leaderPageLink = document.getElementById("leaderPageLink");
+  const playerPageLink = document.getElementById("playerPageLink");
 
   fetch("/api/me")
     .then((response) => response.json())
@@ -97,6 +98,8 @@ function setupMenu() {
               adminPageLink.style.setProperty("display", "flex", "important");
             if (leaderPageLink)
               leaderPageLink.style.setProperty("display", "none", "important");
+            if (playerPageLink)
+              playerPageLink.style.setProperty("display", "none", "important");
           } else if (result.type === "leader") {
             playerNameDisplay.textContent =
               result.leader?.leaderName ||
@@ -107,6 +110,8 @@ function setupMenu() {
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
               leaderPageLink.style.setProperty("display", "flex", "important");
+            if (playerPageLink)
+              playerPageLink.style.setProperty("display", "none", "important");
           } else if (result.type === "player") {
             playerNameDisplay.textContent =
               result.player.playerName || "ユーザー";
@@ -115,6 +120,8 @@ function setupMenu() {
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
               leaderPageLink.style.setProperty("display", "none", "important");
+            if (playerPageLink)
+              playerPageLink.style.setProperty("display", "flex", "important");
           } else {
             if (playerStatusDisplay)
               playerStatusDisplay.style.setProperty(
@@ -126,6 +133,8 @@ function setupMenu() {
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
               leaderPageLink.style.setProperty("display", "none", "important");
+            if (playerPageLink)
+              playerPageLink.style.setProperty("display", "none", "important");
           }
         }
       } else {
@@ -137,6 +146,8 @@ function setupMenu() {
           adminPageLink.style.setProperty("display", "none", "important");
         if (leaderPageLink)
           leaderPageLink.style.setProperty("display", "none", "important");
+        if (playerPageLink)
+          playerPageLink.style.setProperty("display", "none", "important");
       }
     })
     .catch(() => {
@@ -148,6 +159,8 @@ function setupMenu() {
         adminPageLink.style.setProperty("display", "none", "important");
       if (leaderPageLink)
         leaderPageLink.style.setProperty("display", "none", "important");
+      if (playerPageLink)
+        playerPageLink.style.setProperty("display", "none", "important");
     });
 
   // ログアウト処理

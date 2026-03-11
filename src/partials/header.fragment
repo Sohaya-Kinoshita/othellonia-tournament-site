@@ -23,6 +23,7 @@
             </div>
             <a class="menu-item" href="./admin.html" id="adminPageLink" data-title="管理者ページ" style="display: none;">管理者ページ</a>
             <a class="menu-item" href="./leader.html" id="leaderPageLink" data-title="リーダーページ" style="display: none;">リーダーページ</a>
+            <a class="menu-item" href="./player.html" id="playerPageLink" data-title="プレイヤーページ" style="display: none;">プレイヤーページ</a>
             <a class="menu-item" href="./index.html" data-title="トップ">トップ</a>
             <a class="menu-item" href="./match.html" data-title="対戦カード">対戦カード</a>
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
