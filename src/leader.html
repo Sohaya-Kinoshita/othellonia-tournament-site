@@ -45,8 +45,8 @@
                 return;
             }
 
-            if (result.type !== "player") {
-                statusMessage.textContent = "プレイヤーとしてログインしてください。";
+            if (result.type !== "leader") {
+                statusMessage.textContent = "リーダーとしてログインしてください。";
                 return;
             }
 
@@ -70,7 +70,7 @@
 
                 // プレイヤー名を表示
                 statusMessage.style.display = "none";
-                playerNameDiv.textContent = `${result.player.playerName} としてログイン中`;
+                playerNameDiv.textContent = `${result.leader.leaderName || result.leader.leaderId} としてログイン中`;
 
                 // リーダーを務めるチーム一覧を表示
                 teams.forEach((team) => {

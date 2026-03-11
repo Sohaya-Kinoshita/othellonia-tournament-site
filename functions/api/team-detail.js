@@ -2,7 +2,7 @@ export async function onRequest(context) {
   // GETメソッド：チーム詳細情報とメンバー一覧を取得
   if (context.request.method === "GET") {
     try {
-      // プレイヤー認証確認
+      // リーダー認証確認
       const cookies = context.request.headers.get("cookie") || "";
       const sessionId = cookies
         .split("; ")
@@ -17,14 +17,14 @@ export async function onRequest(context) {
       }
 
       // セッションIDをデコード
-      let playerId = "";
+      let leaderId = "";
       try {
         const decoded = atob(sessionId);
         const [type, id] = decoded.split(":");
 
-        if (type !== "player") {
+        if (type !== "leader") {
           return new Response(
-            JSON.stringify({ message: "プレイヤー権限が必要です" }),
+            JSON.stringify({ message: "リーダー権限が必要です" }),
             {
               status: 403,
               headers: { "Content-Type": "application/json" },
@@ -32,7 +32,7 @@ export async function onRequest(context) {
           );
         }
 
-        playerId = id;
+        leaderId = id;
       } catch (e) {
         return new Response(JSON.stringify({ message: "認証エラー" }), {
           status: 401,
@@ -69,8 +69,15 @@ export async function onRequest(context) {
         );
       }
 
-      // プレイヤーがこのチームのリーダーか確認
-      if (team.team_reader !== playerId) {
+      // ログイン中のリーダーがこのチーム担当か確認
+      const leaderAssignment = await db
+        .prepare(
+          "SELECT leader_id FROM leaders WHERE leader_id = ? AND team_id = ?",
+        )
+        .bind(leaderId, teamId)
+        .first();
+
+      if (!leaderAssignment) {
         return new Response(
           JSON.stringify({ message: "このチームのリーダーではありません" }),
           {

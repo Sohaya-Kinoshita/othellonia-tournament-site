@@ -2,7 +2,7 @@ export async function onRequest(context) {
   // GETメソッド：プレイヤーがリーダーを務めるチーム一覧を取得
   if (context.request.method === "GET") {
     try {
-      // プレイヤー認証確認
+      // リーダー認証確認
       const cookies = context.request.headers.get("cookie") || "";
       const sessionId = cookies
         .split("; ")
@@ -17,14 +17,14 @@ export async function onRequest(context) {
       }
 
       // セッションIDをデコード
-      let playerId = "";
+      let leaderId = "";
       try {
         const decoded = atob(sessionId);
         const [type, id] = decoded.split(":");
 
-        if (type !== "player") {
+        if (type !== "leader") {
           return new Response(
-            JSON.stringify({ message: "プレイヤー権限が必要です" }),
+            JSON.stringify({ message: "リーダー権限が必要です" }),
             {
               status: 403,
               headers: { "Content-Type": "application/json" },
@@ -32,7 +32,7 @@ export async function onRequest(context) {
           );
         }
 
-        playerId = id;
+        leaderId = id;
       } catch (e) {
         return new Response(JSON.stringify({ message: "認証エラー" }), {
           status: 401,
@@ -42,31 +42,34 @@ export async function onRequest(context) {
 
       const db = context.env.DB;
 
-      // プレイヤーがリーダーを務めるチーム一覧を取得
+      // リーダーが担当するチーム一覧を取得
       const leaderTeams = await db
         .prepare(
           `
           SELECT 
             t.team_id,
             t.team_name,
-            t.team_reader,
+            l.leader_id,
+            l.leader_role,
+            p.player_id,
             p.player_name,
-            COUNT(tm.player_id) as member_count
-          FROM teams t
-          LEFT JOIN players p ON t.team_reader = p.player_id
+            COUNT(tm.player_id) AS member_count
+          FROM leaders l
+          JOIN teams t ON l.team_id = t.team_id
+          LEFT JOIN players p ON l.player_id = p.player_id
           LEFT JOIN team_members tm ON t.team_id = tm.team_id
-          WHERE t.team_reader = ?
-          GROUP BY t.team_id
+          WHERE l.leader_id = ?
+          GROUP BY t.team_id, t.team_name, l.leader_id, l.leader_role, p.player_id, p.player_name
         `,
         )
-        .bind(playerId)
+        .bind(leaderId)
         .all();
 
       return new Response(
         JSON.stringify({
           success: true,
           teams: leaderTeams.results || [],
-          playerId: playerId,
+          leaderId: leaderId,
         }),
         {
           status: 200,

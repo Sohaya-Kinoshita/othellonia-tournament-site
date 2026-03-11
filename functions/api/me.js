@@ -60,6 +60,48 @@ export async function onRequest(context) {
         );
       }
 
+      if (type === "leader") {
+        const leader = await db
+          .prepare(
+            `SELECT 
+              l.leader_id,
+              l.team_id,
+              l.leader_role,
+              p.player_id,
+              p.player_name
+            FROM leaders l
+            LEFT JOIN players p ON l.player_id = p.player_id
+            WHERE l.leader_id = ?`,
+          )
+          .bind(id)
+          .first();
+
+        if (!leader) {
+          return new Response(JSON.stringify({ isLoggedIn: false }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({
+            isLoggedIn: true,
+            type: "leader",
+            leader: {
+              leaderId: leader.leader_id,
+              leaderName: leader.player_name,
+              teamId: leader.team_id,
+              leaderRole: leader.leader_role,
+              playerId: leader.player_id,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       // 管理者ログイン情報
       if (type === "admin") {
         const user = await db

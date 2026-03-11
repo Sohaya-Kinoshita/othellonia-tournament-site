@@ -78,16 +78,16 @@ async function authenticateLeader(db, request, teamId) {
     };
   }
 
-  let playerId = "";
+  let leaderId = "";
   try {
     const decoded = atob(sessionId);
     const [type, id] = decoded.split(":");
 
-    if (type !== "player") {
+    if (type !== "leader") {
       return {
         ok: false,
         response: new Response(
-          JSON.stringify({ message: "プレイヤー権限が必要です" }),
+          JSON.stringify({ message: "リーダー権限が必要です" }),
           {
             status: 403,
             headers: { "Content-Type": "application/json" },
@@ -96,7 +96,7 @@ async function authenticateLeader(db, request, teamId) {
       };
     }
 
-    playerId = id;
+    leaderId = id;
   } catch (error) {
     return {
       ok: false,
@@ -107,8 +107,15 @@ async function authenticateLeader(db, request, teamId) {
     };
   }
 
+  const teamLeader = await db
+    .prepare(
+      "SELECT leader_id FROM leaders WHERE leader_id = ? AND team_id = ?",
+    )
+    .bind(leaderId, teamId)
+    .first();
+
   const team = await db
-    .prepare("SELECT team_reader FROM teams WHERE team_id = ?")
+    .prepare("SELECT team_id FROM teams WHERE team_id = ?")
     .bind(teamId)
     .first();
 
@@ -125,7 +132,7 @@ async function authenticateLeader(db, request, teamId) {
     };
   }
 
-  if (team.team_reader !== playerId) {
+  if (!teamLeader) {
     return {
       ok: false,
       response: new Response(
@@ -138,7 +145,7 @@ async function authenticateLeader(db, request, teamId) {
     };
   }
 
-  return { ok: true, playerId };
+  return { ok: true, leaderId };
 }
 
 async function authenticateLeaderOrAdmin(db, request, teamId) {
@@ -175,11 +182,11 @@ async function authenticateLeaderOrAdmin(db, request, teamId) {
   }
 
   // Otherwise must be team leader
-  if (type !== "player") {
+  if (type !== "leader") {
     return {
       ok: false,
       response: new Response(
-        JSON.stringify({ message: "プレイヤー権限が必要です" }),
+        JSON.stringify({ message: "リーダー権限が必要です" }),
         {
           status: 403,
           headers: { "Content-Type": "application/json" },
@@ -189,7 +196,7 @@ async function authenticateLeaderOrAdmin(db, request, teamId) {
   }
 
   const team = await db
-    .prepare("SELECT team_reader FROM teams WHERE team_id = ?")
+    .prepare("SELECT team_id FROM teams WHERE team_id = ?")
     .bind(teamId)
     .first();
 
@@ -206,7 +213,14 @@ async function authenticateLeaderOrAdmin(db, request, teamId) {
     };
   }
 
-  if (team.team_reader !== id) {
+  const teamLeader = await db
+    .prepare(
+      "SELECT leader_id FROM leaders WHERE leader_id = ? AND team_id = ?",
+    )
+    .bind(id, teamId)
+    .first();
+
+  if (!teamLeader) {
     return {
       ok: false,
       response: new Response(
@@ -219,7 +233,7 @@ async function authenticateLeaderOrAdmin(db, request, teamId) {
     };
   }
 
-  return { ok: true, type: "player" };
+  return { ok: true, type: "leader" };
 }
 
 async function handleGet(context) {

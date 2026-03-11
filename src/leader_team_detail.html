@@ -258,7 +258,7 @@
             const meResponse = await fetch("/api/me");
             const meResult = await meResponse.json();
 
-            if (!meResult.isLoggedIn || meResult.type !== "player") {
+            if (!meResult.isLoggedIn || meResult.type !== "leader") {
                 location.href = "./login.html";
                 return;
             }
