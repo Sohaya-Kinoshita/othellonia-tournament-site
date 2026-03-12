@@ -58,7 +58,9 @@
 
     <div id="footerSlot"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="./js/layout.js"></script>
+    <script src="./js/exportCard.js"></script>
     <script>
         function formatDateTime(datetimeText) {
             if (!datetimeText) {
@@ -219,6 +221,14 @@
                             if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                 matchCardSection.style.display = "block";
                                 matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                                const saveBtn = document.createElement("button");
+                                saveBtn.textContent = "📷 画像として保存";
+                                saveBtn.className = "btn";
+                                saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
+                                saveBtn.addEventListener("click", function () {
+                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this);
+                                });
+                                matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                             }
                         } catch (cardError) {
                             console.error("Match card load error:", cardError);
@@ -290,10 +300,7 @@
 
                 return reserves.map((reserve) => {
                     const playerLabel = reserve.player_name || reserve.player_id;
-                    return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.9em;">`
-                        + `<div><strong>リザーブ${reserve.reserve_number}</strong></div>`
-                        + `<div style="text-align: right;">${playerLabel}</div>`
-                        + `</div>`;
+                    return `<div style="padding: 6px 0; font-size: 0.9em;">${playerLabel}</div>`;
                 }).join("");
             };
 
@@ -302,7 +309,6 @@
             // Team A
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
-            html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamAWins}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
@@ -318,7 +324,6 @@
             // Team B
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
-            html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamBWins}</div>`;
             games.forEach((game) => {
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
                 html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
@@ -563,6 +568,14 @@
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                         matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                                        const saveBtn = document.createElement("button");
+                                        saveBtn.textContent = "📷 画像として保存";
+                                        saveBtn.className = "btn";
+                                        saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
+                                        saveBtn.addEventListener("click", function () {
+                                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this);
+                                        });
+                                        matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                                     } else {
                                         matchCardDiv.textContent = "対戦カードがありません";
                                     }
