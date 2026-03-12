@@ -282,7 +282,7 @@
             }
         }
 
-        function generateMatchCardHTML(cardData) {
+        function generateMatchCardHTML(cardData, showResult = false) {
             const { match, games, reservesByTeam } = cardData;
             if (!games || games.length === 0) {
                 return "<p style=\"color: #999;\">対戦情報がありません</p>";
@@ -304,15 +304,25 @@
                 }).join("");
             };
 
+            const resultStyle = (win) => win
+                ? 'font-size: 0.85em; font-weight: bold; color: #2e7d32;'
+                : 'font-size: 0.85em; font-weight: bold; color: #c62828;';
+
             let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
 
             // Team A
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
             games.forEach((game) => {
-                html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                const isWin = game.winner_team_id === match.team_a_id;
+                const isLose = game.winner_team_id === match.team_b_id;
+                const hasResult = isWin || isLose;
+                html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
+                html += `<div><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
+                if (showResult && hasResult) {
+                    html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
+                }
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
@@ -325,9 +335,15 @@
             html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
             games.forEach((game) => {
-                html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                const isWin = game.winner_team_id === match.team_b_id;
+                const isLose = game.winner_team_id === match.team_a_id;
+                const hasResult = isWin || isLose;
+                html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
+                html += `<div><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
                 html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
+                if (showResult && hasResult) {
+                    html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
+                }
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
@@ -540,7 +556,7 @@
                                     </span>
                                 </div>
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">Best of ${match.best_of}</div>
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>
+                                ${match.scheduled_at ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>` : ''}
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
                                 <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
                                 <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
@@ -567,7 +583,7 @@
                                     const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
-                                        matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                                        matchCardDiv.innerHTML = generateMatchCardHTML(cardData, true);
                                         const saveBtn = document.createElement("button");
                                         saveBtn.textContent = "📷 画像として保存";
                                         saveBtn.className = "btn";
@@ -611,9 +627,7 @@
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
                                     Best of ${match.best_of}
                                 </div>
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">
-                                    対戦日: ${formatDateTime(match.scheduled_at)}
-                                </div>
+                                ${match.scheduled_at ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>` : ''}
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 12px;">
                                     提出期限: ${formatDateTime(match.order_deadline)}
                                 </div>
