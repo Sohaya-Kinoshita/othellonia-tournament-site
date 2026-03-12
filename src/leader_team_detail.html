@@ -226,7 +226,11 @@
                                 saveBtn.className = "btn";
                                 saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
                                 saveBtn.addEventListener("click", function () {
-                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, 430);
+                                    const scheduledAt = matchCardDiv.dataset.scheduledAt;
+                                    const exportMetaText = scheduledAt
+                                        ? `対戦日: ${formatDateTime(scheduledAt)}`
+                                        : "";
+                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, { targetWidth: 430, exportMetaText });
                                 });
                                 matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                             }
@@ -560,7 +564,7 @@
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
                                 <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
                                 <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                                    <div id="matchCard_${match.match_id}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;">読込中...</div>
+                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;">読込中...</div>
                                 </div>
                             </div>
                         `;
@@ -589,7 +593,11 @@
                                         saveBtn.className = "btn";
                                         saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
                                         saveBtn.addEventListener("click", function () {
-                                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this, 430);
+                                            const scheduledAt = matchCardDiv.dataset.scheduledAt;
+                                            const exportMetaText = scheduledAt
+                                                ? `対戦日: ${formatDateTime(scheduledAt)}`
+                                                : "";
+                                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this, { targetWidth: 430, exportMetaText });
                                         });
                                         matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                                     } else {
@@ -644,7 +652,7 @@
 
                                 <div id="matchCardSection_${match.match_id}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                                     <div style="font-weight: 700; margin-bottom: 12px;">対戦カード</div>
-                                    <div id="matchCard_${match.match_id}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;"></div>
+                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;"></div>
                                 </div>
                             </div>
                         `;

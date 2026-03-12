@@ -8,15 +8,27 @@
  * @param {string} cardId - エクスポートするカードのID
  * @param {string} fileName - 保存するファイル名（拡張子なし）
  * @param {HTMLElement} button - クリックされたボタン要素
- * @param {number|null} targetWidth - キャプチャ時の横幅px（省略でそのまま）
+ * @param {number|{targetWidth?: number, exportMetaText?: string}|null} optionsOrWidth - 幅指定またはオプション
  */
-async function exportCardAsImage(cardId, fileName, button, targetWidth = null) {
+async function exportCardAsImage(
+  cardId,
+  fileName,
+  button,
+  optionsOrWidth = null,
+) {
   const card = document.getElementById(cardId);
   if (!card) {
     console.error(`カードが見つかりません: ${cardId}`);
     alert("カードの取得に失敗しました");
     return;
   }
+
+  const options =
+    typeof optionsOrWidth === "number"
+      ? { targetWidth: optionsOrWidth }
+      : optionsOrWidth || {};
+  const targetWidth = options.targetWidth || null;
+  const exportMetaText = options.exportMetaText || "";
 
   const originalText = button.textContent;
   button.textContent = "生成中...";
@@ -37,10 +49,18 @@ async function exportCardAsImage(cardId, fileName, button, targetWidth = null) {
   const originalWidth = card.style.width;
   const originalMaxWidth = card.style.maxWidth;
   const originalBoxSizing = card.style.boxSizing;
+  let exportMetaElement = null;
   if (targetWidth) {
     card.style.width = `${targetWidth}px`;
     card.style.maxWidth = `${targetWidth}px`;
     card.style.boxSizing = "border-box";
+  }
+  if (exportMetaText) {
+    exportMetaElement = document.createElement("div");
+    exportMetaElement.textContent = exportMetaText;
+    exportMetaElement.style.cssText =
+      "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
+    card.prepend(exportMetaElement);
   }
 
   try {
@@ -73,6 +93,9 @@ async function exportCardAsImage(cardId, fileName, button, targetWidth = null) {
         card.style.maxWidth = originalMaxWidth;
         card.style.boxSizing = originalBoxSizing;
       }
+      if (exportMetaElement) {
+        exportMetaElement.remove();
+      }
 
       button.textContent = originalText;
       button.disabled = false;
@@ -91,6 +114,9 @@ async function exportCardAsImage(cardId, fileName, button, targetWidth = null) {
       card.style.width = originalWidth;
       card.style.maxWidth = originalMaxWidth;
       card.style.boxSizing = originalBoxSizing;
+    }
+    if (exportMetaElement) {
+      exportMetaElement.remove();
     }
 
     button.textContent = originalText;
