@@ -27,10 +27,10 @@
             <div
                 style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
                 <h3 style="margin: 0;">メンバー一覧</h3>
-                <button type="button" id="toggleMembersButton" class="btn" style="margin: 0;">▽ メンバー一覧を開く</button>
+                <button type="button" id="toggleMembersButton" class="btn" style="margin: 0;">▽ 開く</button>
             </div>
-            <div id="membersSection" style="display: none; overflow-x: auto; margin-bottom: 16px;">
-                <table id="memberTable">
+            <div id="membersSection" style="display: none; margin-bottom: 16px;">
+                <table id="memberTable" style="min-width: unset; width: 100%;">
                     <thead>
                         <tr>
                             <th>プレイヤーID</th>
@@ -48,8 +48,7 @@
             <div
                 style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 8px;">
                 <h3 style="margin: 0;">試合終了したマッチ</h3>
-                <button type="button" id="toggleFinishedMatchesButton" class="btn" style="margin: 0;">▽
-                    試合終了したマッチを開く</button>
+                <button type="button" id="toggleFinishedMatchesButton" class="btn" style="margin: 0;">▽開く</button>
             </div>
             <div id="finishedMatchesSection" style="display: none;">
                 <div id="finishedMatchesList"></div>
@@ -88,8 +87,8 @@
             const render = () => {
                 membersSection.style.display = isOpen ? "block" : "none";
                 toggleButton.textContent = isOpen
-                    ? "△ メンバー一覧を閉じる"
-                    : "▽ メンバー一覧を開く";
+                    ? "△ 閉じる"
+                    : "▽ 開く";
             };
 
             toggleButton.addEventListener("click", () => {
@@ -112,8 +111,8 @@
             const render = () => {
                 section.style.display = isOpen ? "block" : "none";
                 toggleButton.textContent = isOpen
-                    ? "△ 試合終了したマッチを閉じる"
-                    : "▽ 試合終了したマッチを開く";
+                    ? "△ 閉じる"
+                    : "▽ 開く";
             };
 
             toggleButton.addEventListener("click", () => {
@@ -305,14 +304,9 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
             html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamAWins}</div>`;
             games.forEach((game) => {
-                const teamAResult = game.winner_team_id === match.team_a_id
-                    ? "勝ち"
-                    : game.winner_team_id === match.team_b_id
-                        ? "負け"
-                        : "勝敗未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}　${teamAResult}</div>`;
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
@@ -326,14 +320,9 @@
             html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
             html += `<div style="margin-bottom: 8px; text-align: center; font-size: 0.9em; color: #2e7d32; font-weight: bold;">勝ち数: ${teamBWins}</div>`;
             games.forEach((game) => {
-                const teamBResult = game.winner_team_id === match.team_b_id
-                    ? "勝ち"
-                    : game.winner_team_id === match.team_a_id
-                        ? "負け"
-                        : "勝敗未確定";
                 html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}　${teamBResult}</div>`;
+                html += `<div style="flex-grow: 1;"><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
                 html += '</div>';
             });
             html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
