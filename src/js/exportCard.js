@@ -4,7 +4,13 @@
  * @param {string} fileName - 保存するファイル名（拡張子なし）
  * @param {HTMLElement} button - クリックされたボタン要素
  */
-async function exportCardAsImage(cardId, fileName, button) {
+/**
+ * @param {string} cardId - エクスポートするカードのID
+ * @param {string} fileName - 保存するファイル名（拡張子なし）
+ * @param {HTMLElement} button - クリックされたボタン要素
+ * @param {number|null} targetWidth - キャプチャ時の横幅px（省略でそのまま）
+ */
+async function exportCardAsImage(cardId, fileName, button, targetWidth = null) {
   const card = document.getElementById(cardId);
   if (!card) {
     console.error(`カードが見つかりません: ${cardId}`);
@@ -27,12 +33,23 @@ async function exportCardAsImage(cardId, fileName, button) {
   // エクスポート用のスタイルを適用
   card.classList.add("exporting");
 
+  // 幅を一時的に変更
+  const originalWidth = card.style.width;
+  const originalMaxWidth = card.style.maxWidth;
+  const originalBoxSizing = card.style.boxSizing;
+  if (targetWidth) {
+    card.style.width = `${targetWidth}px`;
+    card.style.maxWidth = `${targetWidth}px`;
+    card.style.boxSizing = "border-box";
+  }
+
   try {
     const canvas = await html2canvas(card, {
       backgroundColor: "#ffffff",
-      scale: 2,
+      scale: window.devicePixelRatio || 2,
       logging: false,
       useCORS: true,
+      width: targetWidth || card.offsetWidth,
     });
 
     canvas.toBlob(function (blob) {
@@ -51,6 +68,11 @@ async function exportCardAsImage(cardId, fileName, button) {
         exportButton.classList.remove("hide-for-export");
       }
       card.classList.remove("exporting");
+      if (targetWidth) {
+        card.style.width = originalWidth;
+        card.style.maxWidth = originalMaxWidth;
+        card.style.boxSizing = originalBoxSizing;
+      }
 
       button.textContent = originalText;
       button.disabled = false;
@@ -65,6 +87,11 @@ async function exportCardAsImage(cardId, fileName, button) {
       exportButton.classList.remove("hide-for-export");
     }
     card.classList.remove("exporting");
+    if (targetWidth) {
+      card.style.width = originalWidth;
+      card.style.maxWidth = originalMaxWidth;
+      card.style.boxSizing = originalBoxSizing;
+    }
 
     button.textContent = originalText;
     button.disabled = false;

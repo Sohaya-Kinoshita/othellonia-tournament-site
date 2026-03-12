@@ -226,7 +226,7 @@
                                 saveBtn.className = "btn";
                                 saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
                                 saveBtn.addEventListener("click", function () {
-                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this);
+                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, 430);
                                 });
                                 matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                             }
@@ -318,8 +318,8 @@
                 const isLose = game.winner_team_id === match.team_b_id;
                 const hasResult = isWin || isLose;
                 html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_a_name || game.player_a_id}</div>`;
+                html += `<div><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: center;">${game.player_a_name || game.player_a_id}</div>`;
                 if (showResult && hasResult) {
                     html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
                 }
@@ -339,8 +339,8 @@
                 const isLose = game.winner_team_id === match.team_a_id;
                 const hasResult = isWin || isLose;
                 html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div><strong>第${game.game_number}戦（${getBattleModeLabel(game.game_number)}）</strong></div>`;
-                html += `<div style="text-align: right;">${game.player_b_name || game.player_b_id}</div>`;
+                html += `<div><strong>第${game.game_number}戦</strong></div>`;
+                html += `<div style="text-align: center;">${game.player_b_name || game.player_b_id}</div>`;
                 if (showResult && hasResult) {
                     html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
                 }
@@ -589,7 +589,7 @@
                                         saveBtn.className = "btn";
                                         saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
                                         saveBtn.addEventListener("click", function () {
-                                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this);
+                                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this, 430);
                                         });
                                         matchCardDiv.insertAdjacentElement("afterend", saveBtn);
                                     } else {
