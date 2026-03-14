@@ -75,6 +75,8 @@ export async function onRequest(context) {
           g.game_number,
           g.player_a_id,
           g.player_b_id,
+          g.player_a_score,
+          g.player_b_score,
           g.winner_team_id,
           g.winner_player_id,
           pa.player_name as player_a_name,
