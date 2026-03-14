@@ -40,6 +40,15 @@
             background-color: #e8f5e9;
         }
 
+        .game-result-card.locked .game-result-header {
+            cursor: default;
+            background-color: #eeeeee;
+        }
+
+        .game-result-card.locked .expand-icon {
+            display: none;
+        }
+
         .game-header-left {
             flex: 1;
             display: flex;
@@ -112,14 +121,15 @@
 
         .game-result-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
             margin: 10px 0;
             padding: 12px;
             background-color: white;
             border-radius: 5px;
             border: 2px solid #e0e0e0;
             transition: all 0.2s;
+            gap: 8px;
         }
 
         .game-result-row.winner {
@@ -128,7 +138,7 @@
         }
 
         .player-info {
-            flex: 1;
+            width: 100%;
             display: flex;
             flex-direction: column;
         }
@@ -136,7 +146,6 @@
         .player-main {
             display: flex;
             align-items: center;
-            margin-bottom: 4px;
         }
 
         .player-name {
@@ -168,9 +177,8 @@
         .bo3-score-input {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
+            align-items: flex-start;
             gap: 5px;
-            margin-left: auto;
         }
 
         .bo3-score-input label {
@@ -756,6 +764,8 @@
         function displayGameResults() {
             const match = currentMatchData.match;
             const games = currentMatchData.games;
+            const firstOpenableGame = games.find((game) => !game.winner_player_id);
+            const defaultExpandedGameId = firstOpenableGame ? firstOpenableGame.game_id : null;
 
             document.getElementById("displayMatchId").textContent = match.match_id;
             document.getElementById("displayTeamA").textContent = `${match.team_a_id} - ${match.team_a_name}`;
@@ -788,9 +798,12 @@
                 const isGameLocked = Boolean(game.winner_player_id);
                 const gameCard = document.createElement("div");
                 gameCard.className = "game-result-card";
+                if (isGameLocked) {
+                    gameCard.classList.add("locked");
+                }
                 const shouldExpand = expandedGameId
                     ? expandedGameId === game.game_id
-                    : index === 0;
+                    : defaultExpandedGameId === game.game_id;
                 if (shouldExpand) {
                     gameCard.classList.add("expanded");
                     expandedGameId = game.game_id;
@@ -817,11 +830,14 @@
                         <div class="game-header-line1">第${game.game_number}戦</div>
                         <div class="game-header-line2">${match.team_a_name} vs ${match.team_b_name}</div>
                         <div class="game-header-line3">${game.player_a_name} vs ${game.player_b_name}</div>
-                        <div class="game-header-line4">${scoreDisplay}</div>
+                        <div class="game-header-line4">${scoreDisplay}${isGameLocked ? "（確定済み）" : ""}</div>
                     </div>
                     <span class="expand-icon">▼</span>
                 `;
                 gameHeader.onclick = (e) => {
+                    if (isGameLocked) {
+                        return;
+                    }
                     // ボタン類のクリックは開閉に反応しない
                     if (e.target.closest("button")) return;
                     const isExpanded = gameCard.classList.contains("expanded");
@@ -835,23 +851,14 @@
                 };
                 gameCard.appendChild(gameHeader);
 
+                if (isGameLocked) {
+                    gamesContainer.appendChild(gameCard);
+                    return;
+                }
+
                 // ボディ（折りたたみ可能）
                 const gameBody = document.createElement("div");
                 gameBody.className = "game-result-body";
-
-                // 現在のゲームまでの各プレイヤーの勝利数を計算
-                let playerAWins = 0;
-                let playerBWins = 0;
-                games.forEach(g => {
-                    if (g.game_number < game.game_number) {
-                        if (gameResults[g.game_id]?.winner_player_id === game.player_a_id) {
-                            playerAWins++;
-                        }
-                        if (gameResults[g.game_id]?.winner_player_id === game.player_b_id) {
-                            playerBWins++;
-                        }
-                    }
-                });
 
                 // プレイヤーA
                 const rowA = document.createElement("div");
@@ -865,10 +872,8 @@
                         <div class="player-main">
                             <span class="player-name">${game.player_a_name}</span>
                         </div>
-                        <div class="player-stats">これまで <span class="current-wins">${playerAWins}勝</span></div>
                     </div>
                     <div class="bo3-score-input">
-                        <label>BO3:</label>
                         <div class="bo3-score-buttons">
                             <button class="bo3-score-button ${playerAScoreA === 0 && !result.forfeit_winner ? 'selected' : ''}" 
                                     onclick="updateBO3Score('${game.game_id}', 'a', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
@@ -902,10 +907,8 @@
                         <div class="player-main">
                             <span class="player-name">${game.player_b_name}</span>
                         </div>
-                        <div class="player-stats">これまで <span class="current-wins">${playerBWins}勝</span></div>
                     </div>
                     <div class="bo3-score-input">
-                        <label>BO3:</label>
                         <div class="bo3-score-buttons">
                             <button class="bo3-score-button ${playerBScoreB === 0 && !result.forfeit_winner ? 'selected' : ''}" 
                                 onclick="updateBO3Score('${game.game_id}', 'b', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
@@ -927,7 +930,7 @@
                 savePerGame.type = "button";
                 savePerGame.className = "btn btn-save";
                 savePerGame.textContent = `第${game.game_number}戦を一時保存`;
-                savePerGame.onclick = () => saveResults(false);
+                savePerGame.onclick = () => saveResults(false, game.game_id, "", game.game_id);
                 savePerGame.disabled = isGameLocked;
                 actionButtons.appendChild(savePerGame);
 
@@ -944,11 +947,16 @@
                         alert(`第${game.game_number}戦の勝者が未設定です。先にスコアを入力してください。`);
                         return;
                     }
-                    await saveResults(false, game.game_id, `第${game.game_number}戦の勝敗を確定しました`);
+                    await saveResults(false, game.game_id, `第${game.game_number}戦の勝敗を確定しました`, game.game_id);
                 };
                 actionButtons.appendChild(confirmPerGame);
 
                 gameBody.appendChild(actionButtons);
+
+                const gameMessage = document.createElement("div");
+                gameMessage.className = "message";
+                gameMessage.dataset.gameMessageFor = game.game_id;
+                gameBody.appendChild(gameMessage);
 
                 gameCard.appendChild(gameBody);
                 gamesContainer.appendChild(gameCard);
@@ -1074,9 +1082,17 @@
             };
         }
 
-        async function saveResults(confirmed = false, targetGameId = null, customSuccessMessage = "") {
-            const confirmMessage = document.getElementById("confirmMessage");
-            confirmMessage.style.display = "none";
+        async function saveResults(confirmed = false, targetGameId = null, customSuccessMessage = "", inlineMessageGameId = null) {
+            const globalConfirmMessage = document.getElementById("confirmMessage");
+            const inlineMessage = inlineMessageGameId
+                ? document.querySelector(`[data-game-message-for="${inlineMessageGameId}"]`)
+                : null;
+            const activeMessage = inlineMessage || globalConfirmMessage;
+
+            globalConfirmMessage.style.display = "none";
+            if (inlineMessage) {
+                inlineMessage.style.display = "none";
+            }
 
             const game_results = targetGameId
                 ? currentMatchData.games
@@ -1085,9 +1101,9 @@
                 : currentMatchData.games.map((game) => buildGameResultPayload(game));
 
             if (game_results.length === 0) {
-                confirmMessage.textContent = "対象のゲーム情報が見つかりません";
-                confirmMessage.className = "message error";
-                confirmMessage.style.display = "block";
+                activeMessage.textContent = "対象のゲーム情報が見つかりません";
+                activeMessage.className = "message error";
+                activeMessage.style.display = "block";
                 return;
             }
 
@@ -1104,13 +1120,13 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    confirmMessage.textContent = customSuccessMessage || result.message || (confirmed ? "結果を確定しました！" : "一時保存しました");
-                    confirmMessage.className = "message success";
+                    activeMessage.textContent = customSuccessMessage || result.message || (confirmed ? "結果を確定しました！" : "一時保存しました");
+                    activeMessage.className = "message success";
                 } else {
-                    confirmMessage.textContent = result.error || "保存に失敗しました";
-                    confirmMessage.className = "message error";
+                    activeMessage.textContent = result.error || "保存に失敗しました";
+                    activeMessage.className = "message error";
                 }
-                confirmMessage.style.display = "block";
+                activeMessage.style.display = "block";
 
                 // 最終確定または単戦確定の場合は再読み込み
                 if (response.ok && (confirmed || targetGameId)) {
@@ -1120,9 +1136,9 @@
                 }
             } catch (error) {
                 console.error("Error saving results:", error);
-                confirmMessage.textContent = "通信エラーが発生しました";
-                confirmMessage.className = "message error";
-                confirmMessage.style.display = "block";
+                activeMessage.textContent = "通信エラーが発生しました";
+                activeMessage.className = "message error";
+                activeMessage.style.display = "block";
             }
         }
 
