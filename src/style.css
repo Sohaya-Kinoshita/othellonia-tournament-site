@@ -1126,6 +1126,18 @@ th {
   border-bottom: 2px solid currentColor;
 }
 
+.team-win-summary {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1f2937;
+  background: #eef2f7;
+  border: 1px solid #d0dae6;
+  border-radius: 999px;
+  padding: 2px 10px;
+  align-self: center;
+}
+
 .match-card .team-a .team-name {
   color: #3498db;
 }
@@ -1177,6 +1189,13 @@ th {
   color: #000;
 }
 
+.player-personal-win {
+  text-align: center;
+  font-size: 11px;
+  color: #4b5563;
+  font-weight: 700;
+}
+
 .match-card .team-a .player-name {
   color: #000;
 }
@@ -1211,6 +1230,29 @@ th {
   color: #ffffff;
   background: #d32f2f;
   margin-bottom: 4px;
+}
+
+.player-live-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.player-live-badges .player-live-badge {
+  margin-bottom: 0;
+}
+
+.player-win-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f4f8a;
+  background: #e4f1ff;
+  border: 1px solid #9ac8f3;
 }
 
 /* 対戦結果 */
@@ -1383,6 +1425,19 @@ th {
     text-decoration 0.2s;
   font-weight: 500;
   color: #16a085;
+}
+
+.player-link-row {
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-link-placeholder {
+  display: inline-block;
+  height: 1em;
+  visibility: hidden;
 }
 
 .player-link:hover {

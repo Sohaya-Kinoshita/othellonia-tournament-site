@@ -85,7 +85,7 @@
             });
         }
 
-        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false) {
+        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0) {
             const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
                 ? streamStatus
                 : null;
@@ -111,7 +111,7 @@
                 ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
                 : "";
             const liveBadgeHtml = isLiveGame
-                ? '<div class="player-live-badge">試合中！</div>'
+                ? `<div class="player-live-badges"><div class="player-live-badge">試合中！</div><div class="player-win-badge">${Number(liveWins || 0)}勝</div></div>`
                 : "";
 
             return `
@@ -120,7 +120,7 @@
                     <div class="player-name">${safeName}</div>
                     <div class="player-separator"></div>
                     <div class="${statusClass}">${statusText}</div>
-                    ${linkHtml}
+                    <div class="player-link-row">${linkHtml || '<span class="player-link-placeholder" aria-hidden="true"></span>'}</div>
                 </div>
             `;
         }
@@ -199,38 +199,52 @@
                 return "";
             }
 
+            const teamAWinCount = games.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const teamBWinCount = games.filter((game) => game.winner_team_id === match.team_b_id).length;
+
             const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
             const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
             const teamAResultHtml = teamAResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamAResult}</div>` : "";
             const teamBResultHtml = teamBResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamBResult}</div>` : "";
+            const teamAWinCountHtml = `<div class="team-win-summary">${teamAWinCount}勝</div>`;
+            const teamBWinCountHtml = `<div class="team-win-summary">${teamBWinCount}勝</div>`;
             const currentLiveGame = match.match_status === "in_progress"
                 ? games.find((game) => !game.winner_player_id)
                 : null;
             const liveGameNumber = currentLiveGame ? currentLiveGame.game_number : null;
+            const completedBeforeLive = liveGameNumber === null
+                ? []
+                : games.filter((game) => game.game_number < liveGameNumber && game.winner_team_id);
+            const liveTeamAWins = completedBeforeLive.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const liveTeamBWins = completedBeforeLive.filter((game) => game.winner_team_id === match.team_b_id).length;
 
             const teamAPlayers = games.map((game) => ({
+                player_id: game.player_a_id,
                 player_name: game.player_a_name,
                 stream_status: game.player_a_stream_status,
                 mirrativ_url: game.player_a_mirrativ_url,
                 mirrativ_id: game.player_a_mirrativ_id,
                 custom_mirrativ_url: game.player_a_plan_mirrativ_url,
                 is_live_game: liveGameNumber !== null && game.game_number === liveGameNumber,
+                live_wins: liveTeamAWins,
             }));
             const teamBPlayers = games.map((game) => ({
+                player_id: game.player_b_id,
                 player_name: game.player_b_name,
                 stream_status: game.player_b_stream_status,
                 mirrativ_url: game.player_b_mirrativ_url,
                 mirrativ_id: game.player_b_mirrativ_id,
                 custom_mirrativ_url: game.player_b_plan_mirrativ_url,
                 is_live_game: liveGameNumber !== null && game.game_number === liveGameNumber,
+                live_wins: liveTeamBWins,
             }));
 
             const teamAHtml = teamAPlayers.length > 0
-                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false);
+                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0);
             const teamBHtml = teamBPlayers.length > 0
-                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false);
+                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0);
 
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
@@ -241,11 +255,13 @@
                     <div id="${detailId}" class="match-card-detail is-collapsed">
                         <div class="teams-container">
                             <div class="team team-a">
+                                ${teamAWinCountHtml}
                                 <div class="team-name">${escapeHtml(match.team_a_name)}</div>
                                 ${teamAResultHtml}
                                 ${teamAHtml}
                             </div>
                             <div class="team team-b">
+                                ${teamBWinCountHtml}
                                 <div class="team-name">${escapeHtml(match.team_b_name)}</div>
                                 ${teamBResultHtml}
                                 ${teamBHtml}
