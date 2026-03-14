@@ -212,11 +212,8 @@
                 ? games.find((game) => !game.winner_player_id)
                 : null;
             const liveGameNumber = currentLiveGame ? currentLiveGame.game_number : null;
-            const completedBeforeLive = liveGameNumber === null
-                ? []
-                : games.filter((game) => game.game_number < liveGameNumber && game.winner_team_id);
-            const liveTeamAWins = completedBeforeLive.filter((game) => game.winner_team_id === match.team_a_id).length;
-            const liveTeamBWins = completedBeforeLive.filter((game) => game.winner_team_id === match.team_b_id).length;
+            const liveTeamAWins = currentLiveGame ? Number(currentLiveGame.player_a_score || 0) : 0;
+            const liveTeamBWins = currentLiveGame ? Number(currentLiveGame.player_b_score || 0) : 0;
 
             const teamAPlayers = games.map((game) => ({
                 player_id: game.player_a_id,

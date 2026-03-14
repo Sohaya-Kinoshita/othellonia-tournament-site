@@ -277,6 +277,24 @@
             flex: 1;
         }
 
+        .game-action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .game-action-buttons button {
+            flex: 1;
+        }
+
+        .btn-game-confirm {
+            background-color: #43a047;
+        }
+
+        .btn-game-confirm:hover {
+            background-color: #2e7d32;
+        }
+
         .btn-save {
             background-color: #2196F3;
         }
@@ -462,7 +480,7 @@
                     <div id="gamesContainer"></div>
 
                     <div class="button-group" id="resultActionGroup">
-                        <button type="button" class="btn btn-confirm" id="confirmButton">確定</button>
+                        <button type="button" class="btn btn-confirm" id="confirmButton">この試合を確定する</button>
                     </div>
                     <div id="confirmMessage" class="message"></div>
 
@@ -759,6 +777,7 @@
             }
 
             games.forEach((game, index) => {
+                const isGameLocked = Boolean(game.winner_player_id);
                 const gameCard = document.createElement("div");
                 gameCard.className = "game-result-card";
                 const shouldExpand = expandedGameId
@@ -844,14 +863,14 @@
                         <label>BO3:</label>
                         <div class="bo3-score-buttons">
                             <button class="bo3-score-button ${playerAScoreA === 0 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'a', 0)">0</button>
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
                             <button class="bo3-score-button ${playerAScoreA === 1 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'a', 1)">1</button>
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 1)" ${isGameLocked ? 'disabled' : ''}>1</button>
                             <button class="bo3-score-button ${playerAScoreA === 2 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'a', 2)">2</button>
+                                    onclick="updateBO3Score('${game.game_id}', 'a', 2)" ${isGameLocked ? 'disabled' : ''}>2</button>
                         </div>
                         <button class="forfeit-button ${result.forfeit_winner === 'a' ? 'selected' : ''}" 
-                            onclick="setForfeitWinner('${game.game_id}', 'a')">不戦勝</button>
+                            onclick="setForfeitWinner('${game.game_id}', 'a')" ${isGameLocked ? 'disabled' : ''}>不戦勝</button>
                     </div>
                 `;
                 gameBody.appendChild(rowA);
@@ -881,26 +900,47 @@
                         <label>BO3:</label>
                         <div class="bo3-score-buttons">
                             <button class="bo3-score-button ${playerBScoreB === 0 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'b', 0)">0</button>
+                                onclick="updateBO3Score('${game.game_id}', 'b', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
                             <button class="bo3-score-button ${playerBScoreB === 1 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'b', 1)">1</button>
+                                onclick="updateBO3Score('${game.game_id}', 'b', 1)" ${isGameLocked ? 'disabled' : ''}>1</button>
                             <button class="bo3-score-button ${playerBScoreB === 2 && !result.forfeit_winner ? 'selected' : ''}" 
-                                    onclick="updateBO3Score('${game.game_id}', 'b', 2)">2</button>
+                                onclick="updateBO3Score('${game.game_id}', 'b', 2)" ${isGameLocked ? 'disabled' : ''}>2</button>
                         </div>
                         <button class="forfeit-button ${result.forfeit_winner === 'b' ? 'selected' : ''}" 
-                            onclick="setForfeitWinner('${game.game_id}', 'b')">不戦勝</button>
+                            onclick="setForfeitWinner('${game.game_id}', 'b')" ${isGameLocked ? 'disabled' : ''}>不戦勝</button>
                     </div>
                 `;
                 gameBody.appendChild(rowB);
 
+                const actionButtons = document.createElement("div");
+                actionButtons.className = "game-action-buttons";
+
                 const savePerGame = document.createElement("button");
                 savePerGame.type = "button";
                 savePerGame.className = "btn btn-save";
-                savePerGame.style.marginTop = "8px";
-                savePerGame.style.width = "100%";
                 savePerGame.textContent = `第${game.game_number}戦を一時保存`;
                 savePerGame.onclick = () => saveResults(false);
-                gameBody.appendChild(savePerGame);
+                savePerGame.disabled = isGameLocked;
+                actionButtons.appendChild(savePerGame);
+
+                const confirmPerGame = document.createElement("button");
+                confirmPerGame.type = "button";
+                confirmPerGame.className = "btn btn-game-confirm";
+                confirmPerGame.textContent = isGameLocked
+                    ? `第${game.game_number}戦は確定済み`
+                    : `第${game.game_number}戦の勝敗を確定`;
+                confirmPerGame.disabled = isGameLocked;
+                confirmPerGame.onclick = async () => {
+                    const current = gameResults[game.game_id] || {};
+                    if (!current.winner_player_id || !current.winner_team_id) {
+                        alert(`第${game.game_number}戦の勝者が未設定です。先にスコアを入力してください。`);
+                        return;
+                    }
+                    await saveResults(false, game.game_id, `第${game.game_number}戦の勝敗を確定しました`);
+                };
+                actionButtons.appendChild(confirmPerGame);
+
+                gameBody.appendChild(actionButtons);
 
                 gameCard.appendChild(gameBody);
                 gamesContainer.appendChild(gameCard);
@@ -914,6 +954,11 @@
         }
 
         function updateBO3Score(gameId, player, score) {
+            const game = currentMatchData.games.find(g => g.game_id === gameId);
+            if (game?.winner_player_id) {
+                return;
+            }
+
             const scoreNum = parseInt(score) || 0;
 
             if (!gameResults[gameId]) {
@@ -960,6 +1005,11 @@
         }
 
         function setForfeitWinner(gameId, player) {
+            const game = currentMatchData.games.find(g => g.game_id === gameId);
+            if (game?.winner_player_id) {
+                return;
+            }
+
             if (!gameResults[gameId]) {
                 gameResults[gameId] = {};
             }
@@ -1005,19 +1055,33 @@
             document.getElementById("teamBWins").textContent = teamBWins;
         }
 
-        async function saveResults(confirmed = false) {
-            const confirmMessage = document.getElementById("confirmMessage");
-            confirmMessage.style.display = "none";
-
-            // gameResultsを配列形式に変換
-            const game_results = currentMatchData.games.map(game => ({
+        function buildGameResultPayload(game) {
+            return {
                 game_id: game.game_id,
                 winner_player_id: gameResults[game.game_id]?.winner_player_id || null,
                 winner_team_id: gameResults[game.game_id]?.winner_team_id || null,
                 player_a_score: gameResults[game.game_id]?.player_a_score || 0,
                 player_b_score: gameResults[game.game_id]?.player_b_score || 0,
-                forfeit_winner: gameResults[game.game_id]?.forfeit_winner || null
-            }));
+                forfeit_winner: gameResults[game.game_id]?.forfeit_winner || null,
+            };
+        }
+
+        async function saveResults(confirmed = false, targetGameId = null, customSuccessMessage = "") {
+            const confirmMessage = document.getElementById("confirmMessage");
+            confirmMessage.style.display = "none";
+
+            const game_results = targetGameId
+                ? currentMatchData.games
+                    .filter((game) => game.game_id === targetGameId)
+                    .map((game) => buildGameResultPayload(game))
+                : currentMatchData.games.map((game) => buildGameResultPayload(game));
+
+            if (game_results.length === 0) {
+                confirmMessage.textContent = "対象のゲーム情報が見つかりません";
+                confirmMessage.className = "message error";
+                confirmMessage.style.display = "block";
+                return;
+            }
 
             try {
                 const response = await fetch("/api/games", {
@@ -1032,7 +1096,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    confirmMessage.textContent = result.message || (confirmed ? "結果を確定しました！" : "一時保存しました");
+                    confirmMessage.textContent = customSuccessMessage || result.message || (confirmed ? "結果を確定しました！" : "一時保存しました");
                     confirmMessage.className = "message success";
                 } else {
                     confirmMessage.textContent = result.error || "保存に失敗しました";
@@ -1040,8 +1104,8 @@
                 }
                 confirmMessage.style.display = "block";
 
-                // 確定の場合は再読み込み
-                if (confirmed && response.ok) {
+                // 最終確定または単戦確定の場合は再読み込み
+                if (response.ok && (confirmed || targetGameId)) {
                     setTimeout(() => {
                         loadGameResults();
                     }, 1500);
@@ -1070,7 +1134,7 @@
             };
 
             document.getElementById("confirmButton").onclick = () => {
-                if (confirm("結果を確定してもよろしいですか？")) {
+                if (confirm("この試合を確定してもよろしいですか？")) {
                     saveResults(true);
                 }
             };

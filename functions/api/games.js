@@ -426,7 +426,7 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
   // 不戦勝保存時の整合性をサーバー側で担保するため、ゲームの選手情報を取得
   const gameRows = await env.DB.prepare(
     `
-      SELECT game_id, player_a_id, player_b_id
+      SELECT game_id, player_a_id, player_b_id, winner_player_id
       FROM games
       WHERE match_id = ?
     `,
@@ -508,6 +508,11 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
       } = result;
 
       const gameInfo = gameInfoMap.get(game_id);
+      if (gameInfo?.winner_player_id) {
+        // 既に勝敗確定済みのゲームは上書きしない
+        continue;
+      }
+
       let resolvedWinnerPlayerId = winner_player_id || null;
       let resolvedWinnerTeamId = winner_team_id || null;
       let resolvedPlayerAScore = Number(player_a_score || 0);
