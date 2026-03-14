@@ -58,6 +58,11 @@
                 <div id="opponentInfoBox" class="player-section-content">読込中...</div>
             </section>
 
+            <section id="streamPlanSection" class="player-section-box">
+                <h3>配信予定登録（マッチ別）</h3>
+                <div id="streamPlanBox" class="player-section-content">読込中...</div>
+            </section>
+
             <h3>今後追加予定</h3>
             <ul>
                 <li>対戦結果の確認</li>
@@ -162,6 +167,111 @@
             }
         }
 
+        function buildStreamPlanCard(plan) {
+            const normalizedStatus = ["available", "undecided", "unavailable"].includes(plan.stream_status)
+                ? plan.stream_status
+                : "undecided";
+            const selectedAvailable = normalizedStatus === "available" ? "selected" : "";
+            const selectedUnavailable = normalizedStatus === "unavailable" ? "selected" : "";
+            const selectedUndecided = normalizedStatus === "undecided" ? "selected" : "";
+            const safeUrl = plan.mirrativ_url || "";
+
+            return `
+                <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <div style="font-weight: 700; margin-bottom: 6px;">${plan.match_id} / ${plan.team_a_name || "-"} vs ${plan.team_b_name || "-"}</div>
+                    <div style="font-size: 0.9em; margin-bottom: 6px;">対戦日: ${formatDateTime(plan.scheduled_at)}</div>
+                    <div style="display: grid; gap: 8px;">
+                        <label>
+                            配信予定
+                            <select id="streamStatus_${plan.match_id}">
+                                <option value="available" ${selectedAvailable}>配信する</option>
+                                <option value="undecided" ${selectedUndecided}>未定</option>
+                                <option value="unavailable" ${selectedUnavailable}>配信しない</option>
+                            </select>
+                        </label>
+                        <div style="font-size: 0.9em;">対戦相手: ${plan.opponent_player_name || "-"}</div>
+                        <label>
+                            ミラティブURL（配信する場合のみ）
+                            <input type="text" id="streamUrl_${plan.match_id}" value="${safeUrl}" placeholder="https://www.mirrativ.com/user/..." />
+                        </label>
+                        <button type="button" class="btn" id="saveStreamPlan_${plan.match_id}">この内容で保存</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadStreamPlans() {
+            const streamPlanSection = document.getElementById("streamPlanSection");
+            const streamPlanBox = document.getElementById("streamPlanBox");
+
+            try {
+                const response = await fetch("/api/player-stream-plans");
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    streamPlanBox.textContent = result.message || "配信予定の取得に失敗しました。";
+                    return;
+                }
+
+                const plans = result.plans || [];
+
+                if (plans.length === 0) {
+                    streamPlanSection.style.display = "none";
+                    return;
+                }
+
+                streamPlanSection.style.display = "block";
+                streamPlanBox.innerHTML = plans.map((plan) => buildStreamPlanCard(plan)).join("");
+
+                plans.forEach((plan) => {
+                    const matchId = plan.match_id;
+                    const saveButton = document.getElementById(`saveStreamPlan_${matchId}`);
+                    const statusSelect = document.getElementById(`streamStatus_${matchId}`);
+                    const urlInput = document.getElementById(`streamUrl_${matchId}`);
+
+                    const toggleUrlState = () => {
+                        const enabled = statusSelect.value === "available";
+                        urlInput.disabled = !enabled;
+                        if (!enabled) {
+                            urlInput.value = "";
+                        }
+                    };
+
+                    toggleUrlState();
+                    statusSelect.addEventListener("change", toggleUrlState);
+
+                    saveButton.addEventListener("click", async () => {
+                        saveButton.disabled = true;
+                        try {
+                            const saveResponse = await fetch("/api/player-stream-plans", {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    matchId,
+                                    streamStatus: statusSelect.value,
+                                    mirrativUrl: urlInput.value.trim(),
+                                }),
+                            });
+                            const saveResult = await saveResponse.json();
+                            if (!saveResponse.ok || !saveResult.success) {
+                                alert(saveResult.message || "配信予定の保存に失敗しました。");
+                                return;
+                            }
+                            alert("配信予定を保存しました。");
+                        } catch (error) {
+                            console.error("Save stream plan error:", error);
+                            alert("配信予定の保存に失敗しました。");
+                        } finally {
+                            saveButton.disabled = false;
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error("Load stream plans error:", error);
+                streamPlanBox.textContent = "配信予定の取得に失敗しました。";
+            }
+        }
+
         async function checkPlayer() {
             try {
                 const response = await fetch("/api/me");
@@ -183,6 +293,7 @@
                 playerMessage.style.display = "none";
                 playerCard.classList.remove("hidden");
                 await loadMyTeams();
+                await loadStreamPlans();
             } catch (error) {
                 console.error("Player page error:", error);
                 const playerMessage = document.getElementById("playerMessage");

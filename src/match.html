@@ -80,13 +80,29 @@
             });
         }
 
-        function buildPlayerItem(playerName, mirrativId) {
-            const hasMirrativ = !!mirrativId;
+        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId) {
+            const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
+                ? streamStatus
+                : null;
+            const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
+            const hasMirrativ = !!fallbackUrl;
             const safeName = escapeHtml(playerName || "未定");
-            const statusClass = hasMirrativ ? "player-status" : "player-status unavailable";
-            const statusText = hasMirrativ ? "配信予定あり" : "予定無し";
-            const linkHtml = hasMirrativ
-                ? `<a href="https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}" target="_blank" rel="noopener" class="player-link">▷ミラティブアカウント</a>`
+            const statusClass = normalizedStatus === "unavailable"
+                ? "player-status unavailable"
+                : normalizedStatus === "undecided"
+                    ? "player-status"
+                    : hasMirrativ
+                        ? "player-status"
+                        : "player-status unavailable";
+            const statusText = normalizedStatus === "unavailable"
+                ? "予定無し"
+                : normalizedStatus === "undecided"
+                    ? "配信未定"
+                    : hasMirrativ
+                        ? "配信予定あり"
+                        : "予定無し";
+            const linkHtml = hasMirrativ && (normalizedStatus !== "unavailable")
+                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">▷ミラティブアカウント</a>`
                 : "";
 
             return `
@@ -106,19 +122,23 @@
 
             const teamAPlayers = games.map((game) => ({
                 player_name: game.player_a_name,
+                stream_status: game.player_a_stream_status,
+                mirrativ_url: game.player_a_mirrativ_url,
                 mirrativ_id: game.player_a_mirrativ_id,
             }));
             const teamBPlayers = games.map((game) => ({
                 player_name: game.player_b_name,
+                stream_status: game.player_b_stream_status,
+                mirrativ_url: game.player_b_mirrativ_url,
                 mirrativ_id: game.player_b_mirrativ_id,
             }));
 
             const teamAHtml = teamAPlayers.length > 0
-                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.mirrativ_id)).join("")
-                : buildPlayerItem("対戦カード未確定", null);
+                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null);
             const teamBHtml = teamBPlayers.length > 0
-                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.mirrativ_id)).join("")
-                : buildPlayerItem("対戦カード未確定", null);
+                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null);
 
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
