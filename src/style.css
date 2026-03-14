@@ -967,8 +967,18 @@ th {
 }
 
 .match-detail-toggle-btn {
-  align-self: flex-start;
   min-width: 88px;
+}
+
+.match-datetime.has-detail-toggle {
+  position: relative;
+  padding-bottom: 56px;
+}
+
+.match-datetime.has-detail-toggle .match-detail-toggle-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
 }
 
 .match-card-detail.is-collapsed {

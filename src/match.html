@@ -224,10 +224,10 @@
 
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
-                    <div class="match-datetime">
+                    <div class="match-datetime has-detail-toggle">
                         ${buildMatchMetaHtml(match, true)}
+                        <button type="button" id="${toggleBtnId}" class="btn match-detail-toggle-btn">開く</button>
                     </div>
-                    <button type="button" id="${toggleBtnId}" class="btn match-detail-toggle-btn">開く</button>
                     <div id="${detailId}" class="match-card-detail is-collapsed">
                         <div class="teams-container">
                             <div class="team team-a">
