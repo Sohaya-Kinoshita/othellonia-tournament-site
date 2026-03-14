@@ -37,10 +37,14 @@ async function exportCardAsImage(
   // リンクとボタンを非表示（高さは保持）
   const links = card.querySelectorAll(".player-link");
   const exportButton = card.querySelector(".export-btn");
+  const detailToggleButtons = card.querySelectorAll(".match-detail-toggle-btn");
   links.forEach((link) => link.classList.add("hide-for-export"));
   if (exportButton) {
     exportButton.classList.add("hide-for-export");
   }
+  detailToggleButtons.forEach((toggleButton) => {
+    toggleButton.classList.add("hide-for-export");
+  });
 
   // エクスポート用のスタイルを適用
   card.classList.add("exporting");
@@ -87,6 +91,9 @@ async function exportCardAsImage(
       if (exportButton) {
         exportButton.classList.remove("hide-for-export");
       }
+      detailToggleButtons.forEach((toggleButton) => {
+        toggleButton.classList.remove("hide-for-export");
+      });
       card.classList.remove("exporting");
       if (targetWidth) {
         card.style.width = originalWidth;
@@ -109,6 +116,9 @@ async function exportCardAsImage(
     if (exportButton) {
       exportButton.classList.remove("hide-for-export");
     }
+    detailToggleButtons.forEach((toggleButton) => {
+      toggleButton.classList.remove("hide-for-export");
+    });
     card.classList.remove("exporting");
     if (targetWidth) {
       card.style.width = originalWidth;
