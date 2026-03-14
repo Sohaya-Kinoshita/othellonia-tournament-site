@@ -20,8 +20,13 @@
         </div>
 
         <section class="card match-section">
-            <h2 class="match-section-title">本日の対戦カード</h2>
-            <div id="todayMatchCards">読込中...</div>
+            <div class="match-section-header-row">
+                <h2 class="match-section-title">本日の対戦カード</h2>
+                <button type="button" id="todaySectionToggleButton" class="btn match-toggle-btn">閉じる</button>
+            </div>
+            <div id="todaySectionContent">
+                <div id="todayMatchCards">読込中...</div>
+            </div>
         </section>
 
         <section class="card match-section">
@@ -80,11 +85,11 @@
             });
         }
 
-        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId) {
+        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl) {
             const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
                 ? streamStatus
                 : null;
-            const hasCustomLiveUrl = !!mirrativUrl;
+            const hasCustomLiveUrl = !!customMirrativUrl;
             const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
             const hasMirrativ = !!fallbackUrl;
             const safeName = escapeHtml(playerName || "未定");
@@ -182,6 +187,8 @@
         function buildTodayMatchCardHtml(match, cardData) {
             const cardId = `matchCard_${escapeHtml(match.match_id)}`;
             const exportBtnId = `exportBtn_${escapeHtml(match.match_id)}`;
+            const detailId = `matchDetail_${escapeHtml(match.match_id)}`;
+            const toggleBtnId = `toggleDetailBtn_${escapeHtml(match.match_id)}`;
             const games = cardData?.games || [];
 
             if (games.length === 0) {
@@ -198,39 +205,44 @@
                 stream_status: game.player_a_stream_status,
                 mirrativ_url: game.player_a_mirrativ_url,
                 mirrativ_id: game.player_a_mirrativ_id,
+                custom_mirrativ_url: game.player_a_plan_mirrativ_url,
             }));
             const teamBPlayers = games.map((game) => ({
                 player_name: game.player_b_name,
                 stream_status: game.player_b_stream_status,
                 mirrativ_url: game.player_b_mirrativ_url,
                 mirrativ_id: game.player_b_mirrativ_id,
+                custom_mirrativ_url: game.player_b_plan_mirrativ_url,
             }));
 
             const teamAHtml = teamAPlayers.length > 0
-                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null);
+                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "");
             const teamBHtml = teamBPlayers.length > 0
-                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null);
+                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "");
 
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
                     <div class="match-datetime">
                         ${buildMatchMetaHtml(match, true)}
                     </div>
-                    <div class="teams-container">
-                        <div class="team team-a">
-                            <div class="team-name">${escapeHtml(match.team_a_name)}</div>
-                            ${teamAResultHtml}
-                            ${teamAHtml}
+                    <button type="button" id="${toggleBtnId}" class="btn match-detail-toggle-btn">開く</button>
+                    <div id="${detailId}" class="match-card-detail is-collapsed">
+                        <div class="teams-container">
+                            <div class="team team-a">
+                                <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                                ${teamAResultHtml}
+                                ${teamAHtml}
+                            </div>
+                            <div class="team team-b">
+                                <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                                ${teamBResultHtml}
+                                ${teamBHtml}
+                            </div>
                         </div>
-                        <div class="team team-b">
-                            <div class="team-name">${escapeHtml(match.team_b_name)}</div>
-                            ${teamBResultHtml}
-                            ${teamBHtml}
-                        </div>
+                        <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
                     </div>
-                    <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
                 </div>
             `;
         }
@@ -282,6 +294,22 @@
                     targetElement.insertAdjacentHTML("beforeend", cardHtml);
 
                     const exportButton = document.getElementById(`exportBtn_${match.match_id}`);
+                    const detailToggleButton = document.getElementById(`toggleDetailBtn_${match.match_id}`);
+                    const detailElement = document.getElementById(`matchDetail_${match.match_id}`);
+
+                    if (detailToggleButton && detailElement) {
+                        detailToggleButton.addEventListener("click", () => {
+                            const isCollapsed = detailElement.classList.contains("is-collapsed");
+                            if (isCollapsed) {
+                                detailElement.classList.remove("is-collapsed");
+                                detailToggleButton.textContent = "閉じる";
+                            } else {
+                                detailElement.classList.add("is-collapsed");
+                                detailToggleButton.textContent = "開く";
+                            }
+                        });
+                    }
+
                     if (exportButton) {
                         exportButton.addEventListener("click", function () {
                             exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this);
@@ -348,7 +376,29 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", loadMatchPage);
+        function setupTodaySectionToggle() {
+            const toggleButton = document.getElementById("todaySectionToggleButton");
+            const sectionContent = document.getElementById("todaySectionContent");
+            if (!toggleButton || !sectionContent) {
+                return;
+            }
+
+            toggleButton.addEventListener("click", () => {
+                const isHidden = sectionContent.classList.contains("is-collapsed");
+                if (isHidden) {
+                    sectionContent.classList.remove("is-collapsed");
+                    toggleButton.textContent = "閉じる";
+                } else {
+                    sectionContent.classList.add("is-collapsed");
+                    toggleButton.textContent = "開く";
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            setupTodaySectionToggle();
+            loadMatchPage();
+        });
     </script>
 </body>
 

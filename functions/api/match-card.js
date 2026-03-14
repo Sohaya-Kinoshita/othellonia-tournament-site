@@ -79,6 +79,7 @@ export async function onRequest(context) {
           pa.player_name as player_a_name,
           pa.mirrativ_id as player_a_mirrativ_id,
           COALESCE(spa.stream_status, 'undecided') as player_a_stream_status,
+          spa.mirrativ_url as player_a_plan_mirrativ_url,
           COALESCE(
             spa.mirrativ_url,
             CASE
@@ -90,6 +91,7 @@ export async function onRequest(context) {
           pb.player_name as player_b_name,
           pb.mirrativ_id as player_b_mirrativ_id,
           COALESCE(spb.stream_status, 'undecided') as player_b_stream_status,
+          spb.mirrativ_url as player_b_plan_mirrativ_url,
           COALESCE(
             spb.mirrativ_url,
             CASE

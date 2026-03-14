@@ -940,6 +940,21 @@ th {
   margin-top: 0;
 }
 
+.match-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.match-toggle-btn {
+  min-width: 88px;
+}
+
+#todaySectionContent.is-collapsed {
+  display: none;
+}
+
 /* 対戦カード */
 .match-card {
   display: flex;
@@ -949,6 +964,15 @@ th {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+.match-detail-toggle-btn {
+  align-self: flex-start;
+  min-width: 88px;
+}
+
+.match-card-detail.is-collapsed {
+  display: none;
 }
 
 /* エクスポート時のスタイル */
