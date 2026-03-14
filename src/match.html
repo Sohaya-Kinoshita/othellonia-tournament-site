@@ -204,8 +204,12 @@
 
             const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
             const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
-            const teamAResultHtml = teamAResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamAResult}</div>` : "";
-            const teamBResultHtml = teamBResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamBResult}</div>` : "";
+            const teamAResultHtml = teamAResult
+                ? `<div class="team-result-badge ${teamAResult === "勝ち" ? "is-win" : "is-lose"}">${teamAResult}</div>`
+                : "";
+            const teamBResultHtml = teamBResult
+                ? `<div class="team-result-badge ${teamBResult === "勝ち" ? "is-win" : "is-lose"}">${teamBResult}</div>`
+                : "";
             const teamAWinCountHtml = `<div class="team-win-summary">${teamAWinCount}勝</div>`;
             const teamBWinCountHtml = `<div class="team-win-summary">${teamBWinCount}勝</div>`;
             const currentLiveGame = match.match_status === "in_progress"

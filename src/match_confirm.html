@@ -730,6 +730,14 @@
                     };
                 });
 
+                if (result.match && result.match.winner_team_id) {
+                    setResultInputEnabled(false, "この試合は既に確定済みのため、入力画面は開けません。");
+                    document.getElementById("matchDetailsContainer").classList.remove("show");
+                    currentMatchId = null;
+                    await loadMatches();
+                    return;
+                }
+
                 if (!result.isMatchConfirmed) {
                     setResultInputEnabled(false, "このマッチはまだ確定されていないため、試合結果を入力できません。先に『オーダーの確定』でマッチを確定してください。");
                 } else if (!result.isMatchStarted) {

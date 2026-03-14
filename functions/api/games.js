@@ -393,7 +393,7 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
 
   const match = await env.DB.prepare(
     `
-      SELECT team_a_id, team_b_id, started_at
+      SELECT team_a_id, team_b_id, started_at, winner_team_id
       FROM matches
       WHERE match_id = ?
     `,
@@ -413,6 +413,18 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
       JSON.stringify({
         error:
           "このマッチはまだ開始されていないため、試合結果を入力できません。先に『試合を開始する』を実行してください。",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  if (match.winner_team_id) {
+    return new Response(
+      JSON.stringify({
+        error: "この試合は既に確定済みのため、結果を変更できません。",
       }),
       {
         status: 400,
