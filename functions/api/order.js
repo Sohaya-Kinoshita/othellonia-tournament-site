@@ -571,16 +571,6 @@ async function handlePost(context) {
       );
     }
 
-    if (match.order_deadline && new Date(match.order_deadline) < new Date()) {
-      return new Response(
-        JSON.stringify({ message: "提出期限を過ぎているため提出できません" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
     await ensureOrdersConfirmedAtColumn(db);
 
     const confirmedOrder = await db
