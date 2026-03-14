@@ -126,6 +126,11 @@
         function displayMatchDetail(match) {
             const matchDetail = document.getElementById("matchDetail");
             const adminIds = Array.isArray(match.admin_user_id) ? match.admin_user_id : (match.admin_user_id ? [match.admin_user_id] : []);
+            const statusLabel = match.match_status === "in_progress"
+                ? "対戦中"
+                : match.match_status === "finished"
+                    ? "終了"
+                    : "対戦前";
             const userChips = adminIds.map(userId => {
                 const user = allUsers.find(u => u.user_id === userId);
                 return `
@@ -144,6 +149,9 @@
                         </div>
                         <div style="font-size: 1.1em; color: #666;">
                             <strong>${match.team_a_id}</strong> vs <strong>${match.team_b_id}</strong>
+                        </div>
+                        <div style="font-size: 0.95em; color: #444; margin-top: 6px;">
+                            状態: <strong>${statusLabel}</strong>
                         </div>
                         <div style="font-size: 0.9em; color: #999; margin-top: 8px;">
                             <div>作成日時: ${formatDateTime(match.created_at)}</div>

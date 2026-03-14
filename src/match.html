@@ -84,6 +84,7 @@
             const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
                 ? streamStatus
                 : null;
+            const hasCustomLiveUrl = !!mirrativUrl;
             const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
             const hasMirrativ = !!fallbackUrl;
             const safeName = escapeHtml(playerName || "未定");
@@ -102,7 +103,7 @@
                         ? "配信予定あり"
                         : "予定無し";
             const linkHtml = hasMirrativ && (normalizedStatus !== "unavailable")
-                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">▷ミラティブアカウント</a>`
+                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
                 : "";
 
             return `
@@ -115,10 +116,47 @@
             `;
         }
 
-        function buildMatchCardHtml(match, cardData) {
+        function getMatchStatusLabel(matchStatus) {
+            if (matchStatus === "in_progress") {
+                return "対戦中";
+            }
+            if (matchStatus === "finished") {
+                return "対戦終了";
+            }
+            return "対戦前";
+        }
+
+        function getTeamResultLabel(match, games, teamId) {
+            const teamAWins = games.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const teamBWins = games.filter((game) => game.winner_team_id === match.team_b_id).length;
+
+            if (teamAWins === teamBWins) {
+                return "";
+            }
+
+            if (teamId === match.team_a_id) {
+                return teamAWins > teamBWins ? "勝ち" : "負け";
+            }
+            if (teamId === match.team_b_id) {
+                return teamBWins > teamAWins ? "勝ち" : "負け";
+            }
+            return "";
+        }
+
+        function buildTodayMatchCardHtml(match, cardData) {
             const cardId = `matchCard_${escapeHtml(match.match_id)}`;
             const exportBtnId = `exportBtn_${escapeHtml(match.match_id)}`;
             const games = cardData?.games || [];
+
+            if (games.length === 0) {
+                return "";
+            }
+
+            const statusLabel = getMatchStatusLabel(match.match_status);
+            const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
+            const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
+            const teamAResultHtml = teamAResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamAResult}</div>` : "";
+            const teamBResultHtml = teamBResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamBResult}</div>` : "";
 
             const teamAPlayers = games.map((game) => ({
                 player_name: game.player_a_name,
@@ -143,19 +181,39 @@
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
                     <div class="match-datetime">
-                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                        <div style="font-weight:700;">対戦参加チーム</div>
+                        <div>${escapeHtml(match.team_a_name)}</div>
+                        <div>${escapeHtml(match.team_b_name)}</div>
+                        <div style="font-weight:700; margin-top:6px;">対戦日</div>
+                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～ ${escapeHtml(statusLabel)}</div>
                     </div>
                     <div class="teams-container">
                         <div class="team team-a">
                             <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                            ${teamAResultHtml}
                             ${teamAHtml}
                         </div>
                         <div class="team team-b">
                             <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                            ${teamBResultHtml}
                             ${teamBHtml}
                         </div>
                     </div>
                     <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
+                </div>
+            `;
+        }
+
+        function buildUpcomingMatchCardHtml(match) {
+            return `
+                <div class="match-card" style="margin-top: 12px;">
+                    <div class="match-datetime">
+                        <div style="font-weight:700;">対戦参加チーム</div>
+                        <div>${escapeHtml(match.team_a_name)}</div>
+                        <div>${escapeHtml(match.team_b_name)}</div>
+                        <div style="font-weight:700; margin-top:6px;">対戦日</div>
+                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                    </div>
                 </div>
             `;
         }
@@ -169,18 +227,32 @@
             return result;
         }
 
-        async function renderMatchCards(matches, targetElement) {
+        async function renderMatchCards(matches, targetElement, mode) {
             if (!matches.length) {
                 targetElement.innerHTML = "<p style=\"color:#999;\">該当する対戦カードはありません</p>";
                 return;
             }
 
             targetElement.innerHTML = "";
+            let renderedCount = 0;
 
             for (const match of matches) {
                 try {
+                    if (mode === "upcoming") {
+                        const cardHtml = buildUpcomingMatchCardHtml(match);
+                        renderedCount += 1;
+                        targetElement.insertAdjacentHTML("beforeend", cardHtml);
+                        continue;
+                    }
+
                     const cardData = await fetchMatchCard(match.match_id);
-                    targetElement.insertAdjacentHTML("beforeend", buildMatchCardHtml(match, cardData));
+                    const cardHtml = buildTodayMatchCardHtml(match, cardData);
+                    if (!cardHtml) {
+                        continue;
+                    }
+
+                    renderedCount += 1;
+                    targetElement.insertAdjacentHTML("beforeend", cardHtml);
 
                     const exportButton = document.getElementById(`exportBtn_${match.match_id}`);
                     if (exportButton) {
@@ -201,6 +273,10 @@
                     targetElement.appendChild(errorCard);
                 }
             }
+
+            if (renderedCount === 0) {
+                targetElement.innerHTML = "<p style=\"color:#999;\">該当する対戦カードはありません</p>";
+            }
         }
 
         async function loadMatchPage() {
@@ -219,16 +295,25 @@
                 const todayKey = toJstOperationalDateKey(now);
 
                 const matches = (result.matches || [])
-                    .filter((match) => match.scheduled_at && !match.winner_team_id)
+                    .filter((match) => match.scheduled_at)
                     .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
                     .filter((match) => match._scheduledDate)
-                    .sort((a, b) => a._scheduledDate - b._scheduledDate);
+                    .sort((a, b) => {
+                        const aPriority = a.match_status === "in_progress" ? 0 : 1;
+                        const bPriority = b.match_status === "in_progress" ? 0 : 1;
+                        if (aPriority !== bPriority) {
+                            return aPriority - bPriority;
+                        }
+                        return a._scheduledDate - b._scheduledDate;
+                    });
 
                 const todayMatches = matches.filter((match) => toJstOperationalDateKey(match._scheduledDate) === todayKey);
-                const upcomingMatches = matches.filter((match) => toJstOperationalDateKey(match._scheduledDate) > todayKey);
+                const upcomingMatches = matches
+                    .filter((match) => toJstOperationalDateKey(match._scheduledDate) > todayKey)
+                    .filter((match) => match.match_status !== "finished");
 
-                await renderMatchCards(todayMatches, todayContainer);
-                await renderMatchCards(upcomingMatches, upcomingContainer);
+                await renderMatchCards(todayMatches, todayContainer, "today");
+                await renderMatchCards(upcomingMatches, upcomingContainer, "upcoming");
             } catch (error) {
                 console.error("Match page load error:", error);
                 todayContainer.innerHTML = "<p style=\"color:#c62828;\">対戦カードの読み込みに失敗しました</p>";

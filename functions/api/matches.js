@@ -21,6 +21,11 @@ export async function onRequest(context) {
             m.winner_team_id,
             m.admin_user_id,
             (
+              SELECT COUNT(*) FROM games g
+              WHERE g.match_id = m.match_id
+                AND g.winner_player_id IS NOT NULL
+            ) AS completed_game_count,
+            (
               SELECT COUNT(*) FROM orders o
               WHERE o.match_id = m.match_id
                 AND o.confirmed_at IS NOT NULL
@@ -76,9 +81,20 @@ export async function onRequest(context) {
 
       // admin_user_id を JSON パースして配列に変換
       const processedMatches = matches.results.map((match) => {
+        const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
+        const matchStatus = match.winner_team_id
+          ? "finished"
+          : hasCompletedGame
+            ? "in_progress"
+            : "before";
+
         const assignedAdmins = adminMap.get(match.match_id) || [];
         if (assignedAdmins.length > 0) {
-          return { ...match, admin_user_id: assignedAdmins };
+          return {
+            ...match,
+            admin_user_id: assignedAdmins,
+            match_status: matchStatus,
+          };
         }
 
         try {
@@ -88,6 +104,7 @@ export async function onRequest(context) {
             : [];
           return {
             ...match,
+            match_status: matchStatus,
             admin_user_id: Array.isArray(adminUserIds)
               ? adminUserIds
               : [adminUserIds],
@@ -96,6 +113,7 @@ export async function onRequest(context) {
           // パース失敗時は元の値を配列化
           return {
             ...match,
+            match_status: matchStatus,
             admin_user_id: match.admin_user_id ? [match.admin_user_id] : [],
           };
         }
