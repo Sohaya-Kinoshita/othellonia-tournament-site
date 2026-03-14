@@ -195,6 +195,20 @@
             }
         }
 
+        function buildReserveSectionHtml(reserves) {
+            const slots = [0, 1].map(i => {
+                const r = reserves && reserves[i];
+                return r ? escapeHtml(r.player_name || r.player_id) : 'なし';
+            });
+            const itemsHtml = slots.map(label => `<div class="team-reserve-item">${label}</div>`).join("");
+            return `
+                <div class="team-reserve-box">
+                    <div class="team-reserve-title">リザーブ</div>
+                    <div class="team-reserve-list">${itemsHtml}</div>
+                </div>
+            `;
+        }
+
         function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0, gameResultLabel = "") {
             const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
                 ? streamStatus
@@ -377,6 +391,10 @@
                     : "",
             }));
 
+            const reservesByTeam = cardData?.reservesByTeam || {};
+            const teamAReserves = reservesByTeam[match.team_a_id] || [];
+            const teamBReserves = reservesByTeam[match.team_b_id] || [];
+
             const teamAHtml = teamAPlayers.length > 0
                 ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins, player.game_result_label)).join("")
                 : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0, "");
@@ -397,12 +415,14 @@
                                 <div class="team-name">${escapeHtml(match.team_a_name)}</div>
                                 <div class="team-header-divider"></div>
                                 ${teamAHtml}
+                                ${buildReserveSectionHtml(teamAReserves)}
                             </div>
                             <div class="team team-b">
                                 ${teamBSummaryHtml}
                                 <div class="team-name">${escapeHtml(match.team_b_name)}</div>
                                 <div class="team-header-divider"></div>
                                 ${teamBHtml}
+                                ${buildReserveSectionHtml(teamBReserves)}
                             </div>
                         </div>
                         <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>

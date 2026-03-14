@@ -118,6 +118,20 @@
             });
         }
 
+        function buildReserveSectionHtml(reserves) {
+            const slots = [0, 1].map(i => {
+                const r = reserves && reserves[i];
+                return r ? escapeHtml(r.player_name || r.player_id) : 'なし';
+            });
+            const itemsHtml = slots.map(label => `<div class="team-reserve-item">${label}</div>`).join("");
+            return `
+                <div class="team-reserve-box">
+                    <div class="team-reserve-title">リザーブ</div>
+                    <div class="team-reserve-list">${itemsHtml}</div>
+                </div>
+            `;
+        }
+
         function buildPlayerItem(playerName, gameResultLabel = "") {
             const safeName = escapeHtml(playerName || "未定");
             const gameResultBadgeHtml = gameResultLabel
@@ -201,6 +215,10 @@
                 </div>
             `;
 
+            const reservesByTeam = cardData?.reservesByTeam || {};
+            const teamAReserves = reservesByTeam[match.team_a_id] || [];
+            const teamBReserves = reservesByTeam[match.team_b_id] || [];
+
             const teamAHtml = games.map((game) => buildPlayerItem(
                 game.player_a_name,
                 game.winner_team_id ? (game.winner_team_id === match.team_a_id ? "勝ち" : "負け") : "",
@@ -223,12 +241,14 @@
                                 <div class="team-name">${escapeHtml(match.team_a_name)}</div>
                                 <div class="team-header-divider"></div>
                                 ${teamAHtml}
+                                ${buildReserveSectionHtml(teamAReserves)}
                             </div>
                             <div class="team team-b">
                                 ${teamBSummaryHtml}
                                 <div class="team-name">${escapeHtml(match.team_b_name)}</div>
                                 <div class="team-header-divider"></div>
                                 ${teamBHtml}
+                                ${buildReserveSectionHtml(teamBReserves)}
                             </div>
                         </div>
                         <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
