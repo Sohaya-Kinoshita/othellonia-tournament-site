@@ -398,13 +398,15 @@
                     <div id="${detailId}" class="match-card-detail is-collapsed">
                         <div class="teams-container">
                             <div class="team team-a">
-                                <div class="team-name">${escapeHtml(match.team_a_name)}</div>
                                 ${teamASummaryHtml}
+                                <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                                <div class="team-header-divider"></div>
                                 ${teamAHtml}
                             </div>
                             <div class="team team-b">
-                                <div class="team-name">${escapeHtml(match.team_b_name)}</div>
                                 ${teamBSummaryHtml}
+                                <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                                <div class="team-header-divider"></div>
                                 ${teamBHtml}
                             </div>
                         </div>

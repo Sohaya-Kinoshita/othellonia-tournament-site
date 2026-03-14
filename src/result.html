@@ -16,36 +16,417 @@
         <div class="card">
             <h1>対戦結果</h1>
             <hr>
-            <p>ここに対戦結果を表示します。（仮ページ）</p>
+            <p>確定済みの対戦結果を、対戦カード形式で表示します。</p>
         </div>
 
-        <div class="result-card">
-            <div class="result-datetime">
-                <div>2026年99月99日</div>
-                <div>99時99分開始</div>
-            </div>
-            <div class="result-teams">
-                <div class="result-team winner">
-                    <div class="result-label win">Win</div>
-                    <div class="team-name">ベビーチーズ高橋</div>
+        <section class="card match-section">
+            <h2 class="match-section-title">対戦結果一覧</h2>
+            <div class="upcoming-filter-bar">
+                <div class="upcoming-filter-item">
+                    <label for="resultDateFrom">対戦日（開始）</label>
+                    <input type="date" id="resultDateFrom">
                 </div>
-                <div class="result-vs">VS</div>
-                <div class="result-team">
-                    <div class="result-label lose">Lose</div>
-                    <div class="team-name">チームマインクラフト</div>
+                <div class="upcoming-filter-item">
+                    <label for="resultDateTo">対戦日（終了）</label>
+                    <input type="date" id="resultDateTo">
+                </div>
+                <div class="upcoming-filter-item upcoming-filter-team">
+                    <label for="resultTeamFilter">チーム名</label>
+                    <select id="resultTeamFilter">
+                        <option value="">すべてのチーム</option>
+                    </select>
+                </div>
+                <div class="upcoming-filter-item upcoming-filter-action">
+                    <button type="button" class="btn" id="resultFilterResetButton">条件をクリア</button>
                 </div>
             </div>
-            <div class="result-score">
-                <span class="score winner-score">4</span>
-                <span class="score-separator">-</span>
-                <span class="score">3</span>
-            </div>
-        </div>
+            <div id="resultMatchCards">読込中...</div>
+        </section>
     </main>
 
     <div id="footerSlot"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="./js/layout.js"></script>
+    <script src="./js/exportCard.js"></script>
+    <script>
+        let resultMatchesSource = [];
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function parseDateTime(datetimeText) {
+            if (!datetimeText) {
+                return null;
+            }
+            const normalized = String(datetimeText).replace(" ", "T");
+            const date = new Date(normalized);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function formatDateTime(datetimeText) {
+            const date = parseDateTime(datetimeText);
+            if (!date) {
+                return "日時未設定";
+            }
+            return date.toLocaleString("ja-JP", {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        }
+
+        function toJstDateInputValue(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+                return "";
+            }
+            const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+            const year = jst.getUTCFullYear();
+            const month = String(jst.getUTCMonth() + 1).padStart(2, "0");
+            const day = String(jst.getUTCDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatResultGroupLabel(dateKey) {
+            if (!dateKey) {
+                return "日付未設定";
+            }
+            const [year, month, day] = dateKey.split("-");
+            return `${year}年${Number(month)}月${Number(day)}日`;
+        }
+
+        function buildResultTeamOptions(matches) {
+            const teamNames = Array.from(new Set(matches.flatMap((match) => [match.team_a_name, match.team_b_name]).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ja"));
+            const teamSelect = document.getElementById("resultTeamFilter");
+            if (!teamSelect) {
+                return;
+            }
+            teamSelect.innerHTML = '<option value="">すべてのチーム</option>';
+            teamNames.forEach((teamName) => {
+                const option = document.createElement("option");
+                option.value = teamName;
+                option.textContent = teamName;
+                teamSelect.appendChild(option);
+            });
+        }
+
+        function buildPlayerItem(playerName, gameResultLabel = "") {
+            const safeName = escapeHtml(playerName || "未定");
+            const gameResultBadgeHtml = gameResultLabel
+                ? `<div class="player-game-result-row"><span class="team-result-badge ${gameResultLabel === "勝ち" ? "is-win" : "is-lose"}">${gameResultLabel}</span></div>`
+                : "";
+
+            return `
+                <div class="player-item">
+                    ${gameResultBadgeHtml}
+                    <div class="player-name">${safeName}</div>
+                </div>
+            `;
+        }
+
+        function buildMatchMetaHtml(match) {
+            return `
+                <div class="match-meta-grid">
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦参加チーム</div>
+                        <div class="match-meta-team-list">
+                            <span class="match-meta-team-chip team-a-chip">${escapeHtml(match.team_a_name)}</span>
+                            <span class="match-meta-team-chip team-b-chip">${escapeHtml(match.team_b_name)}</span>
+                        </div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦日</div>
+                        <div class="match-meta-datetime-row">
+                            <span class="match-meta-datetime">${escapeHtml(formatDateTime(match.scheduled_at))}～</span>
+                            <span class="match-status-pill status-finished">対戦終了</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getTeamResultLabel(match, games, teamId) {
+            const teamAWins = games.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const teamBWins = games.filter((game) => game.winner_team_id === match.team_b_id).length;
+
+            if (teamAWins === teamBWins) {
+                return "";
+            }
+
+            if (teamId === match.team_a_id) {
+                return teamAWins > teamBWins ? "勝ち" : "負け";
+            }
+            if (teamId === match.team_b_id) {
+                return teamBWins > teamAWins ? "勝ち" : "負け";
+            }
+            return "";
+        }
+
+        function buildFinishedMatchCardHtml(match, cardData) {
+            const cardId = `resultCard_${escapeHtml(match.match_id)}`;
+            const exportBtnId = `resultExportBtn_${escapeHtml(match.match_id)}`;
+            const detailId = `resultDetail_${escapeHtml(match.match_id)}`;
+            const toggleBtnId = `resultToggleBtn_${escapeHtml(match.match_id)}`;
+            const games = cardData?.games || [];
+
+            if (games.length === 0) {
+                return "";
+            }
+
+            const teamAWinCount = games.filter((game) => game.winner_team_id === match.team_a_id).length;
+            const teamBWinCount = games.filter((game) => game.winner_team_id === match.team_b_id).length;
+            const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
+            const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
+            const teamAResultClass = teamAResult === "勝ち" ? "is-win" : "is-lose";
+            const teamBResultClass = teamBResult === "勝ち" ? "is-win" : "is-lose";
+
+            const teamASummaryHtml = `
+                <div class="team-result-summary-row">
+                    <span class="team-result-badge ${teamAResultClass}">${teamAResult || "-"}</span>
+                    <span class="team-win-summary-inline">${teamAWinCount}勝</span>
+                </div>
+            `;
+            const teamBSummaryHtml = `
+                <div class="team-result-summary-row">
+                    <span class="team-result-badge ${teamBResultClass}">${teamBResult || "-"}</span>
+                    <span class="team-win-summary-inline">${teamBWinCount}勝</span>
+                </div>
+            `;
+
+            const teamAHtml = games.map((game) => buildPlayerItem(
+                game.player_a_name,
+                game.winner_team_id ? (game.winner_team_id === match.team_a_id ? "勝ち" : "負け") : "",
+            )).join("");
+            const teamBHtml = games.map((game) => buildPlayerItem(
+                game.player_b_name,
+                game.winner_team_id ? (game.winner_team_id === match.team_b_id ? "勝ち" : "負け") : "",
+            )).join("");
+
+            return `
+                <div class="match-card result-match-card" id="${cardId}">
+                    <div class="match-datetime has-detail-toggle">
+                        ${buildMatchMetaHtml(match)}
+                        <button type="button" id="${toggleBtnId}" class="btn match-detail-toggle-btn">開く</button>
+                    </div>
+                    <div id="${detailId}" class="match-card-detail is-collapsed">
+                        <div class="teams-container">
+                            <div class="team team-a">
+                                ${teamASummaryHtml}
+                                <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                                <div class="team-header-divider"></div>
+                                ${teamAHtml}
+                            </div>
+                            <div class="team team-b">
+                                ${teamBSummaryHtml}
+                                <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                                <div class="team-header-divider"></div>
+                                ${teamBHtml}
+                            </div>
+                        </div>
+                        <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fetchMatchCard(matchId) {
+            const response = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "対戦カード取得に失敗しました");
+            }
+            return result;
+        }
+
+        function attachResultCardInteractions(matchId) {
+            const exportButton = document.getElementById(`resultExportBtn_${matchId}`);
+            const detailToggleButton = document.getElementById(`resultToggleBtn_${matchId}`);
+            const detailElement = document.getElementById(`resultDetail_${matchId}`);
+
+            if (detailToggleButton && detailElement) {
+                detailToggleButton.addEventListener("click", () => {
+                    const isCollapsed = detailElement.classList.contains("is-collapsed");
+                    if (isCollapsed) {
+                        detailElement.classList.remove("is-collapsed");
+                        detailToggleButton.textContent = "閉じる";
+                    } else {
+                        detailElement.classList.add("is-collapsed");
+                        detailToggleButton.textContent = "開く";
+                    }
+                });
+            }
+
+            if (exportButton) {
+                exportButton.addEventListener("click", function () {
+                    exportCardAsImage(`resultCard_${matchId}`, `対戦結果_${matchId}`, this);
+                });
+            }
+        }
+
+        async function renderResultCards(matches, targetElement) {
+            if (!matches.length) {
+                targetElement.innerHTML = '<p class="result-empty-message">表示できる対戦結果はありません</p>';
+                return;
+            }
+
+            targetElement.innerHTML = "";
+            const groups = new Map();
+            matches.forEach((match) => {
+                const dateKey = toJstDateInputValue(match._scheduledDate);
+                const current = groups.get(dateKey) || [];
+                current.push(match);
+                groups.set(dateKey, current);
+            });
+
+            const sortedDateKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+            let renderedCount = 0;
+
+            for (const dateKey of sortedDateKeys) {
+                const groupMatches = (groups.get(dateKey) || []).slice().sort((a, b) => a._scheduledDate - b._scheduledDate);
+                const groupSection = document.createElement("section");
+                groupSection.className = "result-date-group";
+                groupSection.innerHTML = `
+                    <h3 class="result-date-group-title">${escapeHtml(formatResultGroupLabel(dateKey))}</h3>
+                    <div class="result-date-group-cards"></div>
+                `;
+                targetElement.appendChild(groupSection);
+
+                const cardsContainer = groupSection.querySelector(".result-date-group-cards");
+
+                for (const match of groupMatches) {
+                    try {
+                        const cardData = await fetchMatchCard(match.match_id);
+                        const cardHtml = buildFinishedMatchCardHtml(match, cardData);
+                        if (!cardHtml) {
+                            continue;
+                        }
+
+                        renderedCount += 1;
+                        cardsContainer.insertAdjacentHTML("beforeend", cardHtml);
+                        attachResultCardInteractions(match.match_id);
+                    } catch (error) {
+                        const errorCard = document.createElement("div");
+                        errorCard.className = "match-card result-match-card";
+                        errorCard.innerHTML = `
+                            <div class="match-datetime">
+                                <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                            </div>
+                            <p class="result-error-message">${escapeHtml(match.match_id)} の対戦結果取得に失敗しました</p>
+                        `;
+                        cardsContainer.appendChild(errorCard);
+                    }
+                }
+            }
+
+            if (renderedCount === 0) {
+                targetElement.innerHTML = '<p class="result-empty-message">表示できる対戦結果はありません</p>';
+            }
+        }
+
+        async function applyResultFilters() {
+            const resultContainer = document.getElementById("resultMatchCards");
+            const dateFromInput = document.getElementById("resultDateFrom");
+            const dateToInput = document.getElementById("resultDateTo");
+            const teamSelect = document.getElementById("resultTeamFilter");
+
+            const dateFrom = dateFromInput?.value || "";
+            const dateTo = dateToInput?.value || "";
+            const selectedTeam = teamSelect?.value || "";
+
+            const filteredMatches = resultMatchesSource.filter((match) => {
+                const matchDate = toJstDateInputValue(match._scheduledDate);
+                if (dateFrom && matchDate < dateFrom) {
+                    return false;
+                }
+                if (dateTo && matchDate > dateTo) {
+                    return false;
+                }
+                if (selectedTeam && !(match.team_a_name === selectedTeam || match.team_b_name === selectedTeam)) {
+                    return false;
+                }
+                return true;
+            });
+
+            await renderResultCards(filteredMatches, resultContainer);
+        }
+
+        function setupResultFilters() {
+            const dateFromInput = document.getElementById("resultDateFrom");
+            const dateToInput = document.getElementById("resultDateTo");
+            const teamSelect = document.getElementById("resultTeamFilter");
+            const resetButton = document.getElementById("resultFilterResetButton");
+
+            if (dateFromInput) {
+                dateFromInput.addEventListener("change", () => {
+                    applyResultFilters();
+                });
+            }
+            if (dateToInput) {
+                dateToInput.addEventListener("change", () => {
+                    applyResultFilters();
+                });
+            }
+            if (teamSelect) {
+                teamSelect.addEventListener("change", () => {
+                    applyResultFilters();
+                });
+            }
+            if (resetButton) {
+                resetButton.addEventListener("click", () => {
+                    if (dateFromInput) {
+                        dateFromInput.value = "";
+                    }
+                    if (dateToInput) {
+                        dateToInput.value = "";
+                    }
+                    if (teamSelect) {
+                        teamSelect.value = "";
+                    }
+                    applyResultFilters();
+                });
+            }
+        }
+
+        async function loadResultPage() {
+            const resultContainer = document.getElementById("resultMatchCards");
+
+            try {
+                const response = await fetch("/api/matches");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || "マッチ一覧の取得に失敗しました");
+                }
+
+                const matches = (result.matches || [])
+                    .filter((match) => match.scheduled_at)
+                    .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
+                    .filter((match) => match._scheduledDate)
+                    .filter((match) => match.match_status === "finished")
+                    .sort((a, b) => a._scheduledDate - b._scheduledDate);
+
+                resultMatchesSource = matches;
+                buildResultTeamOptions(resultMatchesSource);
+                await applyResultFilters();
+            } catch (error) {
+                console.error("Result page load error:", error);
+                resultContainer.innerHTML = '<p class="result-error-message">対戦結果の読み込みに失敗しました</p>';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            setupResultFilters();
+            loadResultPage();
+        });
+    </script>
 </body>
 
 </html>
