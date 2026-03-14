@@ -1201,6 +1201,18 @@ th {
   color: #999;
 }
 
+.player-live-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #d32f2f;
+  margin-bottom: 4px;
+}
+
 /* 対戦結果 */
 .result-card {
   display: flex;

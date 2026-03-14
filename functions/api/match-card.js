@@ -76,6 +76,7 @@ export async function onRequest(context) {
           g.player_a_id,
           g.player_b_id,
           g.winner_team_id,
+          g.winner_player_id,
           pa.player_name as player_a_name,
           pa.mirrativ_id as player_a_mirrativ_id,
           COALESCE(spa.stream_status, 'undecided') as player_a_stream_status,
