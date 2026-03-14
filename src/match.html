@@ -85,7 +85,7 @@
             });
         }
 
-        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0) {
+        function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0, gameResultLabel = "") {
             const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
                 ? streamStatus
                 : null;
@@ -113,10 +113,14 @@
             const liveBadgeHtml = isLiveGame
                 ? `<div class="player-live-badges"><div class="player-live-badge">試合中！</div><div class="player-win-badge">${Number(liveWins || 0)}勝</div></div>`
                 : "";
+            const gameResultBadgeHtml = gameResultLabel
+                ? `<div class="player-game-result-row"><span class="team-result-badge ${gameResultLabel === "勝ち" ? "is-win" : "is-lose"}">${gameResultLabel}</span></div>`
+                : "";
 
             return `
                 <div class="player-item">
                     ${liveBadgeHtml}
+                    ${gameResultBadgeHtml}
                     <div class="player-name">${safeName}</div>
                     <div class="player-separator"></div>
                     <div class="${statusClass}">${statusText}</div>
@@ -228,6 +232,9 @@
                 custom_mirrativ_url: game.player_a_plan_mirrativ_url,
                 is_live_game: liveGameNumber !== null && game.game_number === liveGameNumber,
                 live_wins: liveTeamAWins,
+                game_result_label: game.winner_team_id
+                    ? (game.winner_team_id === match.team_a_id ? "勝ち" : "負け")
+                    : "",
             }));
             const teamBPlayers = games.map((game) => ({
                 player_id: game.player_b_id,
@@ -238,14 +245,17 @@
                 custom_mirrativ_url: game.player_b_plan_mirrativ_url,
                 is_live_game: liveGameNumber !== null && game.game_number === liveGameNumber,
                 live_wins: liveTeamBWins,
+                game_result_label: game.winner_team_id
+                    ? (game.winner_team_id === match.team_b_id ? "勝ち" : "負け")
+                    : "",
             }));
 
             const teamAHtml = teamAPlayers.length > 0
-                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0);
+                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins, player.game_result_label)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0, "");
             const teamBHtml = teamBPlayers.length > 0
-                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins)).join("")
-                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0);
+                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.stream_status, player.mirrativ_url, player.mirrativ_id, player.custom_mirrativ_url, player.is_live_game, player.live_wins, player.game_result_label)).join("")
+                : buildPlayerItem("対戦カード未確定", "undecided", "", null, "", false, 0, "");
 
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">

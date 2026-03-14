@@ -1162,6 +1162,12 @@ th {
   border: 1px solid #f4a7b4;
 }
 
+.player-game-result-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
 .match-card .team-a .team-name {
   color: #3498db;
 }
