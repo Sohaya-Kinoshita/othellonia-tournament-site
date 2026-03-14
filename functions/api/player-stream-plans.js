@@ -60,6 +60,12 @@ export async function onRequest(context) {
     const playerId = auth.playerId;
 
     if (context.request.method === "GET") {
+      const playerRow = await db
+        .prepare("SELECT mirrativ_id FROM players WHERE player_id = ?")
+        .bind(playerId)
+        .first();
+      const myMirrativId = playerRow?.mirrativ_id || null;
+
       const rows = await db
         .prepare(
           `
@@ -94,7 +100,11 @@ export async function onRequest(context) {
         .all();
 
       return new Response(
-        JSON.stringify({ success: true, plans: rows.results || [] }),
+        JSON.stringify({
+          success: true,
+          plans: rows.results || [],
+          mirrativId: myMirrativId,
+        }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
