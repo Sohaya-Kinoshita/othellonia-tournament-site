@@ -31,6 +31,25 @@
 
         <section class="card match-section">
             <h2 class="match-section-title">今後対戦予定のカード</h2>
+            <div class="upcoming-filter-bar">
+                <div class="upcoming-filter-item">
+                    <label for="upcomingDateFrom">対戦日（開始）</label>
+                    <input type="date" id="upcomingDateFrom">
+                </div>
+                <div class="upcoming-filter-item">
+                    <label for="upcomingDateTo">対戦日（終了）</label>
+                    <input type="date" id="upcomingDateTo">
+                </div>
+                <div class="upcoming-filter-item upcoming-filter-team">
+                    <label for="upcomingTeamFilter">チーム名</label>
+                    <select id="upcomingTeamFilter">
+                        <option value="">すべてのチーム</option>
+                    </select>
+                </div>
+                <div class="upcoming-filter-item upcoming-filter-action">
+                    <button type="button" class="btn" id="upcomingFilterResetButton">条件をクリア</button>
+                </div>
+            </div>
             <div id="upcomingMatchCards">読込中...</div>
         </section>
     </main>
@@ -74,6 +93,7 @@
         }
 
         const DAY_RESET_HOUR = 4;
+        let upcomingMatchesSource = [];
 
         function toJstOperationalDateKey(date) {
             const shifted = new Date(date.getTime() - DAY_RESET_HOUR * 60 * 60 * 1000);
@@ -83,6 +103,96 @@
                 month: "2-digit",
                 day: "2-digit",
             });
+        }
+
+        function toJstDateInputValue(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+                return "";
+            }
+            const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+            const year = jst.getUTCFullYear();
+            const month = String(jst.getUTCMonth() + 1).padStart(2, "0");
+            const day = String(jst.getUTCDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+
+        function buildUpcomingTeamOptions(matches) {
+            const teamNames = Array.from(new Set(matches.flatMap((match) => [match.team_a_name, match.team_b_name]).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ja"));
+            const teamSelect = document.getElementById("upcomingTeamFilter");
+            if (!teamSelect) {
+                return;
+            }
+            teamSelect.innerHTML = '<option value="">すべてのチーム</option>';
+            teamNames.forEach((teamName) => {
+                const option = document.createElement("option");
+                option.value = teamName;
+                option.textContent = teamName;
+                teamSelect.appendChild(option);
+            });
+        }
+
+        async function applyUpcomingFilters() {
+            const upcomingContainer = document.getElementById("upcomingMatchCards");
+            const dateFromInput = document.getElementById("upcomingDateFrom");
+            const dateToInput = document.getElementById("upcomingDateTo");
+            const teamSelect = document.getElementById("upcomingTeamFilter");
+
+            const dateFrom = dateFromInput?.value || "";
+            const dateTo = dateToInput?.value || "";
+            const selectedTeam = teamSelect?.value || "";
+
+            const filteredMatches = upcomingMatchesSource.filter((match) => {
+                const matchDate = toJstDateInputValue(match._scheduledDate);
+                if (dateFrom && matchDate < dateFrom) {
+                    return false;
+                }
+                if (dateTo && matchDate > dateTo) {
+                    return false;
+                }
+                if (selectedTeam && !(match.team_a_name === selectedTeam || match.team_b_name === selectedTeam)) {
+                    return false;
+                }
+                return true;
+            });
+
+            await renderMatchCards(filteredMatches, upcomingContainer, "upcoming");
+        }
+
+        function setupUpcomingFilters() {
+            const dateFromInput = document.getElementById("upcomingDateFrom");
+            const dateToInput = document.getElementById("upcomingDateTo");
+            const teamSelect = document.getElementById("upcomingTeamFilter");
+            const resetButton = document.getElementById("upcomingFilterResetButton");
+
+            if (dateFromInput) {
+                dateFromInput.addEventListener("change", () => {
+                    applyUpcomingFilters();
+                });
+            }
+            if (dateToInput) {
+                dateToInput.addEventListener("change", () => {
+                    applyUpcomingFilters();
+                });
+            }
+            if (teamSelect) {
+                teamSelect.addEventListener("change", () => {
+                    applyUpcomingFilters();
+                });
+            }
+            if (resetButton) {
+                resetButton.addEventListener("click", () => {
+                    if (dateFromInput) {
+                        dateFromInput.value = "";
+                    }
+                    if (dateToInput) {
+                        dateToInput.value = "";
+                    }
+                    if (teamSelect) {
+                        teamSelect.value = "";
+                    }
+                    applyUpcomingFilters();
+                });
+            }
         }
 
         function buildPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0, gameResultLabel = "") {
@@ -214,14 +324,30 @@
 
             const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
             const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
-            const teamAResultHtml = teamAResult
-                ? `<div class="team-result-badge ${teamAResult === "勝ち" ? "is-win" : "is-lose"}">${teamAResult}</div>`
-                : "";
-            const teamBResultHtml = teamBResult
-                ? `<div class="team-result-badge ${teamBResult === "勝ち" ? "is-win" : "is-lose"}">${teamBResult}</div>`
-                : "";
-            const teamAWinCountHtml = `<div class="team-win-summary">${teamAWinCount}勝</div>`;
-            const teamBWinCountHtml = `<div class="team-win-summary">${teamBWinCount}勝</div>`;
+            const teamAResultClass = teamAResult === "勝ち"
+                ? "is-win"
+                : teamAResult === "負け"
+                    ? "is-lose"
+                    : "is-pending";
+            const teamBResultClass = teamBResult === "勝ち"
+                ? "is-win"
+                : teamBResult === "負け"
+                    ? "is-lose"
+                    : "is-pending";
+            const teamAResultText = teamAResult || "未決着";
+            const teamBResultText = teamBResult || "未決着";
+            const teamASummaryHtml = `
+                <div class="team-result-summary-row">
+                    <span class="team-result-badge ${teamAResultClass}">${teamAResultText}</span>
+                    <span class="team-win-summary-inline">${teamAWinCount}勝</span>
+                </div>
+            `;
+            const teamBSummaryHtml = `
+                <div class="team-result-summary-row">
+                    <span class="team-result-badge ${teamBResultClass}">${teamBResultText}</span>
+                    <span class="team-win-summary-inline">${teamBWinCount}勝</span>
+                </div>
+            `;
             const currentLiveGame = match.match_status === "in_progress"
                 ? games.find((game) => !game.winner_player_id)
                 : null;
@@ -272,15 +398,13 @@
                     <div id="${detailId}" class="match-card-detail is-collapsed">
                         <div class="teams-container">
                             <div class="team team-a">
-                                ${teamAWinCountHtml}
                                 <div class="team-name">${escapeHtml(match.team_a_name)}</div>
-                                ${teamAResultHtml}
+                                ${teamASummaryHtml}
                                 ${teamAHtml}
                             </div>
                             <div class="team team-b">
-                                ${teamBWinCountHtml}
                                 <div class="team-name">${escapeHtml(match.team_b_name)}</div>
-                                ${teamBResultHtml}
+                                ${teamBSummaryHtml}
                                 ${teamBHtml}
                             </div>
                         </div>
@@ -410,8 +534,11 @@
                     .filter((match) => toJstOperationalDateKey(match._scheduledDate) > todayKey)
                     .filter((match) => match.match_status !== "finished");
 
+                upcomingMatchesSource = upcomingMatches;
+                buildUpcomingTeamOptions(upcomingMatchesSource);
+
                 await renderMatchCards(todayMatches, todayContainer, "today");
-                await renderMatchCards(upcomingMatches, upcomingContainer, "upcoming");
+                await applyUpcomingFilters();
             } catch (error) {
                 console.error("Match page load error:", error);
                 todayContainer.innerHTML = "<p style=\"color:#c62828;\">対戦カードの読み込みに失敗しました</p>";
@@ -440,6 +567,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             setupTodaySectionToggle();
+            setupUpcomingFilters();
             loadMatchPage();
         });
     </script>
