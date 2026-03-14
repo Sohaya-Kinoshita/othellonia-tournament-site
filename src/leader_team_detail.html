@@ -183,20 +183,11 @@
         }
 
         function buildReserveSectionHtml(reserves) {
-            if (!reserves || reserves.length === 0) {
-                return `
-                    <div class="team-reserve-box">
-                        <div class="team-reserve-title">リザーブ</div>
-                        <div class="team-reserve-empty">なし</div>
-                    </div>
-                `;
-            }
-
-            const itemsHtml = reserves.map((reserve) => {
-                const playerLabel = reserve.player_name || reserve.player_id;
-                return `<div class="team-reserve-item">${escapeHtml(playerLabel)}</div>`;
-            }).join("");
-
+            const slots = [0, 1].map(i => {
+                const r = reserves && reserves[i];
+                return r ? escapeHtml(r.player_name || r.player_id) : 'なし';
+            });
+            const itemsHtml = slots.map(label => `<div class="team-reserve-item">${label}</div>`).join("");
             return `
                 <div class="team-reserve-box">
                     <div class="team-reserve-title">リザーブ</div>
