@@ -70,6 +70,25 @@
 
     <script src="./js/layout.js"></script>
     <script>
+        /**
+         * ミラティブの共有メッセージからURLだけを抽出する。
+         * - テキスト混じりの場合はURL部分だけを取り出す。
+         * - deep_link_preview URL はアプリで見るボタンがあるためそのまま保持する。
+         * - URLのみの入力は変換不要（null を返す）。
+         * @param {string} raw
+         * @returns {string|null} 変換後URL（変換不要の場合はnull）
+         */
+        function extractMirrativUrl(raw) {
+            const trimmed = raw.trim();
+            const urlMatch = trimmed.match(/https?:\/\/\S+/);
+            if (!urlMatch) return null;
+            const url = urlMatch[0];
+            // URLのみの入力なら変換不要
+            if (url === trimmed) return null;
+            // テキスト混じりの場合はURL部分だけ返す（deep_link_previewもそのまま）
+            return url;
+        }
+
         function formatDateTime(datetimeText) {
             if (!datetimeText) {
                 return "-";
@@ -170,7 +189,7 @@
                                         <button type="button" class="btn inlineStreamSaveBtn" data-match-id="${item.match_id}">保存</button>
                                     </div>
                                     <div class="inlineStreamUrlRow" data-match-id="${item.match_id}" style="display: ${st === "available" ? "" : "none"}; margin: 4px 0;">
-                                        <input type="text" class="inlineStreamUrlInput" data-match-id="${item.match_id}" value="${safeUrl}" placeholder="https://www.mirrativ.com/user/..." style="width: 100%; max-width: 400px; font-size: 0.9em;" />
+                                        <input type="text" class="inlineStreamUrlInput" data-match-id="${item.match_id}" value="${safeUrl}" placeholder="配信開始後にこちらにURLを入力してください。" style="width: 100%; max-width: 400px; font-size: 0.9em;" />
                                         ${defaultMirrativUrl ? `<div class="inlineStreamDefaultHint" data-match-id="${item.match_id}" style="font-size: 0.85em; color: #555; margin-top: 2px; display: ${safeUrl ? "none" : ""};">※ URL未入力の場合は<a href="${defaultMirrativUrl}" target="_blank" rel="noopener noreferrer">プロフィールのURLへのリンク</a>が使用されます</div>` : ""}
                                     </div>
                                     <div>
@@ -196,6 +215,8 @@
                         });
                         if (urlInput && hint) {
                             urlInput.addEventListener("input", () => {
+                                const cleaned = extractMirrativUrl(urlInput.value);
+                                if (cleaned !== null) urlInput.value = cleaned;
                                 hint.style.display = urlInput.value.trim() ? "none" : "";
                             });
                         }
