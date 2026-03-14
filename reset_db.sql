@@ -92,6 +92,7 @@ IF NOT EXISTS matches
   admin_user_id  CHAR
 (9)   NOT NULL,
   best_of        INTEGER   NOT NULL DEFAULT 7,
+  started_at     TEXT,
   winner_team_id CHAR
 (3),
 

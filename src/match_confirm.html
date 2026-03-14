@@ -384,6 +384,37 @@
         .hidden-section {
             display: none;
         }
+
+        .start-control-section {
+            margin: 12px 0 16px;
+        }
+
+        .start-match-button {
+            display: none;
+        }
+
+        .start-confirm-dialog {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff8e1;
+        }
+
+        .start-confirm-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .start-confirm-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .start-cancel-button {
+            background: #9e9e9e;
+        }
     </style>
 </head>
 
@@ -417,18 +448,31 @@
                     <p><strong>チームB:</strong> <span id="displayTeamB"></span></p>
                     <p><strong>対戦開始日時:</strong> <span id="displayScheduledAt"></span></p>
 
+                    <div id="startControlSection" class="start-control-section">
+                        <button type="button" class="btn btn-confirm start-match-button"
+                            id="startMatchButton">試合を開始する</button>
+                    </div>
+
                     <div class="score-summary" id="scoreSummary">
                         <span id="teamAName"></span>: <span id="teamAWins">0</span>勝　-　
                         <span id="teamBName"></span>: <span id="teamBWins">0</span>勝
                     </div>
 
-                    <h3>各ゲームの結果</h3>
+                    <h3 id="gameResultsTitle">各ゲームの結果</h3>
                     <div id="gamesContainer"></div>
 
-                    <div class="button-group">
+                    <div class="button-group" id="resultActionGroup">
                         <button type="button" class="btn btn-confirm" id="confirmButton">確定</button>
                     </div>
                     <div id="confirmMessage" class="message"></div>
+
+                    <div id="startConfirmDialog" class="start-confirm-dialog">
+                        <div class="start-confirm-title">試合を開始します。</div>
+                        <div class="start-confirm-actions">
+                            <button type="button" class="btn btn-confirm" id="startConfirmYes">開始する</button>
+                            <button type="button" class="btn start-cancel-button" id="startConfirmNo">戻る</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -447,21 +491,55 @@
         let expandedGameId = null;
 
         function setResultInputEnabled(enabled, message = "") {
-            const saveButton = document.getElementById("saveButton");
             const confirmButton = document.getElementById("confirmButton");
             const confirmMessage = document.getElementById("confirmMessage");
+            const gamesContainer = document.getElementById("gamesContainer");
+            const gameResultsTitle = document.getElementById("gameResultsTitle");
+            const resultActionGroup = document.getElementById("resultActionGroup");
 
-            if (saveButton) saveButton.disabled = !enabled;
             confirmButton.disabled = !enabled;
+            gameResultsTitle.style.display = enabled ? "block" : "none";
+            gamesContainer.style.display = enabled ? "block" : "none";
+            resultActionGroup.style.display = enabled ? "flex" : "none";
 
             if (enabled) {
                 confirmMessage.style.display = "none";
                 return;
             }
 
-            confirmMessage.textContent = message || "このマッチはまだ確定されていないため、試合結果を入力できません。";
+            confirmMessage.textContent = message || "このマッチはまだ開始されていないため、試合結果を入力できません。";
             confirmMessage.className = "message error";
             confirmMessage.style.display = "block";
+        }
+
+        function showStartDialog(show) {
+            const dialog = document.getElementById("startConfirmDialog");
+            dialog.style.display = show ? "block" : "none";
+        }
+
+        async function startMatch() {
+            try {
+                const response = await fetch("/api/matches", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        matchId: currentMatchId,
+                        action: "start",
+                    }),
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert(result.message || "試合開始に失敗しました");
+                    return;
+                }
+
+                showStartDialog(false);
+                location.reload();
+            } catch (error) {
+                console.error("Start match error:", error);
+                alert("試合開始に失敗しました");
+            }
         }
 
         function formatDateTime(datetimeText) {
@@ -636,6 +714,8 @@
 
                 if (!result.isMatchConfirmed) {
                     setResultInputEnabled(false, "このマッチはまだ確定されていないため、試合結果を入力できません。先に『オーダーの確定』でマッチを確定してください。");
+                } else if (!result.isMatchStarted) {
+                    setResultInputEnabled(false, "このマッチはまだ開始されていないため、試合結果を入力できません。先に『試合を開始する』を押してください。");
                 } else {
                     setResultInputEnabled(true);
                 }
@@ -658,9 +738,20 @@
             document.getElementById("teamAName").textContent = match.team_a_name;
             document.getElementById("teamBName").textContent = match.team_b_name;
 
+            const startButton = document.getElementById("startMatchButton");
+            const canShowStartButton = currentMatchData.isMatchConfirmed && !currentMatchData.isMatchStarted;
+            startButton.style.display = canShowStartButton ? "inline-block" : "none";
+
             updateScoreSummary();
             const gamesContainer = document.getElementById("gamesContainer");
             gamesContainer.innerHTML = "";
+
+            if (!currentMatchData.isMatchConfirmed || !currentMatchData.isMatchStarted) {
+                const matchDetailsContainer = document.getElementById("matchDetailsContainer");
+                matchDetailsContainer.classList.add("show");
+                matchDetailsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                return;
+            }
 
             if (!games || games.length === 0) {
                 gamesContainer.innerHTML = '<p style="color: #999;">マッチ確定後のゲーム情報がまだありません。</p>';
@@ -965,6 +1056,18 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             checkAdmin();
+
+            document.getElementById("startMatchButton").onclick = () => {
+                showStartDialog(true);
+            };
+
+            document.getElementById("startConfirmYes").onclick = () => {
+                startMatch();
+            };
+
+            document.getElementById("startConfirmNo").onclick = () => {
+                showStartDialog(false);
+            };
 
             document.getElementById("confirmButton").onclick = () => {
                 if (confirm("結果を確定してもよろしいですか？")) {

@@ -4,6 +4,7 @@ export async function onRequest(context) {
     try {
       const db = context.env.DB;
       await ensureMatchAdminsTable(db);
+      await ensureMatchesStartedAtColumn(db);
 
       const matches = await db
         .prepare(
@@ -18,6 +19,7 @@ export async function onRequest(context) {
             m.created_at,
             m.scheduled_at,
             m.order_deadline,
+            m.started_at,
             m.winner_team_id,
             m.admin_user_id,
             (
@@ -84,7 +86,7 @@ export async function onRequest(context) {
         const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
         const matchStatus = match.winner_team_id
           ? "finished"
-          : hasCompletedGame
+          : match.started_at || hasCompletedGame
             ? "in_progress"
             : "before";
 
@@ -239,6 +241,7 @@ export async function onRequest(context) {
       }
 
       const db = context.env.DB;
+      await ensureMatchesStartedAtColumn(db);
 
       // マッチが既に存在するか確認
       const existingMatch = await db
@@ -515,7 +518,7 @@ export async function onRequest(context) {
       }
 
       // リクエストボディを解析
-      const { matchId, adminUserId, adminUserIds } =
+      const { matchId, adminUserId, adminUserIds, action } =
         await context.request.json();
 
       if (!matchId) {
@@ -526,6 +529,65 @@ export async function onRequest(context) {
       }
 
       const db = context.env.DB;
+      await ensureMatchesStartedAtColumn(db);
+
+      // 試合開始
+      if (action === "start") {
+        const matchForStart = await db
+          .prepare(
+            "SELECT match_id, started_at, winner_team_id FROM matches WHERE match_id = ?",
+          )
+          .bind(matchId)
+          .first();
+
+        if (!matchForStart) {
+          return new Response(
+            JSON.stringify({ message: "マッチが見つかりません" }),
+            {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        if (matchForStart.winner_team_id) {
+          return new Response(
+            JSON.stringify({ message: "終了済みのマッチは開始できません" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        if (matchForStart.started_at) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "このマッチは既に開始済みです",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        await db
+          .prepare(
+            "UPDATE matches SET started_at = datetime('now', '+9 hours') WHERE match_id = ?",
+          )
+          .bind(matchId)
+          .run();
+
+        return new Response(
+          JSON.stringify({ success: true, message: "試合を開始しました" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
       // adminUserId または adminUserIds が指定されている場合は、管理者の更新のみを行う
       if (adminUserId || adminUserIds) {
@@ -821,6 +883,14 @@ async function detectOrderSchema(db) {
 async function ensureOrdersConfirmedAtColumn(db) {
   try {
     await db.prepare("ALTER TABLE orders ADD COLUMN confirmed_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
+async function ensureMatchesStartedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN started_at TEXT").run();
   } catch (_error) {
     // 既に存在する場合は何もしない
   }

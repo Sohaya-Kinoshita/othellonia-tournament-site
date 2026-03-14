@@ -126,6 +126,42 @@
             return "対戦前";
         }
 
+        function getMatchStatusClass(matchStatus) {
+            if (matchStatus === "in_progress") {
+                return "status-in-progress";
+            }
+            if (matchStatus === "finished") {
+                return "status-finished";
+            }
+            return "status-before";
+        }
+
+        function buildMatchMetaHtml(match, showStatus) {
+            const statusLabel = getMatchStatusLabel(match.match_status);
+            const statusHtml = showStatus
+                ? `<span class="match-status-pill ${getMatchStatusClass(match.match_status)}">${escapeHtml(statusLabel)}</span>`
+                : "";
+
+            return `
+                <div class="match-meta-grid">
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦参加チーム</div>
+                        <div class="match-meta-team-list">
+                            <span class="match-meta-team-chip team-a-chip">${escapeHtml(match.team_a_name)}</span>
+                            <span class="match-meta-team-chip team-b-chip">${escapeHtml(match.team_b_name)}</span>
+                        </div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦日</div>
+                        <div class="match-meta-datetime-row">
+                            <span class="match-meta-datetime">${escapeHtml(formatDateTime(match.scheduled_at))}～</span>
+                            ${statusHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function getTeamResultLabel(match, games, teamId) {
             const teamAWins = games.filter((game) => game.winner_team_id === match.team_a_id).length;
             const teamBWins = games.filter((game) => game.winner_team_id === match.team_b_id).length;
@@ -152,7 +188,6 @@
                 return "";
             }
 
-            const statusLabel = getMatchStatusLabel(match.match_status);
             const teamAResult = getTeamResultLabel(match, games, match.team_a_id);
             const teamBResult = getTeamResultLabel(match, games, match.team_b_id);
             const teamAResultHtml = teamAResult ? `<div style="font-size:0.9em; color:#444; margin-top:4px;">${teamAResult}</div>` : "";
@@ -181,11 +216,7 @@
             return `
                 <div class="match-card" id="${cardId}" style="margin-top: 12px;">
                     <div class="match-datetime">
-                        <div style="font-weight:700;">対戦参加チーム</div>
-                        <div>${escapeHtml(match.team_a_name)}</div>
-                        <div>${escapeHtml(match.team_b_name)}</div>
-                        <div style="font-weight:700; margin-top:6px;">対戦日</div>
-                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～ ${escapeHtml(statusLabel)}</div>
+                        ${buildMatchMetaHtml(match, true)}
                     </div>
                     <div class="teams-container">
                         <div class="team team-a">
@@ -208,11 +239,7 @@
             return `
                 <div class="match-card" style="margin-top: 12px;">
                     <div class="match-datetime">
-                        <div style="font-weight:700;">対戦参加チーム</div>
-                        <div>${escapeHtml(match.team_a_name)}</div>
-                        <div>${escapeHtml(match.team_b_name)}</div>
-                        <div style="font-weight:700; margin-top:6px;">対戦日</div>
-                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                        ${buildMatchMetaHtml(match, false)}
                     </div>
                 </div>
             `;

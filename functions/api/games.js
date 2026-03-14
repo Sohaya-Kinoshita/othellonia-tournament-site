@@ -77,6 +77,14 @@ async function ensureOrdersConfirmedAtColumn(db) {
   }
 }
 
+async function ensureMatchesStartedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN started_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 // GET: 指定されたマッチのゲーム一覧を取得
 async function handleGet(env, url, corsHeaders, adminUserId) {
   const matchId = url.searchParams.get("match_id");
@@ -147,6 +155,8 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
   }
 
   // マッチ情報とゲーム一覧を取得
+  await ensureMatchesStartedAtColumn(env.DB);
+
   const match = await env.DB.prepare(
     `
     SELECT 
@@ -155,6 +165,8 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
       m.team_b_id,
       m.best_of,
       m.scheduled_at,
+      m.started_at,
+      m.winner_team_id,
       ta.team_name as team_a_name,
       tb.team_name as team_b_name
     FROM matches m
@@ -198,6 +210,7 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
     .first();
 
   const isMatchConfirmed = Boolean(confirmedOrderA && confirmedOrderB);
+  const isMatchStarted = Boolean(match.started_at);
 
   // ゲーム一覧を取得
   let gamesResult;
@@ -274,6 +287,7 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
       teamAWins,
       teamBWins,
       isMatchConfirmed,
+      isMatchStarted,
     }),
     {
       status: 200,
@@ -375,9 +389,11 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
     );
   }
 
+  await ensureMatchesStartedAtColumn(env.DB);
+
   const match = await env.DB.prepare(
     `
-      SELECT team_a_id, team_b_id
+      SELECT team_a_id, team_b_id, started_at
       FROM matches
       WHERE match_id = ?
     `,
@@ -390,6 +406,19 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  if (!match.started_at) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "このマッチはまだ開始されていないため、試合結果を入力できません。先に『試合を開始する』を実行してください。",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   await ensureOrdersConfirmedAtColumn(env.DB);

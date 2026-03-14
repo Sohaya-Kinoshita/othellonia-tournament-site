@@ -121,6 +121,7 @@ IF NOT EXISTS matches
 ('now')),
   order_deadline TEXT      NOT NULL,
   scheduled_at   TEXT,
+  started_at     TEXT,
   winner_team_id CHAR
 (3),
   
