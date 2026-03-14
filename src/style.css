@@ -928,6 +928,18 @@ th {
   border: 1px solid #fcd34d;
 }
 
+#playerStatusDisplay.admin-status {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+#playerStatusDisplay.leader-status {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
 #playerNameDisplay {
   font-weight: 800;
 }
@@ -1010,6 +1022,10 @@ th {
 
 @media (max-width: 640px) {
   .upcoming-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .team-detail-meta-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1152,6 +1168,43 @@ th {
   font-size: 15px;
   font-weight: 700;
   color: #111827;
+}
+
+.team-detail-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.team-detail-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.team-detail-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.team-detail-status-badge.is-win {
+  color: #166534;
+  background: #e8f5e9;
+  border: 1px solid #9ed9b1;
+}
+
+.team-detail-status-badge.is-lose {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #f4a7b4;
+}
+
+.team-detail-status-badge.is-progress {
+  color: #9a6700;
+  background: #fff6cc;
+  border: 1px solid #e9d18b;
 }
 
 .match-status-pill {
@@ -1609,6 +1662,43 @@ th {
 .player-link:hover {
   text-decoration: underline;
   color: #117a65;
+}
+
+.team-detail-match-card-host {
+  background: transparent;
+}
+
+.team-detail-match-card {
+  margin-top: 0;
+}
+
+.team-reserve-box {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(17, 24, 39, 0.12);
+}
+
+.team-reserve-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.team-reserve-list {
+  display: grid;
+  gap: 6px;
+}
+
+.team-reserve-item,
+.team-reserve-empty {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  font-size: 12px;
+  color: #374151;
 }
 
 .export-btn {

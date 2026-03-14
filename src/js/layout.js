@@ -82,6 +82,14 @@ function setupMenu() {
   const leaderPageLink = document.getElementById("leaderPageLink");
   const playerPageLink = document.getElementById("playerPageLink");
 
+  function setStatusRoleClass(roleClassName) {
+    if (!playerStatusDisplay) return;
+    playerStatusDisplay.classList.remove("admin-status", "leader-status");
+    if (roleClassName) {
+      playerStatusDisplay.classList.add(roleClassName);
+    }
+  }
+
   fetch("/api/me")
     .then((response) => response.json())
     .then((result) => {
@@ -93,7 +101,7 @@ function setupMenu() {
           // ログイン種別で表示を分ける
           if (result.type === "admin") {
             playerNameDisplay.textContent = `(admin)${result.user.userName}`;
-            playerStatusDisplay.classList.add("admin-status");
+            setStatusRoleClass("admin-status");
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "flex", "important");
             if (leaderPageLink)
@@ -101,11 +109,12 @@ function setupMenu() {
             if (playerPageLink)
               playerPageLink.style.setProperty("display", "none", "important");
           } else if (result.type === "leader") {
-            playerNameDisplay.textContent =
+            const leaderName =
               result.leader?.leaderName ||
               result.leader?.leaderId ||
               "リーダー";
-            playerStatusDisplay.classList.remove("admin-status");
+            playerNameDisplay.textContent = `(leader)${leaderName}`;
+            setStatusRoleClass("leader-status");
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
@@ -113,9 +122,14 @@ function setupMenu() {
             if (playerPageLink)
               playerPageLink.style.setProperty("display", "none", "important");
           } else if (result.type === "player") {
+            playerStatusDisplay.style.setProperty(
+              "display",
+              "flex",
+              "important",
+            );
             playerNameDisplay.textContent =
               result.player.playerName || "ユーザー";
-            playerStatusDisplay.classList.remove("admin-status");
+            setStatusRoleClass(null);
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
@@ -129,6 +143,7 @@ function setupMenu() {
                 "none",
                 "important",
               );
+            setStatusRoleClass(null);
             if (adminPageLink)
               adminPageLink.style.setProperty("display", "none", "important");
             if (leaderPageLink)
@@ -142,6 +157,7 @@ function setupMenu() {
         if (logoutLink) logoutLink.style.display = "none";
         if (playerStatusDisplay)
           playerStatusDisplay.style.setProperty("display", "none", "important");
+        setStatusRoleClass(null);
         if (adminPageLink)
           adminPageLink.style.setProperty("display", "none", "important");
         if (leaderPageLink)
@@ -155,6 +171,7 @@ function setupMenu() {
       if (logoutLink) logoutLink.style.display = "none";
       if (playerStatusDisplay)
         playerStatusDisplay.style.setProperty("display", "none", "important");
+      setStatusRoleClass(null);
       if (adminPageLink)
         adminPageLink.style.setProperty("display", "none", "important");
       if (leaderPageLink)

@@ -62,6 +62,15 @@
     <script src="./js/layout.js"></script>
     <script src="./js/exportCard.js"></script>
     <script>
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         function formatDateTime(datetimeText) {
             if (!datetimeText) {
                 return "-";
@@ -75,6 +84,125 @@
 
         function getBattleModeLabel(gameNumber) {
             return gameNumber <= 3 ? "シーズン" : "グローリー";
+        }
+
+        function buildTeamDetailPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0, gameResultLabel = "") {
+            const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
+                ? streamStatus
+                : null;
+            const hasCustomLiveUrl = !!customMirrativUrl;
+            const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
+            const hasMirrativ = !!fallbackUrl;
+            const safeName = escapeHtml(playerName || "未定");
+            const statusClass = normalizedStatus === "unavailable"
+                ? "player-status unavailable"
+                : normalizedStatus === "undecided"
+                    ? "player-status"
+                    : hasMirrativ
+                        ? "player-status"
+                        : "player-status unavailable";
+            const statusText = normalizedStatus === "unavailable"
+                ? "予定無し"
+                : normalizedStatus === "undecided"
+                    ? "配信未定"
+                    : hasMirrativ
+                        ? "配信予定あり"
+                        : "予定無し";
+            const linkHtml = hasMirrativ && (normalizedStatus !== "unavailable")
+                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
+                : "";
+            const liveBadgeHtml = isLiveGame
+                ? `<div class="player-live-badges"><div class="player-live-badge">試合中！</div><div class="player-win-badge">${Number(liveWins || 0)}勝</div></div>`
+                : "";
+            const gameResultBadgeHtml = gameResultLabel
+                ? `<div class="player-game-result-row"><span class="team-result-badge ${gameResultLabel === "勝ち" ? "is-win" : "is-lose"}">${gameResultLabel}</span></div>`
+                : "";
+            const showStreamInfo = !gameResultLabel;
+            const playerItemClassName = showStreamInfo ? "player-item" : "player-item result-player-item";
+            const streamInfoHtml = showStreamInfo
+                ? `
+                    <div class="player-separator"></div>
+                    <div class="${statusClass}">${statusText}</div>
+                    <div class="player-link-row">${linkHtml || '<span class="player-link-placeholder" aria-hidden="true"></span>'}</div>
+                `
+                : "";
+
+            return `
+                <div class="${playerItemClassName}">
+                    ${liveBadgeHtml}
+                    ${gameResultBadgeHtml}
+                    <div class="player-name">${safeName}</div>
+                    ${streamInfoHtml}
+                </div>
+            `;
+        }
+
+        function buildTeamDetailCardMetaHtml(sourceMatch, teamId) {
+            const isTeamA = sourceMatch.team_a_id === teamId;
+            const opponentName = isTeamA ? sourceMatch.team_b_name : sourceMatch.team_a_name;
+            const opponentId = isTeamA ? sourceMatch.team_b_id : sourceMatch.team_a_id;
+            const statusText = sourceMatch.winner_team_id === teamId
+                ? "勝利"
+                : sourceMatch.winner_team_id
+                    ? "敗北"
+                    : "進行中";
+            const statusClass = statusText === "勝利"
+                ? "team-detail-status-badge is-win"
+                : statusText === "敗北"
+                    ? "team-detail-status-badge is-lose"
+                    : "team-detail-status-badge is-progress";
+
+            return `
+                <div class="match-meta-grid team-detail-meta-grid">
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">マッチID</div>
+                        <div class="team-detail-meta-value">${escapeHtml(sourceMatch.match_id)}</div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦相手</div>
+                        <div class="team-detail-meta-value">${escapeHtml(opponentName)} (${escapeHtml(opponentId)})</div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">形式</div>
+                        <div class="team-detail-meta-value">Best of ${escapeHtml(sourceMatch.best_of)}</div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">状態</div>
+                        <div><span class="${statusClass}">${escapeHtml(statusText)}</span></div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">対戦日</div>
+                        <div class="team-detail-meta-value">${escapeHtml(formatDateTime(sourceMatch.scheduled_at))}</div>
+                    </div>
+                    <div class="match-meta-section">
+                        <div class="match-meta-title">提出期限</div>
+                        <div class="team-detail-meta-value">${escapeHtml(formatDateTime(sourceMatch.order_deadline))}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function buildReserveSectionHtml(reserves) {
+            if (!reserves || reserves.length === 0) {
+                return `
+                    <div class="team-reserve-box">
+                        <div class="team-reserve-title">リザーブ</div>
+                        <div class="team-reserve-empty">なし</div>
+                    </div>
+                `;
+            }
+
+            const itemsHtml = reserves.map((reserve) => {
+                const playerLabel = reserve.player_name || reserve.player_id;
+                return `<div class="team-reserve-item">${escapeHtml(playerLabel)}</div>`;
+            }).join("");
+
+            return `
+                <div class="team-reserve-box">
+                    <div class="team-reserve-title">リザーブ</div>
+                    <div class="team-reserve-list">${itemsHtml}</div>
+                </div>
+            `;
         }
 
         function setupMembersToggle() {
@@ -220,7 +348,7 @@
 
                             if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                 matchCardSection.style.display = "block";
-                                matchCardDiv.innerHTML = generateMatchCardHTML(cardData);
+                                matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
                                 const saveBtn = document.createElement("button");
                                 saveBtn.textContent = "📷 画像として保存";
                                 saveBtn.className = "btn";
@@ -286,7 +414,7 @@
             }
         }
 
-        function generateMatchCardHTML(cardData, showResult = false) {
+        function generateMatchCardHTML(cardData, sourceMatch, teamId, showResult = false) {
             const { match, games, reservesByTeam } = cardData;
             if (!games || games.length === 0) {
                 return "<p style=\"color: #999;\">対戦情報がありません</p>";
@@ -296,68 +424,66 @@
             const teamBReserves = (reservesByTeam && reservesByTeam[match.team_b_id]) || [];
             const teamAWins = games.filter((game) => game.winner_team_id === match.team_a_id).length;
             const teamBWins = games.filter((game) => game.winner_team_id === match.team_b_id).length;
+            const teamAResult = teamAWins === teamBWins ? "未決着" : (teamAWins > teamBWins ? "勝ち" : "負け");
+            const teamBResult = teamAWins === teamBWins ? "未決着" : (teamBWins > teamAWins ? "勝ち" : "負け");
+            const teamAResultClass = teamAResult === "勝ち" ? "is-win" : teamAResult === "負け" ? "is-lose" : "is-pending";
+            const teamBResultClass = teamBResult === "勝ち" ? "is-win" : teamBResult === "負け" ? "is-lose" : "is-pending";
+            const currentLiveGame = showResult ? null : games.find((game) => !game.winner_player_id);
+            const liveGameNumber = currentLiveGame ? currentLiveGame.game_number : null;
+            const liveTeamAWins = currentLiveGame ? Number(currentLiveGame.player_a_score || 0) : 0;
+            const liveTeamBWins = currentLiveGame ? Number(currentLiveGame.player_b_score || 0) : 0;
 
-            const renderReserves = (reserves) => {
-                if (!reserves || reserves.length === 0) {
-                    return '<div style="font-size: 0.9em; color: #999;">リザーブ: なし</div>';
-                }
+            const teamAPlayersHtml = games.map((game) => buildTeamDetailPlayerItem(
+                game.player_a_name || game.player_a_id,
+                game.player_a_stream_status,
+                game.player_a_mirrativ_url,
+                game.player_a_mirrativ_id,
+                game.player_a_plan_mirrativ_url,
+                liveGameNumber !== null && game.game_number === liveGameNumber,
+                liveTeamAWins,
+                game.winner_team_id ? (game.winner_team_id === match.team_a_id ? "勝ち" : "負け") : "",
+            )).join("");
 
-                return reserves.map((reserve) => {
-                    const playerLabel = reserve.player_name || reserve.player_id;
-                    return `<div style="padding: 6px 0; font-size: 0.9em;">${playerLabel}</div>`;
-                }).join("");
-            };
+            const teamBPlayersHtml = games.map((game) => buildTeamDetailPlayerItem(
+                game.player_b_name || game.player_b_id,
+                game.player_b_stream_status,
+                game.player_b_mirrativ_url,
+                game.player_b_mirrativ_id,
+                game.player_b_plan_mirrativ_url,
+                liveGameNumber !== null && game.game_number === liveGameNumber,
+                liveTeamBWins,
+                game.winner_team_id ? (game.winner_team_id === match.team_b_id ? "勝ち" : "負け") : "",
+            )).join("");
 
-            const resultStyle = (win) => win
-                ? 'font-size: 0.85em; font-weight: bold; color: #2e7d32;'
-                : 'font-size: 0.85em; font-weight: bold; color: #c62828;';
-
-            let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
-
-            // Team A
-            html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
-            html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_a_name}</div>`;
-            games.forEach((game) => {
-                const isWin = game.winner_team_id === match.team_a_id;
-                const isLose = game.winner_team_id === match.team_b_id;
-                const hasResult = isWin || isLose;
-                html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div><strong>第${game.game_number}戦</strong></div>`;
-                html += `<div style="text-align: center;">${game.player_a_name || game.player_a_id}</div>`;
-                if (showResult && hasResult) {
-                    html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
-                }
-                html += '</div>';
-            });
-            html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
-            html += '<div style="font-weight: bold; margin-bottom: 6px;">リザーブ</div>';
-            html += renderReserves(teamAReserves);
-            html += '</div>';
-            html += '</div>';
-
-            // Team B
-            html += '<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fff;">';
-            html += `<div style="font-weight: bold; margin-bottom: 12px; text-align: center;">${match.team_b_name}</div>`;
-            games.forEach((game) => {
-                const isWin = game.winner_team_id === match.team_b_id;
-                const isLose = game.winner_team_id === match.team_a_id;
-                const hasResult = isWin || isLose;
-                html += '<div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9em;">';
-                html += `<div><strong>第${game.game_number}戦</strong></div>`;
-                html += `<div style="text-align: center;">${game.player_b_name || game.player_b_id}</div>`;
-                if (showResult && hasResult) {
-                    html += `<div style="text-align: right; ${resultStyle(isWin)}">${isWin ? '勝ち' : '負け'}</div>`;
-                }
-                html += '</div>';
-            });
-            html += '<div style="border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px;">';
-            html += '<div style="font-weight: bold; margin-bottom: 6px;">リザーブ</div>';
-            html += renderReserves(teamBReserves);
-            html += '</div>';
-            html += '</div>';
-
-            html += '</div>';
-            return html;
+            return `
+                <div class="match-card team-detail-match-card">
+                    <div class="match-datetime">
+                        ${buildTeamDetailCardMetaHtml(sourceMatch, teamId)}
+                    </div>
+                    <div class="teams-container">
+                        <div class="team team-a">
+                            <div class="team-result-summary-row">
+                                <span class="team-result-badge ${teamAResultClass}">${teamAResult}</span>
+                                <span class="team-win-summary-inline">${teamAWins}勝</span>
+                            </div>
+                            <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                            <div class="team-header-divider"></div>
+                            ${teamAPlayersHtml}
+                            ${buildReserveSectionHtml(teamAReserves)}
+                        </div>
+                        <div class="team team-b">
+                            <div class="team-result-summary-row">
+                                <span class="team-result-badge ${teamBResultClass}">${teamBResult}</span>
+                                <span class="team-win-summary-inline">${teamBWins}勝</span>
+                            </div>
+                            <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                            <div class="team-header-divider"></div>
+                            ${teamBPlayersHtml}
+                            ${buildReserveSectionHtml(teamBReserves)}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         async function submitOrder(matchId, teamId, members) {
@@ -564,7 +690,7 @@
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
                                 <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
                                 <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
-                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;">読込中...</div>
+                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" class="team-detail-match-card-host">読込中...</div>
                                 </div>
                             </div>
                         `;
@@ -587,7 +713,7 @@
                                     const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
-                                        matchCardDiv.innerHTML = generateMatchCardHTML(cardData, true);
+                                        matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId, true);
                                         const saveBtn = document.createElement("button");
                                         saveBtn.textContent = "📷 画像として保存";
                                         saveBtn.className = "btn";
@@ -652,7 +778,7 @@
 
                                 <div id="matchCardSection_${match.match_id}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                                     <div style="font-weight: 700; margin-bottom: 12px;">対戦カード</div>
-                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" style="background: #f9f9f9; border-radius: 4px; padding: 12px;"></div>
+                                    <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" class="team-detail-match-card-host"></div>
                                 </div>
                             </div>
                         `;
