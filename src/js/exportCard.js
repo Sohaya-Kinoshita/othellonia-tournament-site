@@ -54,17 +54,31 @@ async function exportCardAsImage(
   const originalMaxWidth = card.style.maxWidth;
   const originalBoxSizing = card.style.boxSizing;
   let exportMetaElement = null;
+  let exportBrandHeader = null;
   if (targetWidth) {
     card.style.width = `${targetWidth}px`;
     card.style.maxWidth = `${targetWidth}px`;
     card.style.boxSizing = "border-box";
   }
+  exportBrandHeader = document.createElement("div");
+  exportBrandHeader.className = "export-brand-header";
+  exportBrandHeader.innerHTML = `
+    <div class="export-brand-mark">
+      <img src="${new URL("./images/oc_mark.png", window.location.href).href}" alt="OC_mark">
+    </div>
+    <div class="export-brand-title">隊抗戦</div>
+  `;
+  card.prepend(exportBrandHeader);
   if (exportMetaText) {
     exportMetaElement = document.createElement("div");
     exportMetaElement.textContent = exportMetaText;
     exportMetaElement.style.cssText =
       "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
-    card.prepend(exportMetaElement);
+    if (exportBrandHeader.nextSibling) {
+      card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
+    } else {
+      card.appendChild(exportMetaElement);
+    }
   }
 
   try {
@@ -100,6 +114,9 @@ async function exportCardAsImage(
         card.style.maxWidth = originalMaxWidth;
         card.style.boxSizing = originalBoxSizing;
       }
+      if (exportBrandHeader) {
+        exportBrandHeader.remove();
+      }
       if (exportMetaElement) {
         exportMetaElement.remove();
       }
@@ -124,6 +141,9 @@ async function exportCardAsImage(
       card.style.width = originalWidth;
       card.style.maxWidth = originalMaxWidth;
       card.style.boxSizing = originalBoxSizing;
+    }
+    if (exportBrandHeader) {
+      exportBrandHeader.remove();
     }
     if (exportMetaElement) {
       exportMetaElement.remove();

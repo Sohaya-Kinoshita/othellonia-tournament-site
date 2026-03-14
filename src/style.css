@@ -1062,6 +1062,10 @@ th {
   padding-bottom: 56px;
 }
 
+.match-card.exporting .match-datetime.has-detail-toggle {
+  padding-bottom: 12px;
+}
+
 .match-datetime.has-detail-toggle .match-detail-toggle-btn {
   position: absolute;
   right: 12px;
@@ -1334,6 +1338,12 @@ th {
   min-height: 95px;
   justify-content: flex-start;
   box-sizing: border-box;
+}
+
+.player-item.result-player-item {
+  min-height: 0;
+  gap: 4px;
+  justify-content: center;
 }
 
 .player-name {
@@ -1637,6 +1647,44 @@ th {
 
 .hide-for-export {
   display: none;
+}
+
+.export-brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid #d9e5f2;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fbff 0%, #fff8f3 100%);
+}
+
+.export-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #d0dae6;
+  overflow: hidden;
+}
+
+.export-brand-mark img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.export-brand-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1f2937;
 }
 
 .mirrativ-link {

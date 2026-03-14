@@ -227,6 +227,7 @@
                 ? `<div class="player-game-result-row"><span class="team-result-badge ${gameResultLabel === "勝ち" ? "is-win" : "is-lose"}">${gameResultLabel}</span></div>`
                 : "";
             const showStreamInfo = !gameResultLabel;
+            const playerItemClassName = showStreamInfo ? "player-item" : "player-item result-player-item";
             const streamInfoHtml = showStreamInfo
                 ? `
                     <div class="player-separator"></div>
@@ -236,7 +237,7 @@
                 : "";
 
             return `
-                <div class="player-item">
+                <div class="${playerItemClassName}">
                     ${liveBadgeHtml}
                     ${gameResultBadgeHtml}
                     <div class="player-name">${safeName}</div>
