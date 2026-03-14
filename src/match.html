@@ -16,115 +16,18 @@
         <div class="card">
             <h1>対戦カード</h1>
             <hr>
-            <p>ここに本日の対戦カードを表示します。（仮ページ）</p>
+            <p>本日の対戦カードと、今後対戦予定のカードを表示します。</p>
         </div>
 
-        <div class="match-card" id="matchCard">
-            <div class="match-datetime">
-                <div>2026年99月99日99時99分～</div>
-            </div>
-            <div class="teams-container">
-                <div class="team team-a">
-                    <div class="team-name">ベビーチーズ高橋</div>
-                    <div class="player-item">
-                        <div class="player-name">あいうえおかきくけこ</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手2</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status unavailable">予定無し</div>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手3</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手4</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status unavailable">予定無し</div>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手5</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手6</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手7</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                </div>
-                <div class="team team-b">
-                    <div class="team-name">チームマインクラフト</div>
-                    <div class="player-item">
-                        <div class="player-name">あいうえおかきくけこ</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手2</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手3</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手4</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status unavailable">予定無し</div>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手5</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手6</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信未定</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                    <div class="player-item">
-                        <div class="player-name">選手7</div>
-                        <div class="player-separator"></div>
-                        <div class="player-status">配信予定あり</div>
-                        <a href="https://www.mirrativ.com/" target="_blank" rel="noopener"
-                            class="player-link">▷ミラティブアカウント</a>
-                    </div>
-                </div>
-            </div>
-            <button id="exportImageBtn" class="export-btn">📷 画像として保存</button>
-        </div>
+        <section class="card match-section">
+            <h2 class="match-section-title">本日の対戦カード</h2>
+            <div id="todayMatchCards">読込中...</div>
+        </section>
+
+        <section class="card match-section">
+            <h2 class="match-section-title">今後対戦予定のカード</h2>
+            <div id="upcomingMatchCards">読込中...</div>
+        </section>
     </main>
 
     <div id="footerSlot"></div>
@@ -133,9 +36,187 @@
     <script src="./js/layout.js"></script>
     <script src="./js/exportCard.js"></script>
     <script>
-        document.getElementById('exportImageBtn').addEventListener('click', function () {
-            exportCardAsImage('matchCard', '対戦カード', this);
-        });
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function parseDateTime(datetimeText) {
+            if (!datetimeText) {
+                return null;
+            }
+            const normalized = String(datetimeText).replace(" ", "T");
+            const date = new Date(normalized);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function formatDateTime(datetimeText) {
+            const date = parseDateTime(datetimeText);
+            if (!date) {
+                return "日時未設定";
+            }
+            return date.toLocaleString("ja-JP", {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        }
+
+        const DAY_RESET_HOUR = 4;
+
+        function toJstOperationalDateKey(date) {
+            const shifted = new Date(date.getTime() - DAY_RESET_HOUR * 60 * 60 * 1000);
+            return shifted.toLocaleDateString("ja-JP", {
+                timeZone: "Asia/Tokyo",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+            });
+        }
+
+        function buildPlayerItem(playerName, mirrativId) {
+            const hasMirrativ = !!mirrativId;
+            const safeName = escapeHtml(playerName || "未定");
+            const statusClass = hasMirrativ ? "player-status" : "player-status unavailable";
+            const statusText = hasMirrativ ? "配信予定あり" : "予定無し";
+            const linkHtml = hasMirrativ
+                ? `<a href="https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}" target="_blank" rel="noopener" class="player-link">▷ミラティブアカウント</a>`
+                : "";
+
+            return `
+                <div class="player-item">
+                    <div class="player-name">${safeName}</div>
+                    <div class="player-separator"></div>
+                    <div class="${statusClass}">${statusText}</div>
+                    ${linkHtml}
+                </div>
+            `;
+        }
+
+        function buildMatchCardHtml(match, cardData) {
+            const cardId = `matchCard_${escapeHtml(match.match_id)}`;
+            const exportBtnId = `exportBtn_${escapeHtml(match.match_id)}`;
+            const games = cardData?.games || [];
+
+            const teamAPlayers = games.map((game) => ({
+                player_name: game.player_a_name,
+                mirrativ_id: game.player_a_mirrativ_id,
+            }));
+            const teamBPlayers = games.map((game) => ({
+                player_name: game.player_b_name,
+                mirrativ_id: game.player_b_mirrativ_id,
+            }));
+
+            const teamAHtml = teamAPlayers.length > 0
+                ? teamAPlayers.map((player) => buildPlayerItem(player.player_name, player.mirrativ_id)).join("")
+                : buildPlayerItem("対戦カード未確定", null);
+            const teamBHtml = teamBPlayers.length > 0
+                ? teamBPlayers.map((player) => buildPlayerItem(player.player_name, player.mirrativ_id)).join("")
+                : buildPlayerItem("対戦カード未確定", null);
+
+            return `
+                <div class="match-card" id="${cardId}" style="margin-top: 12px;">
+                    <div class="match-datetime">
+                        <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                    </div>
+                    <div class="teams-container">
+                        <div class="team team-a">
+                            <div class="team-name">${escapeHtml(match.team_a_name)}</div>
+                            ${teamAHtml}
+                        </div>
+                        <div class="team team-b">
+                            <div class="team-name">${escapeHtml(match.team_b_name)}</div>
+                            ${teamBHtml}
+                        </div>
+                    </div>
+                    <button id="${exportBtnId}" class="export-btn">📷 画像として保存</button>
+                </div>
+            `;
+        }
+
+        async function fetchMatchCard(matchId) {
+            const response = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "対戦カード取得に失敗しました");
+            }
+            return result;
+        }
+
+        async function renderMatchCards(matches, targetElement) {
+            if (!matches.length) {
+                targetElement.innerHTML = "<p style=\"color:#999;\">該当する対戦カードはありません</p>";
+                return;
+            }
+
+            targetElement.innerHTML = "";
+
+            for (const match of matches) {
+                try {
+                    const cardData = await fetchMatchCard(match.match_id);
+                    targetElement.insertAdjacentHTML("beforeend", buildMatchCardHtml(match, cardData));
+
+                    const exportButton = document.getElementById(`exportBtn_${match.match_id}`);
+                    if (exportButton) {
+                        exportButton.addEventListener("click", function () {
+                            exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this);
+                        });
+                    }
+                } catch (error) {
+                    const errorCard = document.createElement("div");
+                    errorCard.className = "match-card";
+                    errorCard.style.marginTop = "12px";
+                    errorCard.innerHTML = `
+                        <div class="match-datetime">
+                            <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                        </div>
+                        <p style="margin:0; color:#c62828;">${escapeHtml(match.match_id)} の対戦カード取得に失敗しました</p>
+                    `;
+                    targetElement.appendChild(errorCard);
+                }
+            }
+        }
+
+        async function loadMatchPage() {
+            const todayContainer = document.getElementById("todayMatchCards");
+            const upcomingContainer = document.getElementById("upcomingMatchCards");
+
+            try {
+                const response = await fetch("/api/matches");
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || "マッチ一覧の取得に失敗しました");
+                }
+
+                const now = new Date();
+                const todayKey = toJstOperationalDateKey(now);
+
+                const matches = (result.matches || [])
+                    .filter((match) => match.scheduled_at && !match.winner_team_id)
+                    .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
+                    .filter((match) => match._scheduledDate)
+                    .sort((a, b) => a._scheduledDate - b._scheduledDate);
+
+                const todayMatches = matches.filter((match) => toJstOperationalDateKey(match._scheduledDate) === todayKey);
+                const upcomingMatches = matches.filter((match) => toJstOperationalDateKey(match._scheduledDate) > todayKey);
+
+                await renderMatchCards(todayMatches, todayContainer);
+                await renderMatchCards(upcomingMatches, upcomingContainer);
+            } catch (error) {
+                console.error("Match page load error:", error);
+                todayContainer.innerHTML = "<p style=\"color:#c62828;\">対戦カードの読み込みに失敗しました</p>";
+                upcomingContainer.innerHTML = "<p style=\"color:#c62828;\">対戦カードの読み込みに失敗しました</p>";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadMatchPage);
     </script>
 </body>
 

@@ -932,6 +932,14 @@ th {
   font-weight: 800;
 }
 
+.match-section {
+  margin-top: 16px;
+}
+
+.match-section-title {
+  margin-top: 0;
+}
+
 /* 対戦カード */
 .match-card {
   display: flex;
