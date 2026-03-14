@@ -337,18 +337,12 @@
                     : "is-pending";
             const teamAResultText = teamAResult || "未決着";
             const teamBResultText = teamBResult || "未決着";
-            const teamASummaryHtml = `
-                <div class="team-result-summary-row">
-                    <span class="team-result-badge ${teamAResultClass}">${teamAResultText}</span>
-                    <span class="team-win-summary-inline">${teamAWinCount}勝</span>
-                </div>
-            `;
-            const teamBSummaryHtml = `
-                <div class="team-result-summary-row">
-                    <span class="team-result-badge ${teamBResultClass}">${teamBResultText}</span>
-                    <span class="team-win-summary-inline">${teamBWinCount}勝</span>
-                </div>
-            `;
+            const teamASummaryHtml = (teamAResult || teamAWinCount > 0)
+                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamAResultClass}">${teamAResultText}</span><span class="team-win-summary-inline">${teamAWinCount}勝</span></div>`
+                : "";
+            const teamBSummaryHtml = (teamBResult || teamBWinCount > 0)
+                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamBResultClass}">${teamBResultText}</span><span class="team-win-summary-inline">${teamBWinCount}勝</span></div>`
+                : "";
             const currentLiveGame = match.match_status === "in_progress"
                 ? games.find((game) => !game.winner_player_id)
                 : null;

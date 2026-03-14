@@ -87,52 +87,14 @@
         }
 
         function buildTeamDetailPlayerItem(playerName, streamStatus, mirrativUrl, mirrativId, customMirrativUrl, isLiveGame = false, liveWins = 0, gameResultLabel = "") {
-            const normalizedStatus = ["available", "unavailable", "undecided"].includes(streamStatus)
-                ? streamStatus
-                : null;
-            const hasCustomLiveUrl = !!customMirrativUrl;
-            const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
-            const hasMirrativ = !!fallbackUrl;
             const safeName = escapeHtml(playerName || "未定");
-            const statusClass = normalizedStatus === "unavailable"
-                ? "player-status unavailable"
-                : normalizedStatus === "undecided"
-                    ? "player-status"
-                    : hasMirrativ
-                        ? "player-status"
-                        : "player-status unavailable";
-            const statusText = normalizedStatus === "unavailable"
-                ? "予定無し"
-                : normalizedStatus === "undecided"
-                    ? "配信未定"
-                    : hasMirrativ
-                        ? "配信予定あり"
-                        : "予定無し";
-            const linkHtml = hasMirrativ && (normalizedStatus !== "unavailable")
-                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
-                : "";
-            const liveBadgeHtml = isLiveGame
-                ? `<div class="player-live-badges"><div class="player-live-badge">試合中！</div><div class="player-win-badge">${Number(liveWins || 0)}勝</div></div>`
-                : "";
             const gameResultBadgeHtml = gameResultLabel
                 ? `<div class="player-game-result-row"><span class="team-result-badge ${gameResultLabel === "勝ち" ? "is-win" : "is-lose"}">${gameResultLabel}</span></div>`
                 : "";
-            const showStreamInfo = !gameResultLabel;
-            const playerItemClassName = showStreamInfo ? "player-item" : "player-item result-player-item";
-            const streamInfoHtml = showStreamInfo
-                ? `
-                    <div class="player-separator"></div>
-                    <div class="${statusClass}">${statusText}</div>
-                    <div class="player-link-row">${linkHtml || '<span class="player-link-placeholder" aria-hidden="true"></span>'}</div>
-                `
-                : "";
-
             return `
-                <div class="${playerItemClassName}">
-                    ${liveBadgeHtml}
+                <div class="player-item result-player-item">
                     ${gameResultBadgeHtml}
                     <div class="player-name">${safeName}</div>
-                    ${streamInfoHtml}
                 </div>
             `;
         }
@@ -446,6 +408,14 @@
                 game.winner_team_id ? (game.winner_team_id === match.team_b_id ? "勝ち" : "負け") : "",
             )).join("");
 
+            const showSummaryRows = teamAWins > 0 || teamBWins > 0;
+            const teamASummaryHtml = showSummaryRows
+                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamAResultClass}">${teamAResult}</span><span class="team-win-summary-inline">${teamAWins}勝</span></div>`
+                : "";
+            const teamBSummaryHtml = showSummaryRows
+                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamBResultClass}">${teamBResult}</span><span class="team-win-summary-inline">${teamBWins}勝</span></div>`
+                : "";
+
             return `
                 <div class="match-card team-detail-match-card">
                     <div class="match-datetime">
@@ -453,20 +423,14 @@
                     </div>
                     <div class="teams-container">
                         <div class="team team-a">
-                            <div class="team-result-summary-row">
-                                <span class="team-result-badge ${teamAResultClass}">${teamAResult}</span>
-                                <span class="team-win-summary-inline">${teamAWins}勝</span>
-                            </div>
+                            ${teamASummaryHtml}
                             <div class="team-name">${escapeHtml(match.team_a_name)}</div>
                             <div class="team-header-divider"></div>
                             ${teamAPlayersHtml}
                             ${buildReserveSectionHtml(teamAReserves)}
                         </div>
                         <div class="team team-b">
-                            <div class="team-result-summary-row">
-                                <span class="team-result-badge ${teamBResultClass}">${teamBResult}</span>
-                                <span class="team-win-summary-inline">${teamBWins}勝</span>
-                            </div>
+                            ${teamBSummaryHtml}
                             <div class="team-name">${escapeHtml(match.team_b_name)}</div>
                             <div class="team-header-divider"></div>
                             ${teamBPlayersHtml}
