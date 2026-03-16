@@ -657,6 +657,31 @@
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                         matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId, true);
+                                        // 本日の対戦カード（進行中のみ）に更新ボタンを追加
+                                        if (status === "進行中") {
+                                            // 対戦カードページの対戦カードのみ追加
+                                            if (matchCardDiv && matchCardDiv.classList.contains("team-detail-match-card-host")) {
+                                                const updateBtn = document.createElement("button");
+                                                updateBtn.textContent = "対戦カードを更新";
+                                                updateBtn.className = "btn update-match-card-btn hide-for-export";
+                                                updateBtn.style.cssText = "margin-top: 12px; width: 100%;";
+                                                updateBtn.addEventListener("click", async function () {
+                                                    matchCardDiv.textContent = "読込中...";
+                                                    try {
+                                                        const cardResponse2 = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                                        const cardData2 = await cardResponse2.json();
+                                                        if (cardResponse2.ok && cardData2.games && cardData2.games.length > 0) {
+                                                            matchCardDiv.innerHTML = generateMatchCardHTML(cardData2, match, teamId, true);
+                                                        } else {
+                                                            matchCardDiv.textContent = "対戦カードがありません";
+                                                        }
+                                                    } catch (e) {
+                                                        matchCardDiv.textContent = "対戦カードの取得に失敗しました";
+                                                    }
+                                                });
+                                                matchCardDiv.insertAdjacentElement("beforebegin", updateBtn);
+                                            }
+                                        }
                                         const saveBtn = document.createElement("button");
                                         saveBtn.textContent = "📷 画像として保存";
                                         saveBtn.className = "btn";
