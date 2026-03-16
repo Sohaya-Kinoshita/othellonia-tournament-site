@@ -1197,7 +1197,7 @@ th {
 
 .team-detail-status-badge.is-lose {
   color: #b91c1c;
-  background: #fee2e2;
+  background: #fff;
   border: 1px solid #f4a7b4;
 }
 
@@ -1327,7 +1327,7 @@ th {
 
 .team-result-badge.is-lose {
   color: #b91c1c;
-  background: #fee2e2;
+  background: #fff;
   border: 1px solid #f4a7b4;
 }
 
