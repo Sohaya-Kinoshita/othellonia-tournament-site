@@ -822,6 +822,10 @@
                     scoreDisplay = '未入力';
                 }
 
+                // 確定済み表示はconfirmedフラグがtrueの場合のみ
+                const isConfirmed = currentMatchData.confirmed || currentMatchData.isMatchConfirmed;
+                const confirmedText = (isGameLocked && isConfirmed) ? "（確定済み）" : "";
+
                 // ヘッダー（クリックで開閉）
                 const gameHeader = document.createElement("div");
                 gameHeader.className = "game-result-header";
@@ -830,7 +834,7 @@
                         <div class="game-header-line1">第${game.game_number}戦</div>
                         <div class="game-header-line2">${match.team_a_name} vs ${match.team_b_name}</div>
                         <div class="game-header-line3">${game.player_a_name} vs ${game.player_b_name}</div>
-                        <div class="game-header-line4">${scoreDisplay}${isGameLocked ? "（確定済み）" : ""}</div>
+                        <div class="game-header-line4">${scoreDisplay}${confirmedText}</div>
                     </div>
                     <span class="expand-icon">▼</span>
                 `;
