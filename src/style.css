@@ -1735,7 +1735,8 @@ th {
   transform: none;
 }
 
-.hide-for-export {
+/* 画像保存時のみ非表示にする */
+body.export-mode .hide-for-export {
   display: none;
 }
 
