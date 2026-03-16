@@ -60,6 +60,34 @@
     <script src="./js/layout.js"></script>
     <script src="./js/exportCard.js"></script>
     <script>
+        // 「対戦カードを更新」ボタンのリロード＆スクロール機能
+        document.addEventListener("click", function (e) {
+            if (e.target && e.target.classList.contains("update-match-card-btn")) {
+                // 開いているカードのIDを取得
+                var openDetail = document.querySelector('.match-card-detail:not(.is-collapsed)');
+                var card = openDetail ? openDetail.closest('.match-card') : null;
+                var cardId = card ? card.id : null;
+                if (cardId) {
+                    localStorage.setItem('scrollToMatchCardId', cardId);
+                } else {
+                    localStorage.removeItem('scrollToMatchCardId');
+                }
+                location.reload();
+            }
+        });
+
+        window.addEventListener("DOMContentLoaded", function () {
+            var cardId = localStorage.getItem('scrollToMatchCardId');
+            if (cardId) {
+                var el = document.getElementById(cardId);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+                localStorage.removeItem('scrollToMatchCardId');
+            }
+        });
+    </script>
+    <script>
         function escapeHtml(value) {
             return String(value || "")
                 .replace(/&/g, "&amp;")
