@@ -795,7 +795,9 @@
             }
 
             games.forEach((game, index) => {
-                const isGameLocked = Boolean(game.winner_player_id);
+                // 入力ロックは「確定」時のみ
+                const isConfirmed = currentMatchData.confirmed || currentMatchData.isMatchConfirmed;
+                const isGameLocked = Boolean(game.winner_player_id) && isConfirmed;
                 const gameCard = document.createElement("div");
                 gameCard.className = "game-result-card";
                 if (isGameLocked) {

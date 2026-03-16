@@ -737,6 +737,31 @@
 
                 ongoingMatches.forEach((match) => {
                     renderMatchCard(match, ongoingMatchesList, false);
+                    // 本日の対戦カードに更新ボタンを追加
+                    const matchCardSection = document.getElementById(`matchCardSection_${match.match_id}`);
+                    if (matchCardSection) {
+                        const updateBtn = document.createElement("button");
+                        updateBtn.textContent = "対戦カードを更新";
+                        updateBtn.className = "btn update-match-card-btn hide-for-export";
+                        updateBtn.style.cssText = "margin-top: 12px; width: 100%;";
+                        updateBtn.addEventListener("click", async function () {
+                            // 対戦カード再取得処理（例: 再読み込み）
+                            const cardDiv = document.getElementById(`matchCard_${match.match_id}`);
+                            cardDiv.textContent = "読込中...";
+                            try {
+                                const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                const cardData = await cardResponse.json();
+                                if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                                    cardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
+                                } else {
+                                    cardDiv.textContent = "対戦カードがありません";
+                                }
+                            } catch (e) {
+                                cardDiv.textContent = "対戦カードの取得に失敗しました";
+                            }
+                        });
+                        matchCardSection.appendChild(updateBtn);
+                    }
                 });
 
                 finishedMatches.forEach((match) => {
