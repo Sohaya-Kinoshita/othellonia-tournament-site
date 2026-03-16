@@ -1296,21 +1296,6 @@ th {
   margin-bottom: 4px;
 }
 
-.team-win-summary-inline {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #1f2937;
-  background: #eef2f7;
-  border: 1px solid #d0dae6;
-  line-height: 1.2;
-}
-
 .team-result-badge {
   align-self: center;
   display: inline-flex;
