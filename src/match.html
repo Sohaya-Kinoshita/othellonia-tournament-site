@@ -79,19 +79,21 @@
         window.addEventListener("DOMContentLoaded", function () {
             var cardId = localStorage.getItem('scrollToMatchCardId');
             if (cardId) {
-                var el = document.getElementById(cardId);
-                if (el) {
-                    // 詳細を開く
-                    var detail = el.querySelector('.match-card-detail');
-                    if (detail && detail.classList.contains('is-collapsed')) {
-                        detail.classList.remove('is-collapsed');
+                setTimeout(function () {
+                    var el = document.getElementById(cardId);
+                    if (el) {
+                        // 詳細を必ず開く
+                        var detail = el.querySelector('.match-card-detail');
+                        if (detail) {
+                            detail.classList.remove('is-collapsed');
+                        }
                         // ボタンのテキストも閉じるに
                         var btn = el.querySelector('.match-detail-toggle-btn');
                         if (btn) btn.textContent = '閉じる';
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
                     }
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-                localStorage.removeItem('scrollToMatchCardId');
+                    localStorage.removeItem('scrollToMatchCardId');
+                }, 100);
             }
         });
     </script>
@@ -388,10 +390,10 @@
             const teamAResultText = teamAResult || "未決着";
             const teamBResultText = teamBResult || "未決着";
             const teamASummaryHtml = (teamAResult || teamAWinCount > 0)
-                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamAResultClass}">${teamAResultText}</span><span class="team-result-badge">${teamAWinCount}勝</span></div>`
+                ? `<div class="team-result-summary-row">${match.match_status !== "in_progress" && teamAResult ? `<span class="team-result-badge ${teamAResultClass}\">${teamAResultText}</span>` : ""}<span class="player-win-badge">${teamAWinCount}勝</span></div>`
                 : "";
             const teamBSummaryHtml = (teamBResult || teamBWinCount > 0)
-                ? `<div class="team-result-summary-row"><span class="team-result-badge ${teamBResultClass}">${teamBResultText}</span><span class="team-result-badge">${teamBWinCount}勝</span></div>`
+                ? `<div class="team-result-summary-row">${match.match_status !== "in_progress" && teamBResult ? `<span class="team-result-badge ${teamBResultClass}\">${teamBResultText}</span>` : ""}<span class="player-win-badge">${teamBWinCount}勝</span></div>`
                 : "";
             const currentLiveGame = match.match_status === "in_progress"
                 ? games.find((game) => !game.winner_player_id)
