@@ -72,7 +72,26 @@
                 } else {
                     localStorage.removeItem('scrollToMatchCardId');
                 }
-                location.reload();
+                // location.reload()の代わりにカードのみ再読み込み
+                loadMatchPage().then(() => {
+                    var cardId = localStorage.getItem('scrollToMatchCardId');
+                    if (cardId) {
+                        setTimeout(function () {
+                            var el = document.getElementById(cardId);
+                            if (el) {
+                                var detail = el.querySelector('.match-card-detail');
+                                if (detail) {
+                                    detail.classList.remove('is-collapsed');
+                                }
+                                var btn = el.querySelector('.match-detail-toggle-btn');
+                                if (btn) btn.textContent = '閉じる';
+                                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }
+                            localStorage.removeItem('scrollToMatchCardId');
+                        }, 100);
+                    }
+                });
+                e.preventDefault();
             }
         });
 
@@ -82,12 +101,10 @@
                 setTimeout(function () {
                     var el = document.getElementById(cardId);
                     if (el) {
-                        // 詳細を必ず開く
                         var detail = el.querySelector('.match-card-detail');
                         if (detail) {
                             detail.classList.remove('is-collapsed');
                         }
-                        // ボタンのテキストも閉じるに
                         var btn = el.querySelector('.match-detail-toggle-btn');
                         if (btn) btn.textContent = '閉じる';
                         el.scrollIntoView({ behavior: "smooth", block: "center" });
