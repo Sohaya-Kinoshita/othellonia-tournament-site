@@ -479,7 +479,7 @@ export async function onRequest(context) {
     }
   }
 
-  // PATCHメソッド：マッチのゲーム初期化
+  // PATCHメソッド：マッチ情報の編集
   if (context.request.method === "PATCH") {
     try {
       // 管理者認証確認
@@ -497,10 +497,10 @@ export async function onRequest(context) {
       }
 
       // セッションIDをデコード
+      let adminUserId = "";
       try {
         const decoded = atob(sessionId);
-        const [type] = decoded.split(":");
-
+        const [type, userId] = decoded.split(":");
         if (type !== "admin") {
           return new Response(
             JSON.stringify({ message: "管理者権限が必要です" }),
@@ -510,6 +510,7 @@ export async function onRequest(context) {
             },
           );
         }
+        adminUserId = userId;
       } catch (e) {
         return new Response(JSON.stringify({ message: "認証エラー" }), {
           status: 401,
@@ -518,195 +519,28 @@ export async function onRequest(context) {
       }
 
       // リクエストボディを解析
-      const { matchId, adminUserId, adminUserIds, action } =
+      const { matchId, teamAId, teamBId, scheduledAt, orderDeadline } =
         await context.request.json();
-
-      if (!matchId) {
-        return new Response(JSON.stringify({ message: "マッチIDが必要です" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+      if (!matchId || !teamAId || !teamBId || !scheduledAt) {
+        return new Response(
+          JSON.stringify({
+            message: "マッチID、チームA ID、チームB ID、試合日時が必要です",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
       }
 
       const db = context.env.DB;
       await ensureMatchesStartedAtColumn(db);
 
-      // 試合開始
-      if (action === "start") {
-        const matchForStart = await db
-          .prepare(
-            "SELECT match_id, started_at, winner_team_id FROM matches WHERE match_id = ?",
-          )
-          .bind(matchId)
-          .first();
-
-        if (!matchForStart) {
-          return new Response(
-            JSON.stringify({ message: "マッチが見つかりません" }),
-            {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        if (matchForStart.winner_team_id) {
-          return new Response(
-            JSON.stringify({ message: "終了済みのマッチは開始できません" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        if (matchForStart.started_at) {
-          return new Response(
-            JSON.stringify({
-              success: true,
-              message: "このマッチは既に開始済みです",
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        await db
-          .prepare(
-            "UPDATE matches SET started_at = datetime('now', '+9 hours') WHERE match_id = ?",
-          )
-          .bind(matchId)
-          .run();
-
-        return new Response(
-          JSON.stringify({ success: true, message: "試合を開始しました" }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // adminUserId または adminUserIds が指定されている場合は、管理者の更新のみを行う
-      if (adminUserId || adminUserIds) {
-        // 複数のユーザーIDを配列で受け取る（後方互換性のため adminUserId もサポート）
-        const rawUserIds =
-          adminUserIds && Array.isArray(adminUserIds)
-            ? adminUserIds
-            : adminUserId
-              ? [adminUserId]
-              : [];
-
-        const userIds = [
-          ...new Set(rawUserIds.map((id) => String(id).trim()).filter(Boolean)),
-        ];
-
-        if (userIds.length === 0) {
-          return new Response(
-            JSON.stringify({ message: "最低1人の管理者を指定してください" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        // すべてのユーザーが存在するか確認
-        for (const userId of userIds) {
-          const user = await db
-            .prepare("SELECT user_id FROM users WHERE user_id = ?")
-            .bind(userId)
-            .first();
-
-          if (!user) {
-            return new Response(
-              JSON.stringify({
-                message: `ユーザー「${userId}」が見つかりません`,
-              }),
-              {
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-              },
-            );
-          }
-        }
-
-        const existingMatch = await db
-          .prepare("SELECT match_id FROM matches WHERE match_id = ?")
-          .bind(matchId)
-          .first();
-
-        if (!existingMatch) {
-          return new Response(
-            JSON.stringify({ message: "マッチが見つかりません" }),
-            {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        await ensureMatchAdminsTable(db);
-
-        const statements = [
-          db
-            .prepare("DELETE FROM match_admins WHERE match_id = ?")
-            .bind(matchId),
-        ];
-
-        const insertUsingAdminUserId = userIds.map((userId) =>
-          db
-            .prepare(
-              "INSERT INTO match_admins (match_id, admin_user_id) VALUES (?, ?)",
-            )
-            .bind(matchId, userId),
-        );
-
-        statements.push(
-          db
-            .prepare("UPDATE matches SET admin_user_id = ? WHERE match_id = ?")
-            .bind(userIds[0], matchId),
-        );
-
-        try {
-          await db.batch([...statements, ...insertUsingAdminUserId]);
-        } catch (insertError) {
-          console.warn(
-            "admin_user_idでの管理者更新に失敗。user_idで再試行:",
-            insertError.message,
-          );
-          const insertUsingUserId = userIds.map((userId) =>
-            db
-              .prepare(
-                "INSERT INTO match_admins (match_id, user_id) VALUES (?, ?)",
-              )
-              .bind(matchId, userId),
-          );
-          await db.batch([...statements, ...insertUsingUserId]);
-        }
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: "マッチの管理者を更新しました",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
       // マッチが存在するか確認
       const match = await db
-        .prepare(
-          "SELECT match_id, team_a_id, team_b_id FROM matches WHERE match_id = ?",
-        )
+        .prepare("SELECT * FROM matches WHERE match_id = ?")
         .bind(matchId)
         .first();
-
       if (!match) {
         return new Response(
           JSON.stringify({ message: "マッチが見つかりません" }),
@@ -717,136 +551,53 @@ export async function onRequest(context) {
         );
       }
 
-      // オーダーが両チーム提出されているか確認
-      const orderA = await db
+      // オーダー確定済みかどうか判定
+      const confirmedOrders = await db
         .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE match_id = ? AND team_id = ? AND submitted_at IS NOT NULL",
+          "SELECT COUNT(*) as count FROM orders WHERE match_id = ? AND confirmed_at IS NOT NULL",
         )
-        .bind(matchId, match.team_a_id)
-        .first();
-
-      const orderB = await db
-        .prepare(
-          "SELECT COUNT(*) as count FROM orders WHERE match_id = ? AND team_id = ? AND submitted_at IS NOT NULL",
-        )
-        .bind(matchId, match.team_b_id)
-        .first();
-
-      if (
-        Number(orderA?.count || 0) === 0 ||
-        Number(orderB?.count || 0) === 0
-      ) {
-        return new Response(
-          JSON.stringify({ message: "両チームのオーダーが未提出です" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      const schemaType = await detectOrderSchema(db);
-      if (schemaType === "unknown") {
-        return new Response(
-          JSON.stringify({ message: "ordersテーブル形式が未対応です" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // オーダーを取得（legacy/v2 両対応）
-      const playersA = await getLatestOrderPlayers(
-        db,
-        schemaType,
-        matchId,
-        match.team_a_id,
-      );
-      const playersB = await getLatestOrderPlayers(
-        db,
-        schemaType,
-        matchId,
-        match.team_b_id,
-      );
-
-      if (!playersA || !playersB) {
-        return new Response(
-          JSON.stringify({ message: "オーダーの取得に失敗しました" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      if (playersA.length !== 5 || playersB.length !== 5) {
-        return new Response(
-          JSON.stringify({
-            message: "オーダーが不正です（5名である必要があります）",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // 既存ゲームを削除
-      await db
-        .prepare("DELETE FROM games WHERE match_id = ?")
         .bind(matchId)
-        .run();
+        .first();
+      const isOrderConfirmed = Number(confirmedOrders?.count || 0) > 0;
 
-      // 新しいゲームレコードを作成
-      const statements = [];
-      for (let i = 0; i < 5; i++) {
-        const gameId = `${matchId}${String(i + 1).padStart(2, "0")}`;
-        const battleMode = i < 3 ? "S" : "G";
-        statements.push(
-          db
-            .prepare(
-              `
-              INSERT INTO games (game_id, match_id, game_number, battle_mode, player_a_id, player_b_id)
-              VALUES (?, ?, ?, ?, ?, ?)
-            `,
-            )
-            .bind(gameId, matchId, i + 1, battleMode, playersA[i], playersB[i]),
-        );
+      // 日時フォーマット
+      const scheduledAtForDb = scheduledAt.replace("T", " ") + ":00";
+      let orderDeadlineForDb = orderDeadline
+        ? orderDeadline.replace("T", " ") + ":00"
+        : null;
+
+      // オーダー確定済みならorder_deadlineは更新不可
+      let updateSql =
+        "UPDATE matches SET team_a_id = ?, team_b_id = ?, scheduled_at = ? WHERE match_id = ?";
+      let updateParams = [teamAId, teamBId, scheduledAtForDb, matchId];
+      if (!isOrderConfirmed && orderDeadlineForDb) {
+        updateSql =
+          "UPDATE matches SET team_a_id = ?, team_b_id = ?, scheduled_at = ?, order_deadline = ? WHERE match_id = ?";
+        updateParams = [
+          teamAId,
+          teamBId,
+          scheduledAtForDb,
+          orderDeadlineForDb,
+          matchId,
+        ];
       }
 
-      await db.batch(statements);
-
-      await ensureOrdersConfirmedAtColumn(db);
-
       await db
-        .prepare(
-          "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
-        )
-        .bind(matchId, match.team_a_id)
-        .run();
-
-      await db
-        .prepare(
-          "UPDATE orders SET confirmed_at = datetime('now', '+9 hours') WHERE match_id = ? AND team_id = ?",
-        )
-        .bind(matchId, match.team_b_id)
+        .prepare(updateSql)
+        .bind(...updateParams)
         .run();
 
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: "マッチのゲームを初期化しました",
-        }),
+        JSON.stringify({ success: true, message: "マッチ情報を更新しました" }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
         },
       );
     } catch (error) {
-      console.error("Match game initialization error:", error);
+      console.error("Match update error:", error);
       return new Response(
-        JSON.stringify({ message: "ゲーム初期化処理でエラーが発生しました" }),
+        JSON.stringify({ message: "マッチ情報更新処理でエラーが発生しました" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },

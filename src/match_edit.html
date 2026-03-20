@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>マッチ情報を編集</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+    <main class="container">
+        <div class="card">
+            <h1>マッチ情報を編集</h1>
+            <hr>
+            <p id="adminMessage">編集するマッチを選択してください。</p>
+            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+        </div>
+        <div class="card hidden" id="editMatchCard">
+            <h2>マッチ情報編集</h2>
+            <form id="editMatchForm">
+                <div class="form-group">
+                    <label for="editMatchId">マッチID</label>
+                    <input type="text" id="editMatchId" name="editMatchId" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editTeamAId">チームA</label>
+                    <select id="editTeamAId" name="editTeamAId" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="editTeamBId">チームB</label>
+                    <select id="editTeamBId" name="editTeamBId" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="editMatchDateTime">試合日時</label>
+                    <input type="datetime-local" id="editMatchDateTime" name="editMatchDateTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="editOrderDeadline">オーダー提出期限</label>
+                    <input type="datetime-local" id="editOrderDeadline" name="editOrderDeadline" required>
+                </div>
+                <button type="submit" class="btn">保存</button>
+            </form>
+        </div>
+    </main>
+    <div id="footerSlot"></div>
+    <script src="./js/layout.js"></script>
+    <script src="./js/match_edit.js"></script>
+</body>
+
+</html>
