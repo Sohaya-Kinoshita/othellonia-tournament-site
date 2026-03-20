@@ -14,13 +14,16 @@
         <div class="card">
             <h1>マッチ削除</h1>
             <hr>
-            <form id="deleteMatchForm">
+            <form id="deleteMatchSearchForm" style="margin-bottom: 24px;">
                 <div class="form-group">
-                    <label for="deleteMatchId">削除するマッチID</label>
+                    <label for="deleteMatchId">マッチIDを入力してください</label>
                     <input type="text" id="deleteMatchId" name="deleteMatchId" maxlength="3" required
                         pattern="[A-Za-z][0-9]{2}" placeholder="例: M01, m01" style="width: 120px;">
+                    <button type="submit" class="btn">検索</button>
                 </div>
                 <div id="matchDetailBox" style="margin: 12px 0; color: #333;"></div>
+            </form>
+            <form id="deleteMatchForm" class="hidden">
                 <div class="form-group" id="orderConfirmBox" style="margin-bottom: 8px; display: none;">
                     <input type="checkbox" id="confirmOrderDelete">
                     <label for="confirmOrderDelete">オーダーが確定していますが、削除しますか。</label>
