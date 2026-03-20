@@ -46,6 +46,12 @@ document.addEventListener("DOMContentLoaded", function () {
       searchError.style.display = "block";
       return;
     }
+    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+      searchError.textContent =
+        "マッチIDは大文字アルファベット1文字+数字2桁で入力してください（例: M01, S02）";
+      searchError.style.display = "block";
+      return;
+    }
     const match = allMatches.find((m) => m.match_id === matchId);
     if (!match) {
       searchError.textContent = "指定されたマッチが見つかりません";

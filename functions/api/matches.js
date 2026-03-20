@@ -1,3 +1,109 @@
+// DELETEメソッド：マッチと関連データの削除
+if (context.request.method === "DELETE") {
+  try {
+    // 管理者認証確認
+    const cookies = context.request.headers.get("cookie") || "";
+    const sessionId = cookies
+      .split("; ")
+      .find((c) => c.startsWith("sessionId="))
+      ?.split("=")[1];
+    if (!sessionId) {
+      return new Response(JSON.stringify({ message: "認証が必要です" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    let adminUserId = "";
+    try {
+      const decoded = atob(sessionId);
+      const [type, userId] = decoded.split(":");
+      if (type !== "admin") {
+        return new Response(
+          JSON.stringify({ message: "管理者権限が必要です" }),
+          { status: 403, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      adminUserId = userId;
+    } catch (e) {
+      return new Response(JSON.stringify({ message: "認証エラー" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const { matchId } = await context.request.json();
+    if (!matchId || !/^[A-Z][0-9]{2}$/.test(matchId)) {
+      return new Response(
+        JSON.stringify({ message: "マッチIDの形式が不正です" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const db = context.env.DB;
+    // まずマッチが存在するか確認
+    const match = await db
+      .prepare("SELECT match_id FROM matches WHERE match_id = ?")
+      .bind(matchId)
+      .first();
+    if (!match) {
+      return new Response(
+        JSON.stringify({ message: "マッチが見つかりません" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // 関連データ削除（games, orders, match_admins, reserves, order_details, matches）
+    await db
+      .prepare("DELETE FROM games WHERE match_id = ?")
+      .bind(matchId)
+      .run();
+    await db
+      .prepare(
+        "DELETE FROM order_details WHERE order_id IN (SELECT order_id FROM orders WHERE match_id = ?)",
+      )
+      .bind(matchId)
+      .run();
+    await db
+      .prepare("DELETE FROM orders WHERE match_id = ?")
+      .bind(matchId)
+      .run();
+    await db
+      .prepare("DELETE FROM match_admins WHERE match_id = ?")
+      .bind(matchId)
+      .run();
+    await db
+      .prepare("DELETE FROM reserves WHERE match_id = ?")
+      .bind(matchId)
+      .run();
+    await db
+      .prepare("DELETE FROM matches WHERE match_id = ?")
+      .bind(matchId)
+      .run();
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "マッチと関連データを削除しました",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  } catch (error) {
+    console.error("Match delete error:", error);
+    return new Response(
+      JSON.stringify({ message: "マッチ削除処理でエラーが発生しました" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
+}
 export async function onRequest(context) {
   // GETメソッド：マッチ一覧を取得
   if (context.request.method === "GET") {
