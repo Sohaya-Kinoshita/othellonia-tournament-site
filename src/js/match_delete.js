@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const confirmOrderDelete = document.getElementById("confirmOrderDelete");
   const confirmResultDelete = document.getElementById("confirmResultDelete");
   const deleteButton = document.getElementById("deleteButton");
+  const matchDetailBox = document.getElementById("matchDetailBox");
 
   function updateDeleteButtonState() {
     deleteButton.disabled = !(
@@ -17,6 +18,36 @@ document.addEventListener("DOMContentLoaded", function () {
   confirmOrderDelete.addEventListener("change", updateDeleteButtonState);
   confirmResultDelete.addEventListener("change", updateDeleteButtonState);
   updateDeleteButtonState();
+
+  async function fetchMatchDetail(matchId) {
+    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+      matchDetailBox.textContent = "";
+      return;
+    }
+    matchDetailBox.textContent = "検索中...";
+    try {
+      const res = await fetch(
+        `/api/matches/detail?matchId=${encodeURIComponent(matchId)}`,
+      );
+      if (!res.ok) throw new Error("マッチが見つかりません");
+      const data = await res.json();
+      // 例: data = { match_id, team_a_name, team_b_name, scheduled_at, match_status, ... }
+      matchDetailBox.innerHTML = `
+        <div><b>マッチID:</b> ${data.match_id}</div>
+        <div><b>チームA:</b> ${data.team_a_name}</div>
+        <div><b>チームB:</b> ${data.team_b_name}</div>
+        <div><b>日程:</b> ${data.scheduled_at ? data.scheduled_at : "-"}</div>
+        <div><b>状態:</b> ${data.match_status ? data.match_status : "-"}</div>
+      `;
+    } catch (e) {
+      matchDetailBox.textContent = "マッチが見つかりません";
+    }
+  }
+
+  matchIdInput.addEventListener("input", function () {
+    const matchId = matchIdInput.value.trim();
+    fetchMatchDetail(matchId);
+  });
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
