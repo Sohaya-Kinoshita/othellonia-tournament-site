@@ -25,6 +25,12 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     matchDetailBox.textContent = "検索中...";
+    // チェックボックス非表示初期化
+    document.getElementById("orderConfirmBox").style.display = "none";
+    document.getElementById("resultConfirmBox").style.display = "none";
+    confirmOrderDelete.checked = false;
+    confirmResultDelete.checked = false;
+    updateDeleteButtonState();
     try {
       const res = await fetch(
         `/api/matches/detail?matchId=${encodeURIComponent(matchId)}`,
@@ -38,6 +44,14 @@ document.addEventListener("DOMContentLoaded", function () {
         <div><b>日程:</b> ${data.scheduled_at ? data.scheduled_at : "-"}</div>
         <div><b>状態:</b> ${data.match_status ? data.match_status : "-"}</div>
       `;
+      // オーダー確定済みならチェックボックス表示
+      if (data.has_confirmed_order) {
+        document.getElementById("orderConfirmBox").style.display = "block";
+      }
+      // 試合終了ならチェックボックス表示
+      if (data.is_finished) {
+        document.getElementById("resultConfirmBox").style.display = "block";
+      }
     } catch (e) {
       matchDetailBox.textContent = "マッチが見つかりません";
     }

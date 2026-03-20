@@ -10,7 +10,7 @@ export async function onRequestPost(context) {
     }
     // 存在確認
     const match = await db
-      .prepare("SELECT * FROM matches WHERE match_id = ?")
+      .prepare("SELECT * FROM matches WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .first();
     if (!match) {
@@ -21,19 +21,19 @@ export async function onRequestPost(context) {
     }
     // 関連データも削除（games, orders, match_admins など）
     await db
-      .prepare("DELETE FROM games WHERE match_id = ?")
+      .prepare("DELETE FROM games WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
     await db
-      .prepare("DELETE FROM orders WHERE match_id = ?")
+      .prepare("DELETE FROM orders WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
     await db
-      .prepare("DELETE FROM match_admins WHERE match_id = ?")
+      .prepare("DELETE FROM match_admins WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
     await db
-      .prepare("DELETE FROM matches WHERE match_id = ?")
+      .prepare("DELETE FROM matches WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
@@ -55,14 +55,19 @@ export async function onRequestGet(context) {
       status: 400,
     });
   }
+  // マッチ詳細＋オーダー確定・試合終了フラグも返す
   const match = await db
     .prepare(
       `
-    SELECT m.match_id, m.team_a_id, m.team_b_id, ta.team_name as team_a_name, tb.team_name as team_b_name, m.scheduled_at, m.match_status
+    SELECT m.match_id, m.team_a_id, m.team_b_id, ta.team_name as team_a_name, tb.team_name as team_b_name, m.scheduled_at, m.match_status,
+      -- オーダー確定済みフラグ
+      EXISTS (SELECT 1 FROM orders o WHERE o.match_id = m.match_id AND o.confirmed_at IS NOT NULL) AS has_confirmed_order,
+      -- 試合終了フラグ
+      CASE WHEN m.winner_team_id IS NOT NULL THEN 1 ELSE 0 END AS is_finished
     FROM matches m
     LEFT JOIN teams ta ON m.team_a_id = ta.team_id
     LEFT JOIN teams tb ON m.team_b_id = tb.team_id
-    WHERE m.match_id = ?
+    WHERE m.match_id = ? COLLATE binary
   `,
     )
     .bind(matchId)
@@ -72,5 +77,8 @@ export async function onRequestGet(context) {
       status: 404,
     });
   }
+  // SQLiteのboolean値は0/1なので明示的に変換
+  match.has_confirmed_order = !!match.has_confirmed_order;
+  match.is_finished = !!match.is_finished;
   return new Response(JSON.stringify(match), { status: 200 });
 }
