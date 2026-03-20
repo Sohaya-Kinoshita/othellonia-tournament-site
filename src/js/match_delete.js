@@ -1,13 +1,8 @@
 // マッチ削除画面用スクリプト
 
 document.addEventListener("DOMContentLoaded", function () {
-  const form = document.getElementById("deleteMatchForm");
+  const form = document.getElementById("deleteMatchSearchForm");
   const matchIdInput = document.getElementById("deleteMatchId");
-  const errorDiv = document.getElementById("deleteError");
-  const successDiv = document.getElementById("deleteSuccess");
-  const confirmOrderDelete = document.getElementById("confirmOrderDelete");
-  const confirmResultDelete = document.getElementById("confirmResultDelete");
-  const deleteButton = document.getElementById("deleteButton");
   const matchDetailBox = document.getElementById("matchDetailBox");
 
   function updateDeleteButtonState() {
@@ -57,7 +52,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  matchIdInput.addEventListener("input", function () {
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
     const matchId = matchIdInput.value.trim();
     fetchMatchDetail(matchId);
   });
