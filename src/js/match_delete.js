@@ -27,3 +27,28 @@ document.addEventListener("DOMContentLoaded", function () {
       errorDiv.textContent =
         "マッチIDは大文字アルファベット1文字+数字2桁で入力してください（例: M01, S02）";
       errorDiv.style.display = "block";
+      return;
+    }
+    deleteButton.disabled = true;
+    try {
+      const res = await fetch("/api/matches/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "削除に失敗しました");
+      }
+      successDiv.textContent = "マッチ「" + matchId + "」を削除しました。";
+      successDiv.style.display = "block";
+      form.reset();
+      updateDeleteButtonState();
+    } catch (err) {
+      errorDiv.textContent = err.message || "削除に失敗しました";
+      errorDiv.style.display = "block";
+    } finally {
+      deleteButton.disabled = false;
+    }
+  });
+});
