@@ -3,7 +3,7 @@ export async function onRequestPost(context) {
   const db = context.env.DB;
   try {
     const { matchId } = await context.request.json();
-    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+    if (!/^[A-Za-z][0-9]{2}$/.test(matchId)) {
       return new Response(JSON.stringify({ message: "不正なマッチIDです" }), {
         status: 400,
       });
@@ -49,8 +49,8 @@ export async function onRequestPost(context) {
 export async function onRequestGet(context) {
   const db = context.env.DB;
   const { searchParams } = new URL(context.request.url);
-  const matchId = searchParams.get("matchId");
-  if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+  let matchId = searchParams.get("matchId");
+  if (!/^[A-Za-z][0-9]{2}$/.test(matchId)) {
     return new Response(JSON.stringify({ message: "不正なマッチIDです" }), {
       status: 400,
     });

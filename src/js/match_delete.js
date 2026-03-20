@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
   updateDeleteButtonState();
 
   async function fetchMatchDetail(matchId) {
-    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+    if (!/^[A-Za-z][0-9]{2}$/.test(matchId)) {
       matchDetailBox.textContent = "";
       return;
     }
@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       if (!res.ok) throw new Error("マッチが見つかりません");
       const data = await res.json();
-      // 例: data = { match_id, team_a_name, team_b_name, scheduled_at, match_status, ... }
       matchDetailBox.innerHTML = `
         <div><b>マッチID:</b> ${data.match_id}</div>
         <div><b>チームA:</b> ${data.team_a_name}</div>
@@ -54,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
     errorDiv.style.display = "none";
     successDiv.style.display = "none";
     const matchId = matchIdInput.value.trim();
-    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
+    if (!/^[A-Za-z][0-9]{2}$/.test(matchId)) {
       errorDiv.textContent =
-        "マッチIDは大文字アルファベット1文字+数字2桁で入力してください（例: M01, S02）";
+        "マッチIDはアルファベット1文字+数字2桁で入力してください（例: M01, s02）";
       errorDiv.style.display = "block";
       return;
     }
