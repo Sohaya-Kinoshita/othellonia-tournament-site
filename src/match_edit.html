@@ -14,7 +14,15 @@
         <div class="card">
             <h1>マッチ情報を編集</h1>
             <hr>
-            <p id="adminMessage">編集するマッチを選択してください。</p>
+            <form id="matchIdSearchForm" style="margin-bottom: 24px;">
+                <div class="form-group">
+                    <label for="searchMatchId">マッチIDを入力してください</label>
+                    <input type="text" id="searchMatchId" name="searchMatchId" maxlength="3" required
+                        placeholder="例: M01" style="width: 120px;">
+                    <button type="submit" class="btn">検索</button>
+                </div>
+            </form>
+            <div id="searchError" style="color: red; display: none;"></div>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
         <div class="card hidden" id="editMatchCard">
