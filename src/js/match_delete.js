@@ -39,9 +39,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const data = await res.json();
       matchDetailBox.innerHTML = `
         <div><b>マッチID:</b> ${data.match_id}</div>
-        <div><b>チームA:</b> ${data.team_a_name}</div>
-        <div><b>チームB:</b> ${data.team_b_name}</div>
-        <div><b>日程:</b> ${data.scheduled_at ? data.scheduled_at : "-"}</div>
+        <div><b>対戦チーム:</b> ${data.team_a_name} vs ${data.team_b_name}</div>
+        <div><b>対戦日:</b> ${data.scheduled_at ? data.scheduled_at : "-"}</div>
+        <div><b>オーダー提出:</b> ${data.has_confirmed_order ? "済" : "未"}</div>
         <div><b>状態:</b> ${data.match_status ? data.match_status : "-"}</div>
       `;
       // オーダー確定済みならチェックボックス表示

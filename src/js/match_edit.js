@@ -79,13 +79,35 @@ document.addEventListener("DOMContentLoaded", function () {
     orderDeadlineInput.value = match.order_deadline
       ? match.order_deadline.replace(" ", "T").slice(0, 16)
       : "";
-    // オーダー確定済みなら提出期限を編集不可に
-    if (Number(match.confirmed_order_count) > 0) {
+    // 試合終了済みならチームA/B・試合日時・提出期限すべて編集不可
+    if (match.winner_team_id) {
+      teamASelect.disabled = true;
+      teamASelect.title = "試合終了後は編集できません";
+      teamBSelect.disabled = true;
+      teamBSelect.title = "試合終了後は編集できません";
+      matchDateTimeInput.disabled = true;
+      matchDateTimeInput.title = "試合終了後は編集できません";
+      orderDeadlineInput.disabled = true;
+      orderDeadlineInput.title = "試合終了後は編集できません";
+    } else if (Number(match.confirmed_order_count) > 0) {
+      // オーダー確定済みなら提出期限のみ編集不可
       orderDeadlineInput.disabled = true;
       orderDeadlineInput.title = "オーダー確定後は提出期限を変更できません";
+      teamASelect.disabled = false;
+      teamASelect.title = "";
+      teamBSelect.disabled = false;
+      teamBSelect.title = "";
+      matchDateTimeInput.disabled = false;
+      matchDateTimeInput.title = "";
     } else {
       orderDeadlineInput.disabled = false;
       orderDeadlineInput.title = "";
+      teamASelect.disabled = false;
+      teamASelect.title = "";
+      teamBSelect.disabled = false;
+      teamBSelect.title = "";
+      matchDateTimeInput.disabled = false;
+      matchDateTimeInput.title = "";
     }
     editMatchCard.classList.remove("hidden");
   });
