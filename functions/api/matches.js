@@ -99,7 +99,7 @@ export async function onRequest(context) {
           // JSON形式や文字列形式のどちらでも対応
           try {
             const parsed = JSON.parse(match.admin_user_id);
-            adminId = Array.isArray(parsed) ? (parsed[0] || "") : parsed;
+            adminId = Array.isArray(parsed) ? parsed[0] || "" : parsed;
           } catch {
             adminId = match.admin_user_id;
           }
