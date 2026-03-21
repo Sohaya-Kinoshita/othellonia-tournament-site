@@ -90,35 +90,25 @@ export async function onRequest(context) {
             ? "in_progress"
             : "before";
 
+        // admin_user_idは常に1人分のuser_id（文字列）で返す
+        let adminId = "";
         const assignedAdmins = adminMap.get(match.match_id) || [];
         if (assignedAdmins.length > 0) {
-          return {
-            ...match,
-            admin_user_id: assignedAdmins,
-            match_status: matchStatus,
-          };
+          adminId = assignedAdmins[0];
+        } else if (match.admin_user_id) {
+          // JSON形式や文字列形式のどちらでも対応
+          try {
+            const parsed = JSON.parse(match.admin_user_id);
+            adminId = Array.isArray(parsed) ? (parsed[0] || "") : parsed;
+          } catch {
+            adminId = match.admin_user_id;
+          }
         }
-
-        try {
-          // JSON パースを試みる（JSON 形式の場合）
-          const adminUserIds = match.admin_user_id
-            ? JSON.parse(match.admin_user_id)
-            : [];
-          return {
-            ...match,
-            match_status: matchStatus,
-            admin_user_id: Array.isArray(adminUserIds)
-              ? adminUserIds
-              : [adminUserIds],
-          };
-        } catch (e) {
-          // パース失敗時は元の値を配列化
-          return {
-            ...match,
-            match_status: matchStatus,
-            admin_user_id: match.admin_user_id ? [match.admin_user_id] : [],
-          };
-        }
+        return {
+          ...match,
+          admin_user_id: adminId,
+          match_status: matchStatus,
+        };
       });
 
       return new Response(
