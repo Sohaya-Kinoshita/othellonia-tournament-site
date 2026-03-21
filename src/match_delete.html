@@ -22,11 +22,14 @@
                 </div>
             </form>
             <div id="resultBox" style="margin-bottom: 24px; display: none;">
-                <div><strong>チーム1:</strong> <span id="team1Name">-</span></div>
-                <div><strong>チーム2:</strong> <span id="team2Name">-</span></div>
+                <div><strong>チーム1:</strong> <span id="team1Name">-</span><span id="team1OrderStatus"
+                        style="color: #007b00; font-size: 0.95em; margin-left: 8px;"></span></div>
+                <div><strong>チーム2:</strong> <span id="team2Name">-</span><span id="team2OrderStatus"
+                        style="color: #007b00; font-size: 0.95em; margin-left: 8px;"></span></div>
                 <div><strong>対戦日程:</strong> <span id="matchDate">-</span></div>
                 <div><strong>作成日時:</strong> <span id="createdAt">-</span></div>
                 <div><strong>作成者:</strong> <span id="createdBy">-</span></div>
+                <div id="cannotDeleteMsg" style="color: red; margin-top: 12px; display: none;">このマッチは勝敗が確定しています。</div>
                 <div style="margin-top: 16px;">
                     <button id="deleteBtn" class="btn btn-danger" disabled>削除</button>
                 </div>
@@ -40,6 +43,8 @@
         const resultBox = document.getElementById('resultBox');
         const team1Name = document.getElementById('team1Name');
         const team2Name = document.getElementById('team2Name');
+        const team1OrderStatus = document.getElementById('team1OrderStatus');
+        const team2OrderStatus = document.getElementById('team2OrderStatus');
         const matchDate = document.getElementById('matchDate');
         const createdAt = document.getElementById('createdAt');
         const createdBy = document.getElementById('createdBy');
@@ -71,6 +76,9 @@
             team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
             resultBox.style.display = '';
             deleteBtn.disabled = true;
+            document.getElementById('cannotDeleteMsg').style.display = 'none';
+            team1OrderStatus.textContent = '';
+            team2OrderStatus.textContent = '';
 
             // 既存のエラーメッセージを消す
             let errorMsg = document.getElementById('searchErrorMsg');
@@ -91,7 +99,38 @@
                     createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
                     let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
                     createdBy.textContent = getUserNameById(users, adminId);
-                    deleteBtn.disabled = false;
+
+                    // オーダー提出状況取得
+                    // /api/order?matchId=...&teamId=... で取得
+                    team1OrderStatus.textContent = '';
+                    team2OrderStatus.textContent = '';
+                    try {
+                        const [order1Res, order2Res] = await Promise.all([
+                            fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_a_id)}`),
+                            fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_b_id)}`)
+                        ]);
+                        if (order1Res.ok) {
+                            const order1 = await order1Res.json();
+                            if (order1 && order1.confirmedAt) {
+                                team1OrderStatus.textContent = '（オーダー提出済）';
+                            }
+                        }
+                        if (order2Res.ok) {
+                            const order2 = await order2Res.json();
+                            if (order2 && order2.confirmedAt) {
+                                team2OrderStatus.textContent = '（オーダー提出済）';
+                            }
+                        }
+                    } catch { }
+
+                    // 勝敗確定済みなら削除不可
+                    if (match.winner_team_id) {
+                        deleteBtn.disabled = true;
+                        document.getElementById('cannotDeleteMsg').style.display = '';
+                    } else {
+                        deleteBtn.disabled = false;
+                        document.getElementById('cannotDeleteMsg').style.display = 'none';
+                    }
                 } else {
                     // エラーメッセージ表示
                     const msg = document.createElement('div');
@@ -101,10 +140,14 @@
                     msg.textContent = '該当するマッチが見つかりません。';
                     resultBox.parentNode.insertBefore(msg, resultBox.nextSibling);
                     deleteBtn.disabled = true;
+                    document.getElementById('cannotDeleteMsg').style.display = 'none';
                 }
             } catch {
                 team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
+                team1OrderStatus.textContent = '';
+                team2OrderStatus.textContent = '';
                 deleteBtn.disabled = true;
+                document.getElementById('cannotDeleteMsg').style.display = 'none';
             }
         });
         // 削除ボタン押下時の確認ポップアップと削除処理
@@ -133,14 +176,15 @@
             dialog.style.zIndex = '9999';
 
             dialog.innerHTML = `
-                <div style="background: #fff; padding: 32px 24px; border-radius: 8px; box-shadow: 0 2px 8px #0002; min-width: 320px; max-width: 90vw;">
-                    <div style="margin-bottom: 16px; font-weight: bold;">本当に削除しますか？</div>
-                    <div style="margin-bottom: 8px;">マッチID：<span style="font-weight:bold;">${matchId}</span></div>
-                    <div style="margin-bottom: 8px;">作成日：<span style="font-weight:bold;">${createdAtVal}</span></div>
-                    <div style="margin-bottom: 16px;">作成者：<span style="font-weight:bold;">${createdByVal}</span></div>
-                    <div style="display: flex; gap: 16px; justify-content: flex-end;">
-                        <button id="confirmDeleteBtn" class="btn btn-danger">はい（削除する）</button>
-                        <button id="cancelDeleteBtn" class="btn">いいえ（削除しない）</button>
+                <div style=\"background: #fff; padding: 32px 24px; border-radius: 8px; box-shadow: 0 2px 8px #0002; min-width: 320px; max-width: 90vw;\">
+                    <div style=\"color: red; font-weight: bold; margin-bottom: 12px; font-size: 1.1em;\">もう一度確認してください。</div>
+                    <div style=\"margin-bottom: 16px; font-weight: bold;\">本当に削除しますか？</div>
+                    <div style=\"margin-bottom: 8px;\">マッチID：<span style=\"font-weight:bold;\">${matchId}</span></div>
+                    <div style=\"margin-bottom: 8px;\">作成日：<span style=\"font-weight:bold;\">${createdAtVal}</span></div>
+                    <div style=\"margin-bottom: 16px;\">作成者：<span style=\"font-weight:bold;\">${createdByVal}</span></div>
+                    <div style=\"display: flex; gap: 16px; justify-content: flex-end;\">
+                        <button id=\"confirmDeleteBtn\" class=\"btn btn-danger\">はい（削除する）</button>
+                        <button id=\"cancelDeleteBtn\" class=\"btn\">いいえ（削除しない）</button>
                     </div>
                 </div>
             `;
