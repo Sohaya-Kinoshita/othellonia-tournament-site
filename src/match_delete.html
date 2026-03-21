@@ -131,6 +131,7 @@
                         deleteBtn.disabled = false;
                         document.getElementById('cannotDeleteMsg').style.display = 'none';
                     }
+                    resultBox.style.display = '';
                 } else {
                     // エラーメッセージ表示
                     const msg = document.createElement('div');
@@ -141,6 +142,7 @@
                     resultBox.parentNode.insertBefore(msg, resultBox.nextSibling);
                     deleteBtn.disabled = true;
                     document.getElementById('cannotDeleteMsg').style.display = 'none';
+                    resultBox.style.display = 'none';
                 }
             } catch {
                 team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
@@ -148,6 +150,7 @@
                 team2OrderStatus.textContent = '';
                 deleteBtn.disabled = true;
                 document.getElementById('cannotDeleteMsg').style.display = 'none';
+                resultBox.style.display = 'none';
             }
         });
         // 削除ボタン押下時の確認ポップアップと削除処理
