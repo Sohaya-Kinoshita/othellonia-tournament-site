@@ -85,10 +85,9 @@
                 allMatches = matchData.matches || [];
                 allUsers = usersData.users || [];
 
-                // 既存の管理者をメモリに初期化
+                // 既存の管理者をメモリに初期化（1人分のuser_idのみ）
                 allMatches.forEach(match => {
-                    const adminIds = Array.isArray(match.admin_user_id) ? match.admin_user_id : (match.admin_user_id ? [match.admin_user_id] : []);
-                    selectedAdmins[match.match_id] = adminIds;
+                    selectedAdmins[match.match_id] = match.admin_user_id || "";
                 });
 
                 // 初期表示: 勝敗未確定（対戦前・対戦中）のみ全件リスト
@@ -164,21 +163,22 @@
 
         function displayMatchDetail(match) {
             const matchDetail = document.getElementById("matchDetail");
-            const adminIds = Array.isArray(match.admin_user_id) ? match.admin_user_id : (match.admin_user_id ? [match.admin_user_id] : []);
+            const adminId = match.admin_user_id || "";
             const statusLabel = match.match_status === "in_progress"
                 ? "対戦中"
                 : match.match_status === "finished"
                     ? "終了"
                     : "対戦前";
-            const userChips = adminIds.map(userId => {
-                const user = allUsers.find(u => u.user_id === userId);
-                return `
+            let userChip = "";
+            if (adminId) {
+                const user = allUsers.find(u => u.user_id === adminId);
+                userChip = `
                     <div style="display: inline-flex; align-items: center; gap: 6px; background: #2196F3; color: white; padding: 6px 10px; border-radius: 20px; margin: 4px; font-size: 0.9em;">
-                        <span>${user ? `${user.user_id} (${user.user_name})` : userId}</span>
-                        <button type="button" onclick="removeAdmin('${match.match_id}', '${userId}')" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0;">×</button>
+                        <span>${user ? `${user.user_id} (${user.user_name})` : adminId}</span>
+                        <button type="button" onclick="removeAdmin('${match.match_id}', '${adminId}')" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0;">×</button>
                     </div>
                 `;
-            }).join('');
+            }
 
             matchDetail.innerHTML = `
                 <div style="border: 2px solid #2196F3; padding: 16px; border-radius: 4px; background: #f0f8ff;">
