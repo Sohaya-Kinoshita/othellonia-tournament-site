@@ -116,8 +116,19 @@ async function exportCardAsImage(
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // 保存完了メッセージを表示
-      alert("保存完了！");
+      // 保存完了メッセージをボタン下に表示
+      let completeMsg = button.parentNode.querySelector(".save-complete-msg");
+      if (!completeMsg) {
+        completeMsg = document.createElement("div");
+        completeMsg.className = "save-complete-msg";
+        completeMsg.style.cssText =
+          "color: #166534; font-weight: bold; margin-top: 8px; font-size: 15px;";
+        button.parentNode.insertBefore(completeMsg, button.nextSibling);
+      }
+      completeMsg.textContent = "保存完了！";
+      setTimeout(() => {
+        if (completeMsg) completeMsg.textContent = "";
+      }, 3000);
 
       // リンクとボタンを再表示
       links.forEach((link) => link.classList.remove("hide-for-export"));
