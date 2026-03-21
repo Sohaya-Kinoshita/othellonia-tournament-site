@@ -505,12 +505,18 @@
         }
 
         async function fetchMatchCard(matchId) {
-            const response = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+            // 詳細APIに変更
+            const response = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || "対戦カード取得に失敗しました");
             }
-            return result;
+            // 互換用にgames, reservesByTeam, matchを返す
+            return {
+                games: result.games || [],
+                reservesByTeam: result.reservesByTeam || {},
+                match: result.match || {},
+            };
         }
 
         async function renderMatchCards(matches, targetElement, mode) {
@@ -584,40 +590,19 @@
         async function loadMatchPage() {
             const todayContainer = document.getElementById("todayMatchCards");
             const upcomingContainer = document.getElementById("upcomingMatchCards");
-
             try {
-                const response = await fetch("/api/matches");
-                const result = await response.json();
+                // 本日の対戦カード取得
+                const todayRes = await fetch("/api/match-card-today");
+                const todayData = await todayRes.json();
+                const todayMatches = (todayData.matches || []).map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }));
+                await renderMatchCards(todayMatches, todayContainer, "today");
 
-                if (!response.ok) {
-                    throw new Error(result.message || "マッチ一覧の取得に失敗しました");
-                }
-
-                const now = new Date();
-                const todayKey = toJstOperationalDateKey(now);
-
-                const matches = (result.matches || [])
-                    .filter((match) => match.scheduled_at)
-                    .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
-                    .filter((match) => match._scheduledDate)
-                    .sort((a, b) => {
-                        const aPriority = a.match_status === "in_progress" ? 0 : 1;
-                        const bPriority = b.match_status === "in_progress" ? 0 : 1;
-                        if (aPriority !== bPriority) {
-                            return aPriority - bPriority;
-                        }
-                        return a._scheduledDate - b._scheduledDate;
-                    });
-
-                const todayMatches = matches.filter((match) => toJstOperationalDateKey(match._scheduledDate) === todayKey);
-                const upcomingMatches = matches
-                    .filter((match) => toJstOperationalDateKey(match._scheduledDate) > todayKey)
-                    .filter((match) => match.match_status !== "finished");
-
+                // 今後の対戦カード取得
+                const upcomingRes = await fetch("/api/match-card-upcoming");
+                const upcomingData = await upcomingRes.json();
+                const upcomingMatches = (upcomingData.matches || []).map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }));
                 upcomingMatchesSource = upcomingMatches;
                 buildUpcomingTeamOptions(upcomingMatchesSource);
-
-                await renderMatchCards(todayMatches, todayContainer, "today");
                 await applyUpcomingFilters();
             } catch (error) {
                 console.error("Match page load error:", error);
