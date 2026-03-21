@@ -35,16 +35,32 @@ async function exportCardAsImage(
   button.disabled = true;
 
   // リンクとボタンを非表示（高さは保持）
+
   const links = card.querySelectorAll(".player-link");
   const exportButton = card.querySelector(".export-btn");
   const detailToggleButtons = card.querySelectorAll(".match-detail-toggle-btn");
-  links.forEach((link) => link.classList.add("hide-for-export"));
-  if (exportButton) {
-    exportButton.classList.add("hide-for-export");
-  }
-  detailToggleButtons.forEach((toggleButton) => {
-    toggleButton.classList.add("hide-for-export");
+  const updateButtons = card.querySelectorAll(".update-match-card-btn");
+
+  // 完全非表示用にdisplay:noneを一時適用
+  const hiddenElements = [];
+  detailToggleButtons.forEach((el) => {
+    if (el) {
+      hiddenElements.push({ el, prev: el.style.display });
+      el.style.display = "none";
+    }
   });
+  updateButtons.forEach((el) => {
+    if (el) {
+      hiddenElements.push({ el, prev: el.style.display });
+      el.style.display = "none";
+    }
+  });
+  if (exportButton) {
+    hiddenElements.push({ el: exportButton, prev: exportButton.style.display });
+    exportButton.style.display = "none";
+  }
+  // 既存のリンク等は従来通り
+  links.forEach((link) => link.classList.add("hide-for-export"));
 
   // エクスポート用のスタイルを適用
   card.classList.add("exporting");
@@ -105,11 +121,9 @@ async function exportCardAsImage(
 
       // リンクとボタンを再表示
       links.forEach((link) => link.classList.remove("hide-for-export"));
-      if (exportButton) {
-        exportButton.classList.remove("hide-for-export");
-      }
-      detailToggleButtons.forEach((toggleButton) => {
-        toggleButton.classList.remove("hide-for-export");
+      // display:noneを元に戻す
+      hiddenElements.forEach(({ el, prev }) => {
+        el.style.display = prev;
       });
       card.classList.remove("exporting");
       if (targetWidth) {
@@ -133,11 +147,8 @@ async function exportCardAsImage(
 
     // エラー時もリンクとボタンを再表示
     links.forEach((link) => link.classList.remove("hide-for-export"));
-    if (exportButton) {
-      exportButton.classList.remove("hide-for-export");
-    }
-    detailToggleButtons.forEach((toggleButton) => {
-      toggleButton.classList.remove("hide-for-export");
+    hiddenElements.forEach(({ el, prev }) => {
+      el.style.display = prev;
     });
     card.classList.remove("exporting");
     if (targetWidth) {
