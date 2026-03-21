@@ -67,6 +67,11 @@
         team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
         resultBox.style.display = '';
         deleteBtn.disabled = true;
+
+        // 既存のエラーメッセージを消す
+        let errorMsg = document.getElementById('searchErrorMsg');
+        if (errorMsg) errorMsg.remove();
+
         try {
             const [matchesRes, users] = await Promise.all([
                 fetch('/api/matches'),
@@ -80,15 +85,20 @@
                 team2Name.textContent = match.team_b_name || '-';
                 matchDate.textContent = match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : '-';
                 createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
-                // admin_user_idは配列または単一値
                 let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
                 createdBy.textContent = getUserNameById(users, adminId);
                 deleteBtn.disabled = false;
             } else {
+                // エラーメッセージ表示
+                const msg = document.createElement('div');
+                msg.id = 'searchErrorMsg';
+                msg.style.color = 'red';
+                msg.style.marginTop = '8px';
+                msg.textContent = '該当するマッチが見つかりません。';
+                resultBox.parentNode.insertBefore(msg, resultBox.nextSibling);
                 deleteBtn.disabled = true;
             }
         } catch {
-            // 取得失敗時は全て-表示
             team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
             deleteBtn.disabled = true;
         }
