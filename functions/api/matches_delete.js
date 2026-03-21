@@ -19,19 +19,30 @@ export async function onRequestPost(context) {
         { status: 404 },
       );
     }
-    // 関連データも削除（games, orders, match_admins など）
+    // 削除順序: order_details → games → orders → match_admins → matches
+    // 1. order_details（order_idが対象マッチのordersに紐づくもの）
+    await db
+      .prepare(
+        `DELETE FROM order_details WHERE order_id IN (SELECT order_id FROM orders WHERE match_id = ? COLLATE binary)`,
+      )
+      .bind(matchId)
+      .run();
+    // 2. games
     await db
       .prepare("DELETE FROM games WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
+    // 3. orders
     await db
       .prepare("DELETE FROM orders WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
+    // 4. match_admins
     await db
       .prepare("DELETE FROM match_admins WHERE match_id = ? COLLATE binary")
       .bind(matchId)
       .run();
+    // 5. matches
     await db
       .prepare("DELETE FROM matches WHERE match_id = ? COLLATE binary")
       .bind(matchId)

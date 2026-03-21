@@ -8,102 +8,171 @@
     <title>マッチ削除</title>
 </head>
 
-<main class="container">
-    <div class="card">
-        <h1>マッチ削除</h1>
-        <form id="searchForm" style="margin-bottom: 24px;">
-            <div class="form-group">
-                <label for="matchId">マッチIDで検索</label>
-                <input type="text" id="matchId" name="matchId" maxlength="10" required placeholder="例: M01"
-                    style="width: 120px;">
-                <button type="submit" class="btn">検索</button>
-            </div>
-        </form>
-        <div id="resultBox" style="margin-bottom: 24px; display: none;">
-            <div><strong>チーム1:</strong> <span id="team1Name">-</span></div>
-            <div><strong>チーム2:</strong> <span id="team2Name">-</span></div>
-            <div><strong>対戦日程:</strong> <span id="matchDate">-</span></div>
-            <div><strong>作成日時:</strong> <span id="createdAt">-</span></div>
-            <div><strong>作成者:</strong> <span id="createdBy">-</span></div>
-            <div style="margin-top: 16px;">
-                <button id="deleteBtn" class="btn btn-danger" disabled>削除</button>
+<body>
+    <div id="headerSlot"></div>
+    <main class="container">
+        <div class="card">
+            <h1>マッチ削除</h1>
+            <form id="searchForm" style="margin-bottom: 24px;">
+                <div class="form-group">
+                    <label for="matchId">マッチIDで検索</label>
+                    <input type="text" id="matchId" name="matchId" maxlength="10" required placeholder="例: M01"
+                        style="width: 120px;">
+                    <button type="submit" class="btn">検索</button>
+                </div>
+            </form>
+            <div id="resultBox" style="margin-bottom: 24px; display: none;">
+                <div><strong>チーム1:</strong> <span id="team1Name">-</span></div>
+                <div><strong>チーム2:</strong> <span id="team2Name">-</span></div>
+                <div><strong>対戦日程:</strong> <span id="matchDate">-</span></div>
+                <div><strong>作成日時:</strong> <span id="createdAt">-</span></div>
+                <div><strong>作成者:</strong> <span id="createdBy">-</span></div>
+                <div style="margin-top: 16px;">
+                    <button id="deleteBtn" class="btn btn-danger" disabled>削除</button>
+                </div>
             </div>
         </div>
-    </div>
-</main>
-<script>
-    const form = document.getElementById('searchForm');
-    const resultBox = document.getElementById('resultBox');
-    const team1Name = document.getElementById('team1Name');
-    const team2Name = document.getElementById('team2Name');
-    const matchDate = document.getElementById('matchDate');
-    const createdAt = document.getElementById('createdAt');
-    const createdBy = document.getElementById('createdBy');
-    const deleteBtn = document.getElementById('deleteBtn');
+    </main>
+    <div id="footerSlot"></div>
+    <script src="./js/layout.js"></script>
+    <script>
+        const form = document.getElementById('searchForm');
+        const resultBox = document.getElementById('resultBox');
+        const team1Name = document.getElementById('team1Name');
+        const team2Name = document.getElementById('team2Name');
+        const matchDate = document.getElementById('matchDate');
+        const createdAt = document.getElementById('createdAt');
+        const createdBy = document.getElementById('createdBy');
+        const deleteBtn = document.getElementById('deleteBtn');
 
-    let usersCache = null;
+        let usersCache = null;
 
-    async function fetchUsers() {
-        if (usersCache) return usersCache;
-        try {
-            const res = await fetch('/api/users');
-            if (!res.ok) throw new Error('ユーザー取得失敗');
-            const data = await res.json();
-            usersCache = data.users || [];
-            return usersCache;
-        } catch {
-            return [];
+        async function fetchUsers() {
+            if (usersCache) return usersCache;
+            try {
+                const res = await fetch('/api/users');
+                if (!res.ok) throw new Error('ユーザー取得失敗');
+                const data = await res.json();
+                usersCache = data.users || [];
+                return usersCache;
+            } catch {
+                return [];
+            }
         }
-    }
 
-    function getUserNameById(users, id) {
-        const user = users.find(u => u.user_id == id);
-        return user ? user.user_name : '-';
-    }
+        function getUserNameById(users, id) {
+            const user = users.find(u => u.user_id == id);
+            return user ? user.user_name : '-';
+        }
 
-    form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const id = document.getElementById('matchId').value.trim();
-        team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
-        resultBox.style.display = '';
-        deleteBtn.disabled = true;
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('matchId').value.trim();
+            team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
+            resultBox.style.display = '';
+            deleteBtn.disabled = true;
 
-        // 既存のエラーメッセージを消す
-        let errorMsg = document.getElementById('searchErrorMsg');
-        if (errorMsg) errorMsg.remove();
+            // 既存のエラーメッセージを消す
+            let errorMsg = document.getElementById('searchErrorMsg');
+            if (errorMsg) errorMsg.remove();
 
-        try {
-            const [matchesRes, users] = await Promise.all([
-                fetch('/api/matches'),
-                fetchUsers()
-            ]);
-            if (!matchesRes.ok) throw new Error('マッチ取得失敗');
-            const matchesData = await matchesRes.json();
-            const match = (matchesData.matches || []).find(m => m.match_id === id);
-            if (match) {
-                team1Name.textContent = match.team_a_name || '-';
-                team2Name.textContent = match.team_b_name || '-';
-                matchDate.textContent = match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : '-';
-                createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
-                let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
-                createdBy.textContent = getUserNameById(users, adminId);
-                deleteBtn.disabled = false;
-            } else {
-                // エラーメッセージ表示
-                const msg = document.createElement('div');
-                msg.id = 'searchErrorMsg';
-                msg.style.color = 'red';
-                msg.style.marginTop = '8px';
-                msg.textContent = '該当するマッチが見つかりません。';
-                resultBox.parentNode.insertBefore(msg, resultBox.nextSibling);
+            try {
+                const [matchesRes, users] = await Promise.all([
+                    fetch('/api/matches'),
+                    fetchUsers()
+                ]);
+                if (!matchesRes.ok) throw new Error('マッチ取得失敗');
+                const matchesData = await matchesRes.json();
+                const match = (matchesData.matches || []).find(m => m.match_id === id);
+                if (match) {
+                    team1Name.textContent = match.team_a_name || '-';
+                    team2Name.textContent = match.team_b_name || '-';
+                    matchDate.textContent = match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : '-';
+                    createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
+                    let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
+                    createdBy.textContent = getUserNameById(users, adminId);
+                    deleteBtn.disabled = false;
+                } else {
+                    // エラーメッセージ表示
+                    const msg = document.createElement('div');
+                    msg.id = 'searchErrorMsg';
+                    msg.style.color = 'red';
+                    msg.style.marginTop = '8px';
+                    msg.textContent = '該当するマッチが見つかりません。';
+                    resultBox.parentNode.insertBefore(msg, resultBox.nextSibling);
+                    deleteBtn.disabled = true;
+                }
+            } catch {
+                team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
                 deleteBtn.disabled = true;
             }
-        } catch {
-            team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
-            deleteBtn.disabled = true;
-        }
-    });
-    // 削除ボタンは現状何も起こらない
-</script>
+        });
+        // 削除ボタン押下時の確認ポップアップと削除処理
+        deleteBtn.addEventListener('click', async function () {
+            // 検索結果の情報を取得
+            const matchId = document.getElementById('matchId').value.trim();
+            const createdAtVal = createdAt.textContent;
+            const createdByVal = createdBy.textContent;
+
+            // 既存の確認ダイアログがあれば消す
+            let oldDialog = document.getElementById('deleteConfirmDialog');
+            if (oldDialog) oldDialog.remove();
+
+            // ダイアログ生成
+            const dialog = document.createElement('div');
+            dialog.id = 'deleteConfirmDialog';
+            dialog.style.position = 'fixed';
+            dialog.style.top = '0';
+            dialog.style.left = '0';
+            dialog.style.width = '100vw';
+            dialog.style.height = '100vh';
+            dialog.style.background = 'rgba(0,0,0,0.3)';
+            dialog.style.display = 'flex';
+            dialog.style.alignItems = 'center';
+            dialog.style.justifyContent = 'center';
+            dialog.style.zIndex = '9999';
+
+            dialog.innerHTML = `
+                <div style="background: #fff; padding: 32px 24px; border-radius: 8px; box-shadow: 0 2px 8px #0002; min-width: 320px; max-width: 90vw;">
+                    <div style="margin-bottom: 16px; font-weight: bold;">本当に削除しますか？</div>
+                    <div style="margin-bottom: 8px;">マッチID：<span style="font-weight:bold;">${matchId}</span></div>
+                    <div style="margin-bottom: 8px;">作成日：<span style="font-weight:bold;">${createdAtVal}</span></div>
+                    <div style="margin-bottom: 16px;">作成者：<span style="font-weight:bold;">${createdByVal}</span></div>
+                    <div style="display: flex; gap: 16px; justify-content: flex-end;">
+                        <button id="confirmDeleteBtn" class="btn btn-danger">はい（削除する）</button>
+                        <button id="cancelDeleteBtn" class="btn">いいえ（削除しない）</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+
+            // いいえ
+            dialog.querySelector('#cancelDeleteBtn').onclick = function () {
+                dialog.remove();
+            };
+
+            // はい
+            dialog.querySelector('#confirmDeleteBtn').onclick = async function () {
+                dialog.remove();
+                deleteBtn.disabled = true;
+                try {
+                    const res = await fetch('/api/matches/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ matchId })
+                    });
+                    if (!res.ok) throw new Error('削除に失敗しました');
+                    // 完了メッセージ
+                    alert('マッチを削除しました');
+                    // 検索結果クリア
+                    team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
+                    deleteBtn.disabled = true;
+                } catch (e) {
+                    alert('削除に失敗しました');
+                    deleteBtn.disabled = false;
+                }
+            };
+        });
+    </script>
 
 </html>
