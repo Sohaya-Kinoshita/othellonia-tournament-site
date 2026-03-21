@@ -29,13 +29,13 @@
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="searchMatchId" placeholder="例: M01, S01"
                             style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                        <button class="btn" onclick="searchMatch()" style="white-space: nowrap;">検索</button>
                         <button class="btn" onclick="clearSearch()"
                             style="white-space: nowrap; background-color: #999;">クリア</button>
                     </div>
                 </div>
             </div>
 
+            <div id="matchList"></div>
             <div id="matchDetail" style="display: none;"></div>
             <div id="noResult" style="display: none; color: #999; text-align: center; padding: 20px;">試合が見つかりません</div>
         </div>
@@ -71,6 +71,7 @@
         let allMatches = [];
         let allUsers = [];
 
+
         async function initializeMatches() {
             try {
                 const [matchResponse, usersResponse] = await Promise.all([
@@ -89,33 +90,71 @@
                     const adminIds = Array.isArray(match.admin_user_id) ? match.admin_user_id : (match.admin_user_id ? [match.admin_user_id] : []);
                     selectedAdmins[match.match_id] = adminIds;
                 });
+
+                // 初期表示: 勝敗未確定（対戦前・対戦中）のみ全件リスト
+                renderMatchList();
             } catch (error) {
                 console.error("Error initializing matches:", error);
                 alert("マッチ情報の読み込みに失敗しました");
             }
         }
 
-        function searchMatch() {
+        // 検索欄入力時に即時フィルタ
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAdmin();
+            setTimeout(() => {
+                const searchInput = document.getElementById("searchMatchId");
+                if (searchInput) {
+                    searchInput.addEventListener("input", () => {
+                        renderMatchList();
+                    });
+                }
+            }, 100);
+        });
+
+        function renderMatchList() {
             const searchInput = document.getElementById("searchMatchId").value.trim().toUpperCase();
+            const matchList = document.getElementById("matchList");
             const matchDetail = document.getElementById("matchDetail");
             const noResult = document.getElementById("noResult");
 
-            if (!searchInput) {
-                alert("試合IDを入力してください");
-                return;
+            // 勝敗未確定のみ
+            let filtered = allMatches.filter(m => m.match_status !== "finished");
+            if (searchInput) {
+                filtered = filtered.filter(m => m.match_id.toUpperCase().includes(searchInput));
             }
 
-            const match = allMatches.find(m => m.match_id.toUpperCase() === searchInput);
-
-            if (!match) {
+            if (filtered.length === 0) {
+                matchList.innerHTML = "";
                 matchDetail.style.display = "none";
                 noResult.style.display = "block";
                 return;
             }
 
             noResult.style.display = "none";
-            displayMatchDetail(match);
+            matchList.innerHTML = filtered.map(match => `
+                <div class="match-list-item" style="border: 1px solid #ccc; border-radius: 4px; padding: 12px 16px; margin-bottom: 10px; background: #fafcff; cursor: pointer;" onclick="showMatchDetail('${match.match_id}')">
+                    <span style="font-weight: bold; font-size: 1.1em;">${match.match_id}</span>
+                    <span style="margin-left: 12px; color: #555;">
+                        <div><b>対戦チーム</b></div>
+                        <div>${match.team_a_name} (${match.team_a_id})</div>
+                        <div>${match.team_b_name} (${match.team_b_id})</div>
+                    </span>
+                    <span style="margin-left: 12px; color: #888; font-size: 0.95em;">${match.match_status === "in_progress" ? "対戦中" : "対戦前"}</span>
+                </div>
+            `).join("");
+            matchDetail.style.display = "none";
         }
+
+        // 一覧から選択時に詳細表示
+        window.showMatchDetail = function (matchId) {
+            const match = allMatches.find(m => m.match_id === matchId);
+            if (match) {
+                displayMatchDetail(match);
+            }
+        }
+
+        // 旧searchMatchは不要
 
         function clearSearch() {
             document.getElementById("searchMatchId").value = "";
@@ -148,7 +187,9 @@
                             ${match.match_id}
                         </div>
                         <div style="font-size: 1.1em; color: #666;">
-                            <strong>${match.team_a_id}</strong> vs <strong>${match.team_b_id}</strong>
+                            <div><b>対戦チーム</b></div>
+                            <div>${match.team_a_name} (${match.team_a_id})</div>
+                            <div>${match.team_b_name} (${match.team_b_id})</div>
                         </div>
                         <div style="font-size: 0.95em; color: #444; margin-top: 6px;">
                             状態: <strong>${statusLabel}</strong>
@@ -164,7 +205,6 @@
                         <label style="display: block; margin-bottom: 12px; font-size: 1em;">
                             <strong>司会進行者</strong>
                         </label>
-                        
                         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                             <select id="admin_select_${match.match_id}" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
                                 <option value="">選択してください</option>
@@ -174,19 +214,29 @@
                                     </option>
                                 `).join('')}
                             </select>
-                            <button type="button" class="btn" onclick="addAdmin('${match.match_id}')" style="white-space: nowrap; padding: 10px 16px;">追加</button>
                         </div>
 
-                        <div id="admin_chips_${match.match_id}" style="display: flex; flex-wrap: wrap; min-height: 40px; margin-bottom: 16px;">
-                            ${userChips || '<p style="color: #999; margin: 0;">選択されていません</p>'}
-                        </div>
+    <div id="admin_chips_${match.match_id}"
+        style="display: flex; flex-wrap: wrap; min-height: 40px; margin-bottom: 16px;">
+        ${userChips || '<p style="color: #999; margin: 0;">選択されていません</p>'}
+    </div>
 
-                        <button type="button" class="btn" onclick="updateMatchAdmin('${match.match_id}')" style="width: 100%; padding: 12px; font-size: 1em;">更新</button>
-                    </div>
-                </div>
-            `;
+    <button type="button" class="btn" onclick="updateMatchAdmin('${match.match_id}')"
+        style="width: 100%; padding: 12px; font-size: 1em;">更新</button>
+    </div>
+    </div>
+    `;
 
             matchDetail.style.display = "block";
+            // セレクトボックス選択時に即追加
+            setTimeout(() => {
+                const sel = document.getElementById('admin_select_' + match.match_id);
+                if (sel) {
+                    sel.addEventListener('change', function () {
+                        if (this.value) addAdmin(match.match_id);
+                    });
+                }
+            }, 0);
         }
 
         // 各マッチの選択中の管理者リストを保持
@@ -243,11 +293,13 @@
                     const userChips = adminIds.map(userId => {
                         const user = users.find(u => u.user_id === userId);
                         return `
-                            <div style="display: inline-flex; align-items: center; gap: 6px; background: #2196F3; color: white; padding: 6px 10px; border-radius: 20px; margin: 4px; font-size: 0.9em;">
-                                <span>${user ? `${user.user_id} (${user.user_name})` : userId}</span>
-                                <button type="button" onclick="removeAdmin('${matchId}', '${userId}')" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0;">×</button>
-                            </div>
-                        `;
+    <div
+        style="display: inline-flex; align-items: center; gap: 6px; background: #2196F3; color: white; padding: 6px 10px; border-radius: 20px; margin: 4px; font-size: 0.9em;">
+        <span>${user ? `${user.user_id} (${user.user_name})` : userId}</span>
+        <button type="button" onclick="removeAdmin('${matchId}', '${userId}')"
+            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0;">×</button>
+    </div>
+    `;
                     }).join('');
 
                     chipsContainer.innerHTML = userChips || '<p style="color: #999; margin: 0;">選択されていません</p>';
@@ -263,7 +315,7 @@
             }
 
             try {
-                const response = await fetch("/api/matches", {
+                const response = await fetch("/api/match_admins", {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
@@ -280,8 +332,6 @@
                     alert("管理者を更新しました");
                     // マッチ情報を再取得
                     await initializeMatches();
-                    // 検索結果を更新
-                    searchMatch();
                 } else {
                     alert(result.message || "更新に失敗しました");
                 }
