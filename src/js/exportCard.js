@@ -100,6 +100,9 @@ async function exportCardAsImage(
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      // 保存完了メッセージを表示
+      alert("保存完了！");
+
       // リンクとボタンを再表示
       links.forEach((link) => link.classList.remove("hide-for-export"));
       if (exportButton) {

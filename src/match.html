@@ -341,6 +341,16 @@
                 ? `<span class="match-status-pill ${getMatchStatusClass(match.match_status)}">${escapeHtml(statusLabel)}</span>`
                 : "";
 
+            // 対戦方式の判定
+            let matchType = '';
+            if (match.match_id) {
+                const num = Number(String(match.match_id).replace(/^[^0-9]*/, ''));
+                if (num >= 1 && num <= 3) {
+                    matchType = 'シーズン';
+                } else if (num === 4 || num === 5) {
+                    matchType = 'グローリー';
+                }
+            }
             return `
                 <div class="match-meta-grid">
                     <div class="match-meta-section">
@@ -356,6 +366,7 @@
                             <span class="match-meta-datetime">${escapeHtml(formatDateTime(match.scheduled_at))}～</span>
                             ${statusHtml}
                         </div>
+                        ${matchType ? `<div class="match-meta-type">対戦方式: <strong>${matchType}</strong></div>` : ''}
                     </div>
                 </div>
             `;
