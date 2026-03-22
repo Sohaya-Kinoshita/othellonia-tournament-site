@@ -96,8 +96,8 @@
         }
 
         function formatResultGroupLabel(dateKey) {
-            if (!dateKey) {
-                return "日付未設定";
+            if (!dateKey || dateKey === "未定") {
+                return "日時未定";
             }
             const [year, month, day] = dateKey.split("-");
             return `${year}年${Number(month)}月${Number(day)}日`;
@@ -300,13 +300,19 @@
             targetElement.innerHTML = "";
             const groups = new Map();
             matches.forEach((match) => {
-                const dateKey = toJstDateInputValue(match._scheduledDate);
+                const dateKey = match._scheduledDate ? toJstDateInputValue(match._scheduledDate) : "未定";
                 const current = groups.get(dateKey) || [];
                 current.push(match);
                 groups.set(dateKey, current);
             });
 
-            const sortedDateKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+            // "未定"は一番下に
+            const sortedDateKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === "未定" && b === "未定") return 0;
+                if (a === "未定") return 1;
+                if (b === "未定") return -1;
+                return a.localeCompare(b);
+            });
             let renderedCount = 0;
 
             for (const dateKey of sortedDateKeys) {
@@ -424,10 +430,14 @@
                     throw new Error(result.message || "対戦結果一覧の取得に失敗しました");
                 }
                 const matches = (result.matches || [])
-                    .filter((match) => match.scheduled_at)
                     .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
-                    .filter((match) => match._scheduledDate)
-                    .sort((a, b) => a._scheduledDate - b._scheduledDate);
+                    .sort((a, b) => {
+                        // 日時未定（_scheduledDate=null）は一番下に
+                        if (!a._scheduledDate && !b._scheduledDate) return 0;
+                        if (!a._scheduledDate) return 1;
+                        if (!b._scheduledDate) return -1;
+                        return a._scheduledDate - b._scheduledDate;
+                    });
                 resultMatchesSource = matches;
                 buildResultTeamOptions(resultMatchesSource);
                 await applyResultFilters();
