@@ -73,6 +73,7 @@
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
             const id = document.getElementById('matchId').value.trim();
+            // 初期化
             team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
             resultBox.style.display = '';
             deleteBtn.disabled = true;
@@ -93,14 +94,18 @@
                 const matchData = await matchRes.json();
                 const match = matchData.match;
                 if (match) {
+                    // チーム名
                     team1Name.textContent = match.team_a_name || '-';
                     team2Name.textContent = match.team_b_name || '-';
-                    matchDate.textContent = match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : '-';
+                    // 日時
+                    matchDate.textContent = match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : '日時未定';
+                    // 作成日時
                     createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
+                    // 作成者
                     let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
                     createdBy.textContent = getUserNameById(users, adminId);
 
-                    // オーダー提出状況取得
+                    // オーダー提出状況
                     team1OrderStatus.textContent = '';
                     team2OrderStatus.textContent = '';
                     try {
