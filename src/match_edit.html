@@ -56,6 +56,22 @@
     </main>
     <div id="footerSlot"></div>
     <script src="./js/layout.js"></script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+            if (result.type !== "admin") {
+                alert("あなたにはこのページの閲覧権限がありません。");
+                window.location.href = "./index.html";
+                return;
+            }
+        }
+        window.addEventListener('DOMContentLoaded', checkAdmin);
+    </script>
     <script src="./js/match_edit.js"></script>
     <script>
         window.addEventListener('DOMContentLoaded', checkAdmin);
