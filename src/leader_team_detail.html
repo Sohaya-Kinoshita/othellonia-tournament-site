@@ -284,7 +284,7 @@
 
                         // 対戦カードを読み込み・表示
                         try {
-                            const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+                            const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
                             const cardData = await cardResponse.json();
 
                             if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
@@ -653,7 +653,7 @@
                             if (isCardOpen && !isLoaded) {
                                 isLoaded = true;
                                 try {
-                                    const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                    const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(match.match_id)}`);
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                         matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId, true);
@@ -668,7 +668,7 @@
                                                 updateBtn.addEventListener("click", async function () {
                                                     matchCardDiv.textContent = "読込中...";
                                                     try {
-                                                        const cardResponse2 = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                                        const cardResponse2 = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(match.match_id)}`);
                                                         const cardData2 = await cardResponse2.json();
                                                         if (cardResponse2.ok && cardData2.games && cardData2.games.length > 0) {
                                                             matchCardDiv.innerHTML = generateMatchCardHTML(cardData2, match, teamId, true);
@@ -774,7 +774,7 @@
                             const cardDiv = document.getElementById(`matchCard_${match.match_id}`);
                             cardDiv.textContent = "読込中...";
                             try {
-                                const cardResponse = await fetch(`/api/match-card?matchId=${encodeURIComponent(match.match_id)}`);
+                                const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(match.match_id)}`);
                                 const cardData = await cardResponse.json();
                                 if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
                                     cardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
