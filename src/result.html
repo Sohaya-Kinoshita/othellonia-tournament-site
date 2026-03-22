@@ -258,7 +258,7 @@
         }
 
         async function fetchMatchCard(matchId) {
-            const response = await fetch(`/api/match-card?matchId=${encodeURIComponent(matchId)}`);
+            const response = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || "対戦カード取得に失敗しました");
