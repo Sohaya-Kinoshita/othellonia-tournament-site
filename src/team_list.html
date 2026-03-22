@@ -86,92 +86,94 @@
                             <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
                             <td style="padding: 5px; text-align: center; width: 120px;">
                                 <a href="./team_edit.html?teamId=${encodeURIComponent(team.team_id)}" class="btn" style="display: inline-block; text-decoration: none;">編集</a>
-                            </td>
-                        </tr>
-                    `,
-                    )
-                    .join("");
-            }
-        }
+                            <script>
+                                let allTeams = [];
 
-        async function loadTeamList() {
-            const adminMessage = document.getElementById("adminMessage");
-            const teamListCard = document.getElementById("teamListCard");
+                                function renderTeams(teamsToRender) {
+                                    const teamTableBody = document.getElementById("teamTableBody");
+                                    const noTeamsMessage = document.getElementById("noTeamsMessage");
 
-            try {
-                // 管理者認証確認
-                const authResponse = await fetch("/api/me");
-                const authResult = await authResponse.json();
+                                    if (teamsToRender.length === 0) {
+                                        noTeamsMessage.style.display = "block";
+                                        teamTableBody.innerHTML = "";
+                                    } else {
+                                        noTeamsMessage.style.display = "none";
+                                        teamTableBody.innerHTML = teamsToRender
+                                            .map(
+                                                (team) => `
+                            < tr style = "border-bottom: 1px solid #eee;" >
+                                                    <td style="padding: 5px; border-right: 2px solid #999; width: 80px; text-align: center;">${team.team_id}</td>
+                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 240px;">${team.team_name}</td>
+                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.player_name || "(未設定)"}</td>
+                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
+                                                    <td style="padding: 5px; text-align: center; width: 120px;">
+                                                        <a href="./team_edit.html?teamId=${encodeURIComponent(team.team_id)}" class="btn" style="display: inline-block; text-decoration: none;">編集</a>
+                                                    </td>
+                                                </tr >
+                                            `,
+                                            )
+                                            .join("");
+                                    }
+                                }
 
-                if (!authResult.isLoggedIn) {
-                    location.href = "./admin_login.html";
-                    return;
-                }
+                                async function checkAdmin() {
+                                    const adminMessage = document.getElementById("adminMessage");
+                                    const teamListCard = document.getElementById("teamListCard");
 
-                if (authResult.type !== "admin") {
-                    adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
-                    return;
-                }
+                                    try {
+                                        const authResponse = await fetch("/api/me");
+                                        const authResult = await authResponse.json();
 
-                adminMessage.style.display = "none";
+                                        if (!authResult.isLoggedIn) {
+                                            location.href = "./admin_login.html";
+                                            return;
+                                        }
 
-                // チーム一覧を取得
-                const response = await fetch("/api/teams");
-                const result = await response.json();
+                                        if (authResult.type !== "admin") {
+                                            adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                                            return;
+                                        }
 
-                if (!response.ok) {
-                    adminMessage.textContent = "チーム一覧の取得に失敗しました";
-                    return;
-                }
+                                        adminMessage.style.display = "none";
 
-                allTeams = result.teams || [];
+                                        // チーム一覧を取得
+                                        const response = await fetch("/api/teams");
+                                        const result = await response.json();
 
-                if (allTeams.length === 0) {
-                    renderTeams([]);
-                } else {
-                    renderTeams(allTeams);
-                }
+                                        if (!response.ok) {
+                                            adminMessage.textContent = "チーム一覧の取得に失敗しました";
+                                            return;
+                                        }
 
-                teamListCard.classList.remove("hidden");
-                setupSearchEventListeners();
-            } catch (error) {
-                console.error("Error loading team list:", error);
-                adminMessage.textContent = "チーム一覧の読み込みに失敗しました";
-            }
-        }
+                                        allTeams = result.teams || [];
+                                        renderTeams(allTeams);
+                                    } catch (e) {
+                                        adminMessage.textContent = "エラーが発生しました";
+                                    }
+                                }
 
-        function setupSearchEventListeners() {
-            const searchInput = document.getElementById("teamNameInput");
-            const searchButton = document.getElementById("searchButton");
-            const clearButton = document.getElementById("clearButton");
+                                document.addEventListener("DOMContentLoaded", checkAdmin);
 
-            searchButton.addEventListener("click", () => {
-                const keyword = searchInput.value.trim();
-                const filtered = allTeams.filter((team) =>
-                    team.team_name.includes(keyword)
-                );
-                renderTeams(filtered);
-            });
+    document.addEventListener("DOMContentLoaded", () => {
+        checkAdmin();
+        loadTeamList();
+    });
+    </script>
 
-            clearButton.addEventListener("click", () => {
-                searchInput.value = "";
-                renderTeams(allTeams);
-            });
+    searchInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+    const keyword = searchInput.value.trim();
+    const filtered = allTeams.filter((team) =>
+    team.team_name.includes(keyword)
+    );
+    renderTeams(filtered);
+    }
+    });
+    }
 
-            searchInput.addEventListener("keypress", (event) => {
-                if (event.key === "Enter") {
-                    const keyword = searchInput.value.trim();
-                    const filtered = allTeams.filter((team) =>
-                        team.team_name.includes(keyword)
-                    );
-                    renderTeams(filtered);
-                }
-            });
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            loadTeamList();
-        });
+    document.addEventListener("DOMContentLoaded", () => {
+    loadTeamList();
+    });
     </script>
 </body>
 

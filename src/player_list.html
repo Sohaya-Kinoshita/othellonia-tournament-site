@@ -212,6 +212,26 @@
             loadPlayerList();
         });
     </script>
+    <script>
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+            const adminMessage = document.getElementById("adminMessage");
+            const playerListCard = document.getElementById("playerListCard");
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                playerListCard.classList.add("hidden");
+                return;
+            }
+            adminMessage.style.display = "none";
+            playerListCard.classList.remove("hidden");
+        }
+        window.addEventListener('DOMContentLoaded', checkAdmin);
+    </script>
 </body>
 
 </html>
