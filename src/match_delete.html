@@ -207,19 +207,20 @@
                 dialog.remove();
                 deleteBtn.disabled = true;
                 try {
-                    const res = await fetch('/api/matches/delete', {
+                    const res = await fetch('/api/matches_delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ matchId })
                     });
-                    if (!res.ok) throw new Error('削除に失敗しました');
-                    // 完了メッセージ
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.message || '削除に失敗しました');
+                    }
                     alert('マッチを削除しました');
-                    // 検索結果クリア
                     team1Name.textContent = team2Name.textContent = matchDate.textContent = createdAt.textContent = createdBy.textContent = '-';
                     deleteBtn.disabled = true;
                 } catch (e) {
-                    alert('削除に失敗しました');
+                    alert(e.message || '削除に失敗しました');
                     deleteBtn.disabled = false;
                 }
             };
