@@ -88,6 +88,11 @@ document.addEventListener("DOMContentLoaded", function () {
           orderDeadlineInput.disabled = true;
           orderDeadlineInput.title = "試合終了後は編集できません";
           orderDeadlineInput.style.backgroundColor = "#eee";
+          // 保存ボタン無効化＆エラー文表示
+          document.getElementById("editSaveBtn").disabled = true;
+          const errMsg = document.getElementById("editErrorMsg");
+          errMsg.textContent = "マッチが確定しているので、更新できません。";
+          errMsg.style.display = "block";
         } else {
           orderDeadlineInput.disabled = false;
           orderDeadlineInput.title = "";
@@ -101,6 +106,11 @@ document.addEventListener("DOMContentLoaded", function () {
           matchDateTimeInput.disabled = false;
           matchDateTimeInput.title = "";
           matchDateTimeInput.style.backgroundColor = "";
+          // 保存ボタン有効化＆エラー文非表示
+          document.getElementById("editSaveBtn").disabled = false;
+          const errMsg = document.getElementById("editErrorMsg");
+          errMsg.textContent = "";
+          errMsg.style.display = "none";
         }
         editMatchCard.classList.remove("hidden");
       })
