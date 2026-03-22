@@ -85,13 +85,13 @@
             if (errorMsg) errorMsg.remove();
 
             try {
-                const [matchesRes, users] = await Promise.all([
-                    fetch('/api/matches'),
+                const [matchRes, users] = await Promise.all([
+                    fetch(`/api/match-search?matchId=${encodeURIComponent(id)}`),
                     fetchUsers()
                 ]);
-                if (!matchesRes.ok) throw new Error('マッチ取得失敗');
-                const matchesData = await matchesRes.json();
-                const match = (matchesData.matches || []).find(m => m.match_id === id);
+                if (!matchRes.ok) throw new Error('マッチ取得失敗');
+                const matchData = await matchRes.json();
+                const match = matchData.match;
                 if (match) {
                     team1Name.textContent = match.team_a_name || '-';
                     team2Name.textContent = match.team_b_name || '-';
@@ -101,7 +101,6 @@
                     createdBy.textContent = getUserNameById(users, adminId);
 
                     // オーダー提出状況取得
-                    // /api/order?matchId=...&teamId=... で取得
                     team1OrderStatus.textContent = '';
                     team2OrderStatus.textContent = '';
                     try {
