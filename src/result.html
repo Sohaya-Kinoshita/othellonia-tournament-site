@@ -417,22 +417,17 @@
 
         async function loadResultPage() {
             const resultContainer = document.getElementById("resultMatchCards");
-
             try {
-                const response = await fetch("/api/matches");
+                const response = await fetch("/api/finished-matches");
                 const result = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(result.message || "マッチ一覧の取得に失敗しました");
+                    throw new Error(result.message || "対戦結果一覧の取得に失敗しました");
                 }
-
                 const matches = (result.matches || [])
                     .filter((match) => match.scheduled_at)
                     .map((match) => ({ ...match, _scheduledDate: parseDateTime(match.scheduled_at) }))
                     .filter((match) => match._scheduledDate)
-                    .filter((match) => match.match_status === "finished")
                     .sort((a, b) => a._scheduledDate - b._scheduledDate);
-
                 resultMatchesSource = matches;
                 buildResultTeamOptions(resultMatchesSource);
                 await applyResultFilters();
