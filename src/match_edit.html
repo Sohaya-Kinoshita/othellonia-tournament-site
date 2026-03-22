@@ -22,9 +22,9 @@
                     <button type="submit" class="btn">検索</button>
                 </div>
                 <div id="matchDetailBox" style="margin: 12px 0; color: #333;"></div>
+                <div id="searchError" style="color: red; display: none; margin-top: 8px;"></div>
             </form>
-            <div id="searchError" style="color: red; display: none;"></div>
-            <a href="./admin.html" class="btn">管理者ページに戻る</a>
+            <a href="./admin.html" class="btn" style="margin-top: 16px;">管理者ページに戻る</a>
         </div>
         <div class="card hidden" id="editMatchCard">
             <h2>マッチ情報編集</h2>
@@ -35,11 +35,11 @@
                 </div>
                 <div class="form-group">
                     <label for="editTeamAId">チームA</label>
-                    <select id="editTeamAId" name="editTeamAId" required></select>
+                    <select id="editTeamAId" name="editTeamAId" required style="width: 100%;"></select>
                 </div>
                 <div class="form-group">
                     <label for="editTeamBId">チームB</label>
-                    <select id="editTeamBId" name="editTeamBId" required></select>
+                    <select id="editTeamBId" name="editTeamBId" required style="width: 100%;"></select>
                 </div>
                 <div class="form-group">
                     <label for="editMatchDateTime">試合日時</label>

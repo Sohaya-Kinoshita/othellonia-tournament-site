@@ -28,16 +28,18 @@ document.addEventListener("DOMContentLoaded", function () {
     updateDeleteButtonState();
     try {
       const res = await fetch(
-        `/api/matches/detail?matchId=${encodeURIComponent(matchId)}`,
+        `/api/match-search?matchId=${encodeURIComponent(matchId)}`,
       );
       if (!res.ok) throw new Error("マッチが見つかりません");
-      const data = await res.json();
+      const result = await res.json();
+      if (!result.success)
+        throw new Error(result.message || "マッチが見つかりません");
+      const data = result.match;
       matchDetailBox.innerHTML = `
         <div><b>マッチID:</b> ${data.match_id}</div>
         <div><b>対戦チーム:</b> ${data.team_a_name} vs ${data.team_b_name}</div>
         <div><b>対戦日:</b> ${data.scheduled_at ? data.scheduled_at : "-"}</div>
-        <div><b>オーダー提出:</b> ${data.has_confirmed_order ? "済" : "未"}</div>
-        <div><b>状態:</b> ${data.match_status ? data.match_status : "-"}</div>
+        <div><b>状態:</b> ${data.winner_team_id ? "終了" : "未終了"}</div>
       `;
       // オーダー確定済みならチェックボックス表示
       if (data.has_confirmed_order) {

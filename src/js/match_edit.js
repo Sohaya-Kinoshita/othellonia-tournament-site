@@ -53,6 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const match = data.match;
         // 編集フォームに値をセット
         matchIdInput.value = match.match_id;
+        // マッチIDは常に編集不可（readonly）なので灰色背景に
+        matchIdInput.readOnly = true;
+        matchIdInput.style.backgroundColor = "#eee";
         // チームセレクト
         [teamASelect, teamBSelect].forEach((select) => {
           select.innerHTML = "";
@@ -75,21 +78,29 @@ document.addEventListener("DOMContentLoaded", function () {
         if (match.winner_team_id) {
           teamASelect.disabled = true;
           teamASelect.title = "試合終了後は編集できません";
+          teamASelect.style.backgroundColor = "#eee";
           teamBSelect.disabled = true;
           teamBSelect.title = "試合終了後は編集できません";
+          teamBSelect.style.backgroundColor = "#eee";
           matchDateTimeInput.disabled = true;
           matchDateTimeInput.title = "試合終了後は編集できません";
+          matchDateTimeInput.style.backgroundColor = "#eee";
           orderDeadlineInput.disabled = true;
           orderDeadlineInput.title = "試合終了後は編集できません";
+          orderDeadlineInput.style.backgroundColor = "#eee";
         } else {
           orderDeadlineInput.disabled = false;
           orderDeadlineInput.title = "";
+          orderDeadlineInput.style.backgroundColor = "";
           teamASelect.disabled = false;
           teamASelect.title = "";
+          teamASelect.style.backgroundColor = "";
           teamBSelect.disabled = false;
           teamBSelect.title = "";
+          teamBSelect.style.backgroundColor = "";
           matchDateTimeInput.disabled = false;
           matchDateTimeInput.title = "";
+          matchDateTimeInput.style.backgroundColor = "";
         }
         editMatchCard.classList.remove("hidden");
       })
