@@ -70,7 +70,6 @@
         function renderTeams(teamsToRender) {
             const teamTableBody = document.getElementById("teamTableBody");
             const noTeamsMessage = document.getElementById("noTeamsMessage");
-
             if (teamsToRender.length === 0) {
                 noTeamsMessage.style.display = "block";
                 teamTableBody.innerHTML = "";
@@ -82,98 +81,55 @@
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 5px; border-right: 2px solid #999; width: 80px; text-align: center;">${team.team_id}</td>
                             <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 240px;">${team.team_name}</td>
-                            <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.player_name || "(未設定)"}</td>
-                            <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
+                            <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.leader_name || "(未設定)"}</td>
+                            <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_name || "(未設定)"}</td>
                             <td style="padding: 5px; text-align: center; width: 120px;">
                                 <a href="./team_edit.html?teamId=${encodeURIComponent(team.team_id)}" class="btn" style="display: inline-block; text-decoration: none;">編集</a>
-                            <script>
-                                let allTeams = [];
+                            </td>
+                        </tr>
+                        `
+                    )
+                    .join("");
+            }
+        }
 
-                                function renderTeams(teamsToRender) {
-                                    const teamTableBody = document.getElementById("teamTableBody");
-                                    const noTeamsMessage = document.getElementById("noTeamsMessage");
+        async function checkAdmin() {
+            const adminMessage = document.getElementById("adminMessage");
+            const teamListCard = document.getElementById("teamListCard");
 
-                                    if (teamsToRender.length === 0) {
-                                        noTeamsMessage.style.display = "block";
-                                        teamTableBody.innerHTML = "";
-                                    } else {
-                                        noTeamsMessage.style.display = "none";
-                                        teamTableBody.innerHTML = teamsToRender
-                                            .map(
-                                                (team) => `
-                            < tr style = "border-bottom: 1px solid #eee;" >
-                                                    <td style="padding: 5px; border-right: 2px solid #999; width: 80px; text-align: center;">${team.team_id}</td>
-                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 240px;">${team.team_name}</td>
-                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.player_name || "(未設定)"}</td>
-                                                    <td style="padding: 5px; border-right: 2px dotted #ccc; white-space: nowrap; width: 160px;">${team.subleader_player_name || "(未設定)"}</td>
-                                                    <td style="padding: 5px; text-align: center; width: 120px;">
-                                                        <a href="./team_edit.html?teamId=${encodeURIComponent(team.team_id)}" class="btn" style="display: inline-block; text-decoration: none;">編集</a>
-                                                    </td>
-                                                </tr >
-                                            `,
-                                            )
-                                            .join("");
-                                    }
-                                }
+            try {
+                const authResponse = await fetch("/api/me");
+                const authResult = await authResponse.json();
 
-                                async function checkAdmin() {
-                                    const adminMessage = document.getElementById("adminMessage");
-                                    const teamListCard = document.getElementById("teamListCard");
+                if (!authResult.isLoggedIn) {
+                    location.href = "./admin_login.html";
+                    return;
+                }
 
-                                    try {
-                                        const authResponse = await fetch("/api/me");
-                                        const authResult = await authResponse.json();
+                if (authResult.type !== "admin") {
+                    adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                    return;
+                }
 
-                                        if (!authResult.isLoggedIn) {
-                                            location.href = "./admin_login.html";
-                                            return;
-                                        }
+                adminMessage.style.display = "none";
 
-                                        if (authResult.type !== "admin") {
-                                            adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
-                                            return;
-                                        }
+                // チーム一覧を取得
+                const response = await fetch("/api/teams");
+                const result = await response.json();
 
-                                        adminMessage.style.display = "none";
+                if (!response.ok) {
+                    adminMessage.textContent = "チーム一覧の取得に失敗しました";
+                    return;
+                }
 
-                                        // チーム一覧を取得
-                                        const response = await fetch("/api/teams");
-                                        const result = await response.json();
+                allTeams = result.teams || [];
+                renderTeams(allTeams);
+            } catch (e) {
+                adminMessage.textContent = "エラーが発生しました";
+            }
+        }
 
-                                        if (!response.ok) {
-                                            adminMessage.textContent = "チーム一覧の取得に失敗しました";
-                                            return;
-                                        }
-
-                                        allTeams = result.teams || [];
-                                        renderTeams(allTeams);
-                                    } catch (e) {
-                                        adminMessage.textContent = "エラーが発生しました";
-                                    }
-                                }
-
-                                document.addEventListener("DOMContentLoaded", checkAdmin);
-
-    document.addEventListener("DOMContentLoaded", () => {
-        checkAdmin();
-        loadTeamList();
-    });
-    </script>
-
-    searchInput.addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-    const keyword = searchInput.value.trim();
-    const filtered = allTeams.filter((team) =>
-    team.team_name.includes(keyword)
-    );
-    renderTeams(filtered);
-    }
-    });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-    loadTeamList();
-    });
+        document.addEventListener("DOMContentLoaded", checkAdmin);
     </script>
 </body>
 
