@@ -1,48 +1,66 @@
 export async function onRequest(context) {
-  // GETメソッド：チーム一覧を取得
+  // GETメソッド：チームIDで検索し、情報を返す
   if (context.request.method === "GET") {
     try {
       const db = context.env.DB;
-      const teams = await db
+      const url = new URL(context.request.url);
+      const teamId = url.searchParams.get("team_id");
+
+      if (!teamId) {
+        return new Response(
+          JSON.stringify({ message: "team_idパラメータが必要です" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const result = await db
         .prepare(
           `
-          SELECT 
-            teams.team_id, 
-            teams.team_name, 
-            leader.leader_id,
-            leader.player_id,
-            leaderPlayer.player_name,
-            subleader.leader_id AS subleader_id,
-            subleader.player_id AS subleader_player_id,
-            subleaderPlayer.player_name AS subleader_player_name,
-            (
-              SELECT COUNT(*)
-              FROM matches m
-              WHERE m.team_a_id = teams.team_id
-                 OR m.team_b_id = teams.team_id
-                 OR m.winner_team_id = teams.team_id
-            ) AS match_count
-          FROM teams 
-          LEFT JOIN leaders AS leader ON teams.team_id = leader.team_id AND leader.leader_role = 'leader'
-          LEFT JOIN players AS leaderPlayer ON leader.player_id = leaderPlayer.player_id
-          LEFT JOIN leaders AS subleader ON teams.team_id = subleader.team_id AND subleader.leader_role = 'subleader'
-          LEFT JOIN players AS subleaderPlayer ON subleader.player_id = subleaderPlayer.player_id
-          ORDER BY teams.team_id
-        `,
+        SELECT 
+          t.team_id, 
+          t.team_name, 
+          lp.player_name AS leader_name, 
+          sp.player_name AS subleader_name
+        FROM teams t
+        LEFT JOIN leaders l ON t.team_id = l.team_id AND l.leader_role = 'leader'
+        LEFT JOIN players lp ON l.player_id = lp.player_id
+        LEFT JOIN leaders sl ON t.team_id = sl.team_id AND sl.leader_role = 'subleader'
+        LEFT JOIN players sp ON sl.player_id = sp.player_id
+        WHERE t.team_id = ?
+      `,
         )
-        .all();
+        .bind(teamId)
+        .first();
+
+      if (!result) {
+        return new Response(
+          JSON.stringify({ message: "該当チームが見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
       return new Response(
-        JSON.stringify({ success: true, teams: teams.results || [] }),
+        JSON.stringify({
+          team_id: result.team_id,
+          team_name: result.team_name,
+          leader_name: result.leader_name,
+          subleader_name: result.subleader_name,
+        }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
         },
       );
     } catch (error) {
-      console.error("Teams fetch error:", error);
+      console.error("Team fetch error:", error);
       return new Response(
-        JSON.stringify({ message: "チーム一覧取得処理でエラーが発生しました" }),
+        JSON.stringify({ message: "チーム取得処理でエラーが発生しました" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
