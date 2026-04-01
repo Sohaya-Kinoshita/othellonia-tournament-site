@@ -113,8 +113,9 @@
 
                 adminMessage.style.display = "none";
 
-                // チーム一覧を取得
-                const response = await fetch("/api/teams");
+
+                // チーム一覧を取得（新API）
+                const response = await fetch("/api/teams-export");
                 const result = await response.json();
 
                 if (!response.ok) {

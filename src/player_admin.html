@@ -153,7 +153,8 @@
                     });
                     const result = await response.json();
 
-                    if (response.ok) {
+                    // 成功判定を success: true で行う
+                    if (result.success) {
                         messageDiv.textContent = "プレイヤーを作成しました！";
                         messageDiv.className = "message success";
                         playerForm.reset();
