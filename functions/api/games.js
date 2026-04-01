@@ -98,54 +98,32 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
 
   // match_adminsテーブルの確認
   await ensureMatchAdminsTable(env);
+  const adminCol = await getMatchAdminsUserColumn(env.DB);
+  const matchOwnerColumn = await getMatchOwnerColumn(env.DB);
 
   // 権限チェック：このマッチに対する権限があるか確認
   let authCheck = null;
 
-  // まず新しいカラム名（admin_user_id）で試す
-  try {
+  authCheck = await env.DB.prepare(
+    `
+      SELECT 1 FROM match_admins
+      WHERE match_id = ? AND ${adminCol} = ?
+      LIMIT 1
+    `,
+  )
+    .bind(matchId, adminUserId)
+    .first();
+
+  if (!authCheck && matchOwnerColumn) {
     authCheck = await env.DB.prepare(
       `
-      SELECT 1 FROM match_admins 
-      WHERE match_id = ? AND admin_user_id = ?
-      UNION
-      SELECT 1 FROM matches 
-      WHERE match_id = ? AND admin_user_id = ?
-    `,
+        SELECT 1 FROM matches
+        WHERE match_id = ? AND ${matchOwnerColumn} = ?
+        LIMIT 1
+      `,
     )
-      .bind(matchId, adminUserId, matchId, adminUserId)
+      .bind(matchId, adminUserId)
       .first();
-  } catch (error) {
-    console.warn(
-      "admin_user_idカラムでのチェックに失敗、user_idで再試行:",
-      error.message,
-    );
-
-    // 古いカラム名（user_id）で試す
-    try {
-      authCheck = await env.DB.prepare(
-        `
-        SELECT 1 FROM match_admins 
-        WHERE match_id = ? AND user_id = ?
-        UNION
-        SELECT 1 FROM matches 
-        WHERE match_id = ? AND admin_user_id = ?
-      `,
-      )
-        .bind(matchId, adminUserId, matchId, adminUserId)
-        .first();
-    } catch (error2) {
-      console.error("権限チェックに失敗:", error2.message);
-      // match_adminsテーブルを使わず、matchesテーブルのみでチェック
-      authCheck = await env.DB.prepare(
-        `
-        SELECT 1 FROM matches 
-        WHERE match_id = ? AND admin_user_id = ?
-      `,
-      )
-        .bind(matchId, adminUserId)
-        .first();
-    }
   }
 
   if (!authCheck) {
@@ -310,54 +288,32 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
 
   // match_adminsテーブルの確認
   await ensureMatchAdminsTable(env);
+  const adminCol = await getMatchAdminsUserColumn(env.DB);
+  const matchOwnerColumn = await getMatchOwnerColumn(env.DB);
 
   // 権限チェック
   let authCheck = null;
 
-  // まず新しいカラム名（admin_user_id）で試す
-  try {
+  authCheck = await env.DB.prepare(
+    `
+      SELECT 1 FROM match_admins
+      WHERE match_id = ? AND ${adminCol} = ?
+      LIMIT 1
+    `,
+  )
+    .bind(match_id, adminUserId)
+    .first();
+
+  if (!authCheck && matchOwnerColumn) {
     authCheck = await env.DB.prepare(
       `
-      SELECT 1 FROM match_admins 
-      WHERE match_id = ? AND admin_user_id = ?
-      UNION
-      SELECT 1 FROM matches 
-      WHERE match_id = ? AND admin_user_id = ?
-    `,
+        SELECT 1 FROM matches
+        WHERE match_id = ? AND ${matchOwnerColumn} = ?
+        LIMIT 1
+      `,
     )
-      .bind(match_id, adminUserId, match_id, adminUserId)
+      .bind(match_id, adminUserId)
       .first();
-  } catch (error) {
-    console.warn(
-      "admin_user_idカラムでのチェックに失敗、user_idで再試行:",
-      error.message,
-    );
-
-    // 古いカラム名（user_id）で試す
-    try {
-      authCheck = await env.DB.prepare(
-        `
-        SELECT 1 FROM match_admins 
-        WHERE match_id = ? AND user_id = ?
-        UNION
-        SELECT 1 FROM matches 
-        WHERE match_id = ? AND admin_user_id = ?
-      `,
-      )
-        .bind(match_id, adminUserId, match_id, adminUserId)
-        .first();
-    } catch (error2) {
-      console.error("権限チェックに失敗:", error2.message);
-      // match_adminsテーブルを使わず、matchesテーブルのみでチェック
-      authCheck = await env.DB.prepare(
-        `
-        SELECT 1 FROM matches 
-        WHERE match_id = ? AND admin_user_id = ?
-      `,
-      )
-        .bind(match_id, adminUserId)
-        .first();
-    }
   }
 
   if (!authCheck) {
@@ -723,4 +679,32 @@ async function ensureMatchAdminsTable(env) {
       error.message,
     );
   }
+}
+
+async function getMatchAdminsUserColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(match_admins)").all();
+  const names = new Set((columns.results || []).map((col) => col.name));
+
+  if (names.has("admin_user_id")) {
+    return "admin_user_id";
+  }
+  if (names.has("user_id")) {
+    return "user_id";
+  }
+
+  throw new Error("match_adminsテーブルの管理者カラムが見つかりません");
+}
+
+async function getMatchOwnerColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(matches)").all();
+  const names = new Set((columns.results || []).map((col) => col.name));
+
+  if (names.has("admin_user_id")) {
+    return "admin_user_id";
+  }
+  if (names.has("creator_user_id")) {
+    return "creator_user_id";
+  }
+
+  return null;
 }
