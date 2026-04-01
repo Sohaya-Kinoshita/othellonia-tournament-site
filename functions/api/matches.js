@@ -6,6 +6,7 @@ export async function onRequest(context) {
       await ensureMatchAdminsTable(db);
       await ensureOrdersConfirmedAtColumn(db);
       await ensureMatchesStartedAtColumn(db);
+      const matchOwnerColumn = await getMatchOwnerColumn(db);
 
       const matches = await db
         .prepare(
@@ -22,7 +23,7 @@ export async function onRequest(context) {
             m.order_deadline,
             m.started_at,
             m.winner_team_id,
-            m.admin_user_id,
+            m.${matchOwnerColumn} AS admin_user_id,
             (
               SELECT COUNT(*) FROM games g
               WHERE g.match_id = m.match_id
@@ -233,6 +234,7 @@ export async function onRequest(context) {
 
       const db = context.env.DB;
       await ensureMatchesStartedAtColumn(db);
+      const matchOwnerColumn = await getMatchOwnerColumn(db);
 
       // マッチが既に存在するか確認
       const existingMatch = await db
@@ -290,7 +292,7 @@ export async function onRequest(context) {
             match_id,
             team_a_id,
             team_b_id,
-            admin_user_id,
+            ${matchOwnerColumn},
             best_of,
             created_at,
             scheduled_at,
@@ -383,6 +385,7 @@ export async function onRequest(context) {
       }
 
       const db = context.env.DB;
+      const matchOwnerColumn = await getMatchOwnerColumn(db);
 
       // マッチが存在するか確認
       const existingMatch = await db
@@ -426,7 +429,9 @@ export async function onRequest(context) {
       let hasLegacyAssignment = false;
       if (!assigned) {
         const legacyOwner = await db
-          .prepare("SELECT admin_user_id FROM matches WHERE match_id = ?")
+          .prepare(
+            `SELECT ${matchOwnerColumn} AS admin_user_id FROM matches WHERE match_id = ?`,
+          )
           .bind(matchId)
           .first();
         hasLegacyAssignment = legacyOwner?.admin_user_id === adminUserId;
@@ -636,6 +641,20 @@ async function ensureMatchesStartedAtColumn(db) {
   } catch (_error) {
     // 既に存在する場合は何もしない
   }
+}
+
+async function getMatchOwnerColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(matches)").all();
+  const columnNames = new Set((columns.results || []).map((col) => col.name));
+
+  if (columnNames.has("admin_user_id")) {
+    return "admin_user_id";
+  }
+  if (columnNames.has("creator_user_id")) {
+    return "creator_user_id";
+  }
+
+  return "admin_user_id";
 }
 
 async function getLatestOrderPlayers(db, schemaType, matchId, teamId) {
