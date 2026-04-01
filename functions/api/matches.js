@@ -1,4 +1,4 @@
-export async function onRequest(context) {
+﻿export async function onRequest(context) {
   // GETメソッド：マッチ一覧を取得
   if (context.request.method === "GET") {
     try {
@@ -27,184 +27,148 @@ export async function onRequest(context) {
             (
               SELECT COUNT(*) FROM games g
               WHERE g.match_id = m.match_id
-                if (context.request.method === "POST") {
-                  try {
-                    // 管理者認証確認
-                    const cookies = context.request.headers.get("cookie") || "";
-                    const sessionId = cookies
-                      .split("; ")
-                      .find((c) => c.startsWith("sessionId="))
-                      ?.split("=")[1];
+                AND g.winner_player_id IS NOT NULL
+            ) AS completed_game_count,
+            (
+              SELECT COUNT(*) FROM orders o
+              WHERE o.match_id = m.match_id
+                AND o.confirmed_at IS NOT NULL
+            ) AS confirmed_order_count
+          FROM matches m
+          LEFT JOIN teams ta ON m.team_a_id = ta.team_id
+          LEFT JOIN teams tb ON m.team_b_id = tb.team_id
+          ORDER BY m.match_id
+        `,
+        )
+        .all();
 
-                    if (!sessionId) {
-                      return new Response(JSON.stringify({ message: "認証が必要です" }), {
-                        status: 401,
-                        headers: { "Content-Type": "application/json" },
-                      });
-                    }
+      let admins = { results: [] };
+      const adminColumn = await getMatchAdminsUserColumn(db);
+      admins = await db
+        .prepare(
+          `
+            SELECT match_id, ${adminColumn} AS admin_user_id
+            FROM match_admins
+          `,
+        )
+        .all();
 
-                    // セッションIDをデコード(admin_user_id を抽出)
-                    let adminUserId = "";
-                    try {
-                      const decoded = atob(sessionId);
-                      const [type, userId] = decoded.split(":");
+      const adminMap = new Map();
+      for (const row of admins.results || []) {
+        const current = adminMap.get(row.match_id) || [];
+        current.push(row.admin_user_id);
+        adminMap.set(row.match_id, current);
+      }
 
-                      if (type !== "admin") {
-                        return new Response(
-                          JSON.stringify({ message: "管理者権限が必要です" }),
-                          {
-                            status: 403,
-                            headers: { "Content-Type": "application/json" },
-                          },
-                        );
-                      }
+      const processedMatches = (matches.results || []).map((match) => {
+        const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
+        const matchStatus = match.winner_team_id
+          ? "finished"
+          : match.started_at || hasCompletedGame
+            ? "in_progress"
+            : "before";
 
-                      adminUserId = userId;
-                    } catch (e) {
-                      return new Response(JSON.stringify({ message: "認証エラー" }), {
-                        status: 401,
-                        headers: { "Content-Type": "application/json" },
-                      });
-                    }
+        const assignedAdmins = adminMap.get(match.match_id) || [];
+        let fallbackAdminIds = [];
+        if (assignedAdmins.length === 0 && match.admin_user_id) {
+          try {
+            const parsed = JSON.parse(match.admin_user_id);
+            fallbackAdminIds = Array.isArray(parsed)
+              ? parsed.filter(Boolean)
+              : parsed
+                ? [parsed]
+                : [];
+          } catch {
+            fallbackAdminIds = String(match.admin_user_id)
+              .split(",")
+              .map((v) => v.trim())
+              .filter(Boolean);
+          }
+        }
 
-                    // リクエストボディを解析
-                    const { matchId, teamAId, teamBId, scheduledAt } =
-                      await context.request.json();
+        const adminUserIds =
+          assignedAdmins.length > 0 ? assignedAdmins : fallbackAdminIds;
 
-                    if (!matchId || !teamAId || !teamBId || !scheduledAt) {
-                      return new Response(
-                        JSON.stringify({
-                          message: "マッチID、チームA ID、チームB ID、対戦開始日時が必要です",
-                        }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
+        return {
+          ...match,
+          admin_user_id: adminUserIds[0] || "",
+          admin_user_ids: adminUserIds,
+          match_status: matchStatus,
+        };
+      });
 
-                    const normalizedScheduledAt = String(scheduledAt).trim();
-                    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalizedScheduledAt)) {
-                      return new Response(
-                        JSON.stringify({ message: "対戦開始日時の形式が正しくありません" }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
+      return new Response(
+        JSON.stringify({ success: true, matches: processedMatches }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Matches fetch error:", error);
+      return new Response(
+        JSON.stringify({
+          message: "マッチ一覧取得処理でエラーが発生しました",
+          error: error.message,
+          stack: error.stack,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
 
-                    const scheduledAtForDb = `${normalizedScheduledAt.replace("T", " ")}:00`;
+  // POSTメソッド：マッチ作成
+  if (context.request.method === "POST") {
+    try {
+      const cookies = context.request.headers.get("cookie") || "";
+      const sessionId = cookies
+        .split("; ")
+        .find((c) => c.startsWith("sessionId="))
+        ?.split("=")[1];
 
-                    // マッチIDが3文字か確認
-                    if (String(matchId).trim().length !== 3) {
-                      return new Response(
-                        JSON.stringify({
-                          message: "マッチIDは3文字ちょうどで入力してください",
-                        }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
+      if (!sessionId) {
+        return new Response(JSON.stringify({ message: "認証が必要です" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-                    // チームIDが同じでないか確認
-                    if (teamAId === teamBId) {
-                      return new Response(
-                        JSON.stringify({
-                          message: "チームA と チームB は異なるチームを選択してください",
-                        }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
+      let adminUserId = "";
+      try {
+        const decoded = atob(sessionId);
+        const [type, userId] = decoded.split(":");
 
-                    const db = context.env.DB;
-                    await ensureMatchesStartedAtColumn(db);
-                    const matchOwnerColumn = await getMatchOwnerColumn(db);
+        if (type !== "admin") {
+          return new Response(
+            JSON.stringify({ message: "管理者権限が必要です" }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
 
-                    // マッチが既に存在するか確認
-                    const existingMatch = await db
-                      .prepare("SELECT match_id FROM matches WHERE match_id = ?")
-                      .bind(matchId)
-                      .first();
+        adminUserId = userId;
+      } catch {
+        return new Response(JSON.stringify({ message: "認証エラー" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-                    if (existingMatch) {
-                      return new Response(
-                        JSON.stringify({ message: "このマッチIDは既に使用されています" }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
+      const { matchId, teamAId, teamBId, scheduledAt } =
+        await context.request.json();
 
-                    // チームAが存在するか確認
-                    const teamA = await db
-                      .prepare("SELECT team_id FROM teams WHERE team_id = ?")
-                      .bind(teamAId)
-                      .first();
-
-                    if (!teamA) {
-                      return new Response(
-                        JSON.stringify({ message: "チームAが存在しません" }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
-
-                    // チームBが存在するか確認
-                    const teamB = await db
-                      .prepare("SELECT team_id FROM teams WHERE team_id = ?")
-                      .bind(teamBId)
-                      .first();
-
-                    if (!teamB) {
-                      return new Response(
-                        JSON.stringify({ message: "チームBが存在しません" }),
-                        {
-                          status: 400,
-                          headers: { "Content-Type": "application/json" },
-                        },
-                      );
-                    }
-
-                    // マッチを作成
-                    await db.prepare(
-                      `INSERT INTO matches (match_id, team_a_id, team_b_id, ${matchOwnerColumn}, scheduled_at, order_deadline, created_at)
-                       VALUES (?, ?, ?, ?, ?, datetime('now', '+1 hour'), datetime('now'))`
-                    )
-                      .bind(matchId, teamAId, teamBId, adminUserId, scheduledAtForDb)
-                      .run();
-
-                    // 作成者をmatch_adminsに追加（重複しないように）
-                    const adminCol = await getMatchAdminsUserColumn(db);
-                    await db.prepare(
-                      `INSERT OR IGNORE INTO match_admins (match_id, ${adminCol}) VALUES (?, ?)`
-                    ).bind(matchId, adminUserId).run();
-
-                    return new Response(
-                      JSON.stringify({ message: "マッチを作成しました" }),
-                      {
-                        status: 200,
-                        headers: { "Content-Type": "application/json" },
-                      },
-                    );
-                  } catch (error) {
-                    return new Response(
-                      JSON.stringify({ message: error.message || "マッチ作成に失敗しました" }),
-                      {
-                        status: 500,
-                        headers: { "Content-Type": "application/json" },
-                      },
-                    );
-                  }
-                }
+      if (!matchId || !teamAId || !teamBId || !scheduledAt) {
+        return new Response(
+          JSON.stringify({
+            message: "マッチID、チームA ID、チームB ID、対戦開始日時が必要です",
+          }),
+          {
+            status: 400,
             headers: { "Content-Type": "application/json" },
           },
         );
@@ -223,7 +187,6 @@ export async function onRequest(context) {
 
       const scheduledAtForDb = `${normalizedScheduledAt.replace("T", " ")}:00`;
 
-      // マッチIDが3文字か確認
       if (String(matchId).trim().length !== 3) {
         return new Response(
           JSON.stringify({
@@ -236,7 +199,6 @@ export async function onRequest(context) {
         );
       }
 
-      // チームIDが同じでないか確認
       if (teamAId === teamBId) {
         return new Response(
           JSON.stringify({
@@ -251,9 +213,9 @@ export async function onRequest(context) {
 
       const db = context.env.DB;
       await ensureMatchesStartedAtColumn(db);
+      await ensureMatchAdminsTable(db);
       const matchOwnerColumn = await getMatchOwnerColumn(db);
 
-      // マッチが既に存在するか確認
       const existingMatch = await db
         .prepare("SELECT match_id FROM matches WHERE match_id = ?")
         .bind(matchId)
@@ -269,12 +231,10 @@ export async function onRequest(context) {
         );
       }
 
-      // チームAが存在するか確認
       const teamA = await db
         .prepare("SELECT team_id FROM teams WHERE team_id = ?")
         .bind(teamAId)
         .first();
-
       if (!teamA) {
         return new Response(
           JSON.stringify({ message: "チームA が見つかりません" }),
@@ -285,12 +245,10 @@ export async function onRequest(context) {
         );
       }
 
-      // チームBが存在するか確認
       const teamB = await db
         .prepare("SELECT team_id FROM teams WHERE team_id = ?")
         .bind(teamBId)
         .first();
-
       if (!teamB) {
         return new Response(
           JSON.stringify({ message: "チームB が見つかりません" }),
@@ -301,7 +259,6 @@ export async function onRequest(context) {
         );
       }
 
-      // マッチを作成
       await db
         .prepare(
           `
@@ -326,6 +283,14 @@ export async function onRequest(context) {
           scheduledAtForDb,
           scheduledAtForDb,
         )
+        .run();
+
+      const adminCol = await getMatchAdminsUserColumn(db);
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO match_admins (match_id, ${adminCol}) VALUES (?, ?)`,
+        )
+        .bind(matchId, adminUserId)
         .run();
 
       return new Response(
@@ -752,4 +717,14 @@ async function ensureMatchAdminsTable(db) {
       error.message,
     );
   }
+}
+
+async function getMatchAdminsUserColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(match_admins)").all();
+  const names = new Set((columns.results || []).map((col) => col.name));
+
+  if (names.has("admin_user_id")) return "admin_user_id";
+  if (names.has("user_id")) return "user_id";
+
+  throw new Error("match_adminsテーブルの管理者カラムが見つかりません");
 }
