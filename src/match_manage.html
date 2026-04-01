@@ -88,29 +88,38 @@
                 return;
             }
             box.innerHTML = `
-                <table style="border-collapse:collapse; min-width:520px; width:100%;">
-                  <thead>
-                    <tr style="border-bottom:2px solid #ccc;">
-                      <th style="padding:5px;">試合ID</th>
-                      <th style="padding:5px;">チームA</th>
-                      <th style="padding:5px;">チームB</th>
-                      <th style="padding:5px;">試合日時</th>
-                      <th style="padding:5px;">進行状況</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${matches.map(match => `
-                      <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:5px; text-align:center;">${match.match_id}</td>
-                        <td style="padding:5px;">${match.team_a_name || "-"}</td>
-                        <td style="padding:5px;">${match.team_b_name || "-"}</td>
-                        <td style="padding:5px;">${formatDateTime(match.scheduled_at)}</td>
-                        <td style="padding:5px; text-align:center;">${getStatusLabel(match)}</td>
-                      </tr>
-                    `).join("")}
-                  </tbody>
-                </table>
-            `;
+                                <table style="border-collapse:collapse; min-width:600px; width:100%;">
+                                    <thead>
+                                        <tr style="border-bottom:2px solid #ccc;">
+                                            <th style="padding:5px;">試合ID</th>
+                                            <th style="padding:5px;">チームA</th>
+                                            <th style="padding:5px;">チームB</th>
+                                            <th style="padding:5px;">試合日時</th>
+                                            <th style="padding:5px;">進行状況</th>
+                                            <th style="padding:5px;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${matches.map(match => `
+                                            <tr style="border-bottom:1px solid #eee;">
+                                                <td style="padding:5px; text-align:center;">${match.match_id}</td>
+                                                <td style="padding:5px;">${match.team_a_name || "-"}</td>
+                                                <td style="padding:5px;">${match.team_b_name || "-"}</td>
+                                                <td style="padding:5px;">${formatDateTime(match.scheduled_at)}</td>
+                                                <td style="padding:5px; text-align:center;">${getStatusLabel(match)}</td>
+                                                <td style="padding:5px; text-align:center;">
+                                                    <button type="button" class="btn edit-admin-btn" data-match-id="${match.match_id}">編集する</button>
+                                                </td>
+                                            </tr>
+                                            <tr id="admin-row-${match.match_id}" class="admin-edit-row" style="display:none; background:#f8fafc;">
+                                                <td colspan="6">
+                                                    <div id="adminAddSection-${match.match_id}"></div>
+                                                </td>
+                                            </tr>
+                                        `).join("")}
+                                    </tbody>
+                                </table>
+                        `;
         }
 
         function filterMatches(keyword) {
@@ -215,12 +224,88 @@
             await checkAdmin();
             await loadMatches();
             setupSearch();
+            const users = await loadUsers();
             renderMatchList(filterMatches(""));
 
-            // 管理者追加UI初期化
-            const users = await loadUsers();
-            setupAdminAdd(users);
-            renderAdminList();
+            // 編集ボタンのイベント設定
+            document.getElementById("matchListBox").addEventListener("click", function (e) {
+                if (e.target.classList.contains("edit-admin-btn")) {
+                    const matchId = e.target.getAttribute("data-match-id");
+                    // すべての管理者編集行を非表示
+                    document.querySelectorAll(".admin-edit-row").forEach(row => row.style.display = "none");
+                    // 対象のみ表示
+                    const targetRow = document.getElementById(`admin-row-${matchId}`);
+                    if (targetRow) {
+                        targetRow.style.display = "table-row";
+                        // 管理者追加UI描画
+                        renderAdminAddSection(matchId, users);
+                    }
+                }
+            });
+        });
+
+        // 管理者追加UIを試合ごとに描画
+        function renderAdminAddSection(matchId, users) {
+            const section = document.getElementById(`adminAddSection-${matchId}`);
+            if (!section) return;
+            // 仮: 管理者リストはローカルで保持（本来はAPIで取得/更新すべき）
+            if (!window.matchAdmins) window.matchAdmins = {};
+            if (!window.matchAdmins[matchId]) window.matchAdmins[matchId] = [];
+            const currentAdmins = window.matchAdmins[matchId];
+            section.innerHTML = `
+                <div style="padding: 8px 0;">
+                  <h3 style="margin: 0 0 8px 0; font-size: 16px;">管理者を追加</h3>
+                  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                    <select id="userSelect-${matchId}" style="min-width: 180px; padding: 8px 12px; font-size: 15px;">
+                      ${users.map(u => `<option value="${u.user_id}">${u.user_name} (${u.user_id})</option>`).join("")}
+                    </select>
+                    <button type="button" class="btn" id="addAdminBtn-${matchId}">追加</button>
+                  </div>
+                  <div id="adminAddMsg-${matchId}" style="color: #b91c1c; margin-bottom: 8px;"></div>
+                  <div id="currentAdminsBox-${matchId}" style="margin-top: 8px;">
+                    <b>現在の管理者:</b>
+                    <ul id="adminList-${matchId}" style="margin: 4px 0 0 16px; padding: 0;"></ul>
+                  </div>
+                </div>
+            `;
+            // 管理者リスト描画
+            renderAdminList(matchId);
+            // 追加ボタンイベント
+            document.getElementById(`addAdminBtn-${matchId}`).onclick = function () {
+                const select = document.getElementById(`userSelect-${matchId}`);
+                const msg = document.getElementById(`adminAddMsg-${matchId}`);
+                const userId = select.value;
+                const user = users.find(u => u.user_id === userId);
+                if (!user) return;
+                if (currentAdmins.some(a => a.user_id === userId)) {
+                    msg.textContent = "すでに追加されています";
+                    return;
+                }
+                currentAdmins.push(user);
+                msg.textContent = "";
+                renderAdminList(matchId);
+            };
+        }
+
+        function renderAdminList(matchId) {
+            const ul = document.getElementById(`adminList-${matchId}`);
+            if (!ul) return;
+            const currentAdmins = (window.matchAdmins && window.matchAdmins[matchId]) ? window.matchAdmins[matchId] : [];
+            ul.innerHTML = currentAdmins.length
+                ? currentAdmins.map(a => `<li>${a.user_name} (${a.user_id}) <button type="button" class="btn btn-sm remove-admin-btn" data-user-id="${a.user_id}" data-match-id="${matchId}" style="margin-left:8px; padding:2px 8px; font-size:12px;">削除</button></li>`).join("")
+                : '<li style="color:#888;">未設定</li>';
+
+            // 削除ボタンイベント
+            ul.querySelectorAll('.remove-admin-btn').forEach(btn => {
+                btn.onclick = function () {
+                    const userId = btn.getAttribute('data-user-id');
+                    const matchId = btn.getAttribute('data-match-id');
+                    if (!window.matchAdmins || !window.matchAdmins[matchId]) return;
+                    window.matchAdmins[matchId] = window.matchAdmins[matchId].filter(a => a.user_id !== userId);
+                    renderAdminList(matchId);
+                };
+            });
+        }
         });
     </script>
 </body>
