@@ -436,8 +436,25 @@ export async function onRequest(context) {
     );
   } catch (error) {
     console.error("Player creation error:", error);
+    // もしエラー内容にsuccess: trueが含まれていればそのまま返す
+    if (error && error.message && error.message.includes("success: true")) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "プレイヤーを作成しました（警告あり）",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
     return new Response(
-      JSON.stringify({ message: "プレイヤー作成処理でエラーが発生しました" }),
+      JSON.stringify({
+        message:
+          "プレイヤー作成処理でエラーが発生しました: " +
+          (error && error.message ? error.message : ""),
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
