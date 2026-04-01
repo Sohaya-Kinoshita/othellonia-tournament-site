@@ -119,6 +119,22 @@
                 .toLowerCase();
         }
 
+        function extractAdminIds(match) {
+            if (Array.isArray(match.admin_user_ids)) {
+                return match.admin_user_ids.filter(Boolean);
+            }
+            if (Array.isArray(match.admin_user_id)) {
+                return match.admin_user_id.filter(Boolean);
+            }
+            if (typeof match.admin_user_id === "string" && match.admin_user_id.includes(",")) {
+                return match.admin_user_id.split(",").map(s => s.trim()).filter(Boolean);
+            }
+            if (match.admin_user_id) {
+                return [match.admin_user_id];
+            }
+            return [];
+        }
+
         function renderMatches(matchesToRender) {
             const matchTableBody = document.getElementById("matchTableBody");
             const noMatchesMessage = document.getElementById("noMatchesMessage");
@@ -140,15 +156,7 @@
                     const teamAName = escapeHtml(match.team_a_name || "(未設定)");
                     const teamBName = escapeHtml(match.team_b_name || "(未設定)");
                     const datetimeText = escapeHtml(formatDateTime(match.scheduled_at));
-                    // 管理者ID配列化
-                    let adminIds = [];
-                    if (Array.isArray(match.admin_user_id)) {
-                        adminIds = match.admin_user_id;
-                    } else if (typeof match.admin_user_id === "string" && match.admin_user_id.includes(",")) {
-                        adminIds = match.admin_user_id.split(",").map(s => s.trim()).filter(Boolean);
-                    } else if (match.admin_user_id) {
-                        adminIds = [match.admin_user_id];
-                    }
+                    const adminIds = extractAdminIds(match);
                     // 名前変換
                     let adminNames = adminIds.map(id => escapeHtml(userIdToName[id] || id || "(未設定)")).join("<br>");
                     if (!adminNames) adminNames = "(未設定)";
@@ -201,14 +209,7 @@
             } else if (searchField === "admin") {
                 if (keyword) {
                     filtered = filtered.filter(match => {
-                        let adminIds = [];
-                        if (Array.isArray(match.admin_user_id)) {
-                            adminIds = match.admin_user_id;
-                        } else if (typeof match.admin_user_id === "string" && match.admin_user_id.includes(",")) {
-                            adminIds = match.admin_user_id.split(",").map(s => s.trim()).filter(Boolean);
-                        } else if (match.admin_user_id) {
-                            adminIds = [match.admin_user_id];
-                        }
+                        const adminIds = extractAdminIds(match);
                         // 名前で部分一致
                         return adminIds.some(id => (userIdToName[id] || id || "").toLowerCase().includes(keyword));
                     });
