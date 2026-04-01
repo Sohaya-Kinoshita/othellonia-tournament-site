@@ -77,7 +77,8 @@
             const noTeamsMessage = document.getElementById("noTeamsMessage");
 
             try {
-                const response = await fetch("/api/teams");
+                // deletable=1 で未参加チームのみ取得
+                const response = await fetch("/api/teams?deletable=1");
                 const result = await response.json();
 
                 if (!response.ok) {
@@ -86,9 +87,8 @@
                 }
 
                 const teams = result.teams || [];
-                const deletableTeams = teams.filter((team) => Number(team.match_count || 0) === 0);
 
-                if (deletableTeams.length === 0) {
+                if (teams.length === 0) {
                     teamListContainer.innerHTML = "";
                     noTeamsMessage.style.display = "block";
                     return;
@@ -105,7 +105,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${deletableTeams
+                            ${teams
                         .map(
                             (team) => `
                                 <tr style="border-bottom: 1px solid #eee;">

@@ -5,6 +5,7 @@ export async function onRequest(context) {
       const db = context.env.DB;
       const url = new URL(context.request.url);
       const teamId = url.searchParams.get("team_id");
+      const deletable = url.searchParams.get("deletable");
 
       if (teamId) {
         // 1件のみ返す
@@ -50,25 +51,46 @@ export async function onRequest(context) {
           },
         );
       } else {
-        // 全件返す
-        const results = await db
-          .prepare(
-            `
-          SELECT 
-            t.team_id, 
-            t.team_name, 
-            lp.player_name AS leader_name, 
-            sp.player_name AS subleader_name
-          FROM teams t
-          LEFT JOIN leaders l ON t.team_id = l.team_id AND l.leader_role = 'leader'
-          LEFT JOIN players lp ON l.player_id = lp.player_id
-          LEFT JOIN leaders sl ON t.team_id = sl.team_id AND sl.leader_role = 'subleader'
-          LEFT JOIN players sp ON sl.player_id = sp.player_id
-          ORDER BY t.team_id
-        `,
-          )
-          .all();
-
+        let results;
+        if (deletable === "1") {
+          // マッチ未参加チームのみ返す
+          results = await db
+            .prepare(
+              `
+              SELECT t.team_id, t.team_name,
+                lp.player_name AS leader_name,
+                sp.player_name AS subleader_name
+              FROM teams t
+              LEFT JOIN leaders l ON t.team_id = l.team_id AND l.leader_role = 'leader'
+              LEFT JOIN players lp ON l.player_id = lp.player_id
+              LEFT JOIN leaders sl ON t.team_id = sl.team_id AND sl.leader_role = 'subleader'
+              LEFT JOIN players sp ON sl.player_id = sp.player_id
+              WHERE NOT EXISTS (
+                SELECT 1 FROM matches m
+                WHERE m.team_a_id = t.team_id OR m.team_b_id = t.team_id OR m.winner_team_id = t.team_id
+              )
+              ORDER BY t.team_id
+            `,
+            )
+            .all();
+        } else {
+          // 全件返す
+          results = await db
+            .prepare(
+              `
+              SELECT t.team_id, t.team_name,
+                lp.player_name AS leader_name,
+                sp.player_name AS subleader_name
+              FROM teams t
+              LEFT JOIN leaders l ON t.team_id = l.team_id AND l.leader_role = 'leader'
+              LEFT JOIN players lp ON l.player_id = lp.player_id
+              LEFT JOIN leaders sl ON t.team_id = sl.team_id AND sl.leader_role = 'subleader'
+              LEFT JOIN players sp ON sl.player_id = sp.player_id
+              ORDER BY t.team_id
+            `,
+            )
+            .all();
+        }
         return new Response(JSON.stringify({ teams: results.results || [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
