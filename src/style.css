@@ -2271,13 +2271,7 @@ a.btn:visited {
   border-right: 2px dotted #ccc;
 }
 
-.match-list-col-progress,
-.match-list-cell-progress {
-  width: 180px;
-  text-align: left;
-  white-space: nowrap;
-  border-right: 2px dotted #ccc;
-}
+/* 進行数列削除 */
 
 .match-list-col-admin,
 .match-list-cell-admin {

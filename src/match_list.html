@@ -37,7 +37,6 @@
                             <th class="match-list-col-card">対戦カード</th>
                             <th class="match-list-col-date">試合日時</th>
                             <th class="match-list-col-status">進行状況</th>
-                            <th class="match-list-col-progress">進行数</th>
                             <th class="match-list-col-admin">管理者</th>
                             <th class="match-list-col-actions">操作</th>
                         </tr>
@@ -127,19 +126,15 @@
                     const teamBName = escapeHtml(match.team_b_name || "(未設定)");
                     const adminUserId = escapeHtml(match.admin_user_id || "(未設定)");
                     const datetimeText = escapeHtml(formatDateTime(match.scheduled_at));
-                    const completedCount = Number(match.completed_game_count || 0);
-                    const confirmedCount = Number(match.confirmed_order_count || 0);
-                    const progressText = escapeHtml(`ゲーム ${completedCount} / オーダー ${confirmedCount}`);
 
                     return `
                         <tr>
                             <td class="match-list-cell-id">${matchId}</td>
-                            <td class="match-list-cell-card">${teamAName} vs ${teamBName}</td>
+                            <td class="match-list-cell-card">${teamAName}<br>${teamBName}</td>
                             <td class="match-list-cell-date">${datetimeText}</td>
                             <td class="match-list-cell-status">
                                 <span class="match-status-pill ${statusMeta.className}">${statusMeta.label}</span>
                             </td>
-                            <td class="match-list-cell-progress">${progressText}</td>
                             <td class="match-list-cell-admin">${adminUserId}</td>
                             <td class="match-list-cell-actions">
                                 <div class="match-list-actions">
