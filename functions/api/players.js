@@ -436,25 +436,22 @@ export async function onRequest(context) {
     );
   } catch (error) {
     console.error("Player creation error:", error);
-    // もしエラー内容にsuccess: trueが含まれていればそのまま返す
-    if (error && error.message && error.message.includes("success: true")) {
+    const errorMessage = String(error?.message || "");
+    if (
+      errorMessage.includes("SQLITE_CONSTRAINT_PRIMARYKEY") ||
+      errorMessage.includes("UNIQUE constraint failed: players.player_id")
+    ) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: "プレイヤーを作成しました（警告あり）",
-        }),
+        JSON.stringify({ message: "このプレイヤーIDは既に存在します" }),
         {
-          status: 200,
+          status: 409,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
+
     return new Response(
-      JSON.stringify({
-        message:
-          "プレイヤー作成処理でエラーが発生しました: " +
-          (error && error.message ? error.message : ""),
-      }),
+      JSON.stringify({ message: "プレイヤー作成処理でエラーが発生しました" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

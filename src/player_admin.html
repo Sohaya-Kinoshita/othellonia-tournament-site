@@ -83,6 +83,11 @@
 
         function setupPlayerForm() {
             const playerForm = document.getElementById("playerForm");
+            if (playerForm.dataset.initialized === "true") {
+                return;
+            }
+            playerForm.dataset.initialized = "true";
+
             const messageDiv = document.getElementById("playerMessage");
             const playerIdInput = document.getElementById("playerId");
             const playerNameInput = document.getElementById("playerName");
@@ -174,9 +179,6 @@
         document.addEventListener("DOMContentLoaded", () => {
             checkAdmin();
         });
-    </script>
-    <script>
-        window.addEventListener('DOMContentLoaded', checkAdmin);
     </script>
 </body>
 
