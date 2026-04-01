@@ -53,6 +53,8 @@
     <script src="./js/layout.js"></script>
     <script>
         let allMatches = [];
+        let allUsers = [];
+        let userIdToName = {};
 
         function escapeHtml(value) {
             return String(value ?? "")
@@ -124,8 +126,19 @@
                     const matchId = escapeHtml(match.match_id || "-");
                     const teamAName = escapeHtml(match.team_a_name || "(未設定)");
                     const teamBName = escapeHtml(match.team_b_name || "(未設定)");
-                    const adminUserId = escapeHtml(match.admin_user_id || "(未設定)");
                     const datetimeText = escapeHtml(formatDateTime(match.scheduled_at));
+                    // 管理者ID配列化
+                    let adminIds = [];
+                    if (Array.isArray(match.admin_user_id)) {
+                        adminIds = match.admin_user_id;
+                    } else if (typeof match.admin_user_id === "string" && match.admin_user_id.includes(",")) {
+                        adminIds = match.admin_user_id.split(",").map(s => s.trim()).filter(Boolean);
+                    } else if (match.admin_user_id) {
+                        adminIds = [match.admin_user_id];
+                    }
+                    // 名前変換
+                    let adminNames = adminIds.map(id => escapeHtml(userIdToName[id] || id || "(未設定)")).join("<br>");
+                    if (!adminNames) adminNames = "(未設定)";
 
                     return `
                         <tr>
@@ -135,7 +148,7 @@
                             <td class="match-list-cell-status">
                                 <span class="match-status-pill ${statusMeta.className}">${statusMeta.label}</span>
                             </td>
-                            <td class="match-list-cell-admin">${adminUserId}</td>
+                            <td class="match-list-cell-admin">${adminNames}</td>
                             <td class="match-list-cell-actions">
                                 <div class="match-list-actions">
                                     <a href="./match_confirm.html?matchId=${encodeURIComponent(match.match_id)}" class="btn match-list-action-link">結果入力</a>
@@ -199,15 +212,29 @@
                     return;
                 }
 
-                const response = await fetch("/api/matches");
-                const result = await response.json();
+                // ユーザー一覧も取得
+                const [matchesRes, usersRes] = await Promise.all([
+                    fetch("/api/matches"),
+                    fetch("/api/users")
+                ]);
+                const matchesResult = await matchesRes.json();
+                const usersResult = await usersRes.json();
 
-                if (!response.ok || !result.success) {
+                if (!matchesRes.ok || !matchesResult.success) {
                     adminMessage.textContent = "試合一覧の取得に失敗しました。";
                     return;
                 }
+                if (!usersRes.ok || !usersResult.success) {
+                    adminMessage.textContent = "ユーザー一覧の取得に失敗しました。";
+                    return;
+                }
 
-                allMatches = Array.isArray(result.matches) ? result.matches : [];
+                allMatches = Array.isArray(matchesResult.matches) ? matchesResult.matches : [];
+                allUsers = Array.isArray(usersResult.users) ? usersResult.users : [];
+                userIdToName = {};
+                for (const u of allUsers) {
+                    userIdToName[u.user_id] = u.user_name;
+                }
                 adminMessage.style.display = "none";
                 matchListCard.classList.remove("hidden");
                 renderMatches(allMatches);
