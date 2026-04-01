@@ -15,14 +15,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 初回に全チーム一覧のみ取得
   fetch("/api/teams")
-    .then((res) => res.json())
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.json();
+    })
     .then((data) => {
-      if (!data.success) {
+      if (!Array.isArray(data.teams)) {
         searchError.textContent = "チーム情報の取得に失敗しました";
         searchError.style.display = "block";
         return;
       }
       allTeams = data.teams;
+    })
+    .catch(() => {
+      searchError.textContent = "チーム情報の取得に失敗しました";
+      searchError.style.display = "block";
     });
 
   matchIdSearchForm.addEventListener("submit", function (e) {
