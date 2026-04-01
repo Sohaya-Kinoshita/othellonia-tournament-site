@@ -4,6 +4,7 @@ export async function onRequest(context) {
     try {
       const db = context.env.DB;
       await ensureMatchAdminsTable(db);
+      await ensureOrdersConfirmedAtColumn(db);
       await ensureMatchesStartedAtColumn(db);
 
       const matches = await db

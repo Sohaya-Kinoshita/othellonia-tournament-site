@@ -77,6 +77,11 @@
 
         async function setupMatchForm() {
             const matchForm = document.getElementById("matchForm");
+            if (matchForm.dataset.initialized === "true") {
+                return;
+            }
+            matchForm.dataset.initialized = "true";
+
             const messageDiv = document.getElementById("matchMessage");
             const teamASelect = document.getElementById("teamAId");
             const teamBSelect = document.getElementById("teamBId");
@@ -93,7 +98,7 @@
                 const response = await fetch("/api/teams");
                 const result = await response.json();
 
-                if (result.success && result.teams) {
+                if (response.ok && Array.isArray(result.teams)) {
                     const teams = result.teams;
 
                     // チームA用の選択肢を設定
@@ -127,6 +132,10 @@
                             teamASelect.value = "";
                         }
                     });
+                } else {
+                    messageDiv.textContent = result.message || "チーム一覧の取得に失敗しました";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
                 }
             } catch (error) {
                 messageDiv.textContent = "チーム一覧の取得に失敗しました";
@@ -197,10 +206,9 @@
             });
         }
 
-        checkAdmin();
-    </script>
-    <script>
-        window.addEventListener('DOMContentLoaded', checkAdmin);
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAdmin();
+        });
     </script>
 </body>
 
