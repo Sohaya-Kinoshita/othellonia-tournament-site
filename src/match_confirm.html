@@ -619,8 +619,18 @@
 
                 allMatches = result.matches || [];
 
-                // 試合が確定済み（winner_team_id あり）のものは除外
-                visibleMatches = allMatches.filter((match) => !match.winner_team_id);
+                // 試合が確定済み（winner_team_id あり）かつ、現在の管理者が担当しているものだけ表示
+                visibleMatches = allMatches.filter((match) => {
+                    if (match.winner_team_id) {
+                        return false;
+                    }
+                    const assignedAdmins = Array.isArray(match.admin_user_ids)
+                        ? match.admin_user_ids
+                        : match.admin_user_id
+                            ? [match.admin_user_id]
+                            : [];
+                    return assignedAdmins.includes(currentAdminId);
+                });
 
                 displayMatchList();
                 setupSearchBox();
