@@ -401,27 +401,14 @@
       }
 
       await ensureMatchAdminsTable(db);
+      const adminCol = await getMatchAdminsUserColumn(db);
 
-      let assigned = null;
-      try {
-        assigned = await db
-          .prepare(
-            "SELECT 1 FROM match_admins WHERE match_id = ? AND admin_user_id = ? LIMIT 1",
-          )
-          .bind(matchId, adminUserId)
-          .first();
-      } catch (assignedError) {
-        console.warn(
-          "admin_user_idでの権限確認に失敗。user_idで再試行:",
-          assignedError.message,
-        );
-        assigned = await db
-          .prepare(
-            "SELECT 1 FROM match_admins WHERE match_id = ? AND user_id = ? LIMIT 1",
-          )
-          .bind(matchId, adminUserId)
-          .first();
-      }
+      const assigned = await db
+        .prepare(
+          `SELECT 1 FROM match_admins WHERE match_id = ? AND ${adminCol} = ? LIMIT 1`,
+        )
+        .bind(matchId, adminUserId)
+        .first();
 
       let hasLegacyAssignment = false;
       if (!assigned && matchOwnerColumn) {
