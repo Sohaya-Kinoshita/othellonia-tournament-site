@@ -24,7 +24,21 @@
                     <button type="button" class="btn" id="searchButton">検索</button>
                     <button type="button" class="btn" id="clearButton">クリア</button>
                 </div>
-                <div id="searchResultBox" style="margin-top: 16px; color: #333;"></div>
+                <div id="matchListBox" style="margin-top: 16px; color: #333;"></div>
+
+                <div id="adminAddSection"
+                    style="margin-top: 32px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 17px;">管理者を追加</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+                        <select id="userSelect" style="min-width: 180px; padding: 8px 12px; font-size: 15px;"></select>
+                        <button type="button" class="btn" id="addAdminBtn">追加</button>
+                    </div>
+                    <div id="adminAddMsg" style="color: #b91c1c; margin-bottom: 8px;"></div>
+                    <div id="currentAdminsBox" style="margin-top: 8px;">
+                        <b>現在の管理者:</b>
+                        <ul id="adminList" style="margin: 4px 0 0 16px; padding: 0;"></ul>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -47,60 +61,166 @@
             }
         }
 
-        async function searchMatchById(matchId) {
-            const resultBox = document.getElementById("searchResultBox");
-            resultBox.textContent = "検索中...";
-            try {
-                const res = await fetch(`/api/match-search?matchId=${encodeURIComponent(matchId)}`);
-                if (!res.ok) {
-                    resultBox.textContent = "該当する試合が見つかりません。";
-                    return;
-                }
-                const data = await res.json();
-                if (!data.match) {
-                    resultBox.textContent = "該当する試合が見つかりません。";
-                    return;
-                }
-                const match = data.match;
-                resultBox.innerHTML = `
-                    <div style="margin-bottom:8px;"><b>試合ID:</b> ${match.match_id}</div>
-                    <div style="margin-bottom:8px;"><b>チームA:</b> ${match.team_a_name || "-"}</div>
-                    <div style="margin-bottom:8px;"><b>チームB:</b> ${match.team_b_name || "-"}</div>
-                    <div style="margin-bottom:8px;"><b>試合日時:</b> ${match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : "-"}</div>
-                    <div style="margin-bottom:8px;"><b>進行状況:</b> ${match.winner_team_id ? "完了" : (match.started_at ? "進行中" : "試合前")}</div>
-                `;
-            } catch {
-                resultBox.textContent = "検索中にエラーが発生しました。";
-            }
+
+        let allMatches = [];
+
+        function formatDateTime(datetimeText) {
+            if (!datetimeText) return "-";
+            const normalized = String(datetimeText).replace(" ", "T");
+            const date = new Date(normalized);
+            if (Number.isNaN(date.getTime())) return "-";
+            return date.toLocaleString("ja-JP", {
+                year: "numeric", month: "numeric", day: "numeric",
+                hour: "2-digit", minute: "2-digit"
+            });
         }
+
+        function getStatusLabel(match) {
+            if (match.winner_team_id) return "完了";
+            if (match.started_at) return "進行中";
+            return "試合前";
+        }
+
+        function renderMatchList(matches) {
+            const box = document.getElementById("matchListBox");
+            if (!matches.length) {
+                box.innerHTML = '<div style="color:#888;">該当する試合がありません。</div>';
+                return;
+            }
+            box.innerHTML = `
+                <table style="border-collapse:collapse; min-width:520px; width:100%;">
+                  <thead>
+                    <tr style="border-bottom:2px solid #ccc;">
+                      <th style="padding:5px;">試合ID</th>
+                      <th style="padding:5px;">チームA</th>
+                      <th style="padding:5px;">チームB</th>
+                      <th style="padding:5px;">試合日時</th>
+                      <th style="padding:5px;">進行状況</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${matches.map(match => `
+                      <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:5px; text-align:center;">${match.match_id}</td>
+                        <td style="padding:5px;">${match.team_a_name || "-"}</td>
+                        <td style="padding:5px;">${match.team_b_name || "-"}</td>
+                        <td style="padding:5px;">${formatDateTime(match.scheduled_at)}</td>
+                        <td style="padding:5px; text-align:center;">${getStatusLabel(match)}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+            `;
+        }
+
+        function filterMatches(keyword) {
+            keyword = keyword.trim().toLowerCase();
+            if (!keyword) {
+                // 初期表示: 試合前・進行中のみ
+                return allMatches.filter(m => !m.winner_team_id);
+            }
+            return allMatches.filter(m => {
+                if (m.winner_team_id) return false;
+                return (
+                    (m.match_id || "").toLowerCase().includes(keyword) ||
+                    (m.team_a_name || "").toLowerCase().includes(keyword) ||
+                    (m.team_b_name || "").toLowerCase().includes(keyword)
+                );
+            });
+        }
+
 
         function setupSearch() {
             const input = document.getElementById("searchMatchId");
             const searchBtn = document.getElementById("searchButton");
             const clearBtn = document.getElementById("clearButton");
-            const resultBox = document.getElementById("searchResultBox");
 
-            searchBtn.addEventListener("click", () => {
-                const id = input.value.trim();
-                if (id) searchMatchById(id);
-            });
+            function doSearch() {
+                const keyword = input.value;
+                const filtered = filterMatches(keyword);
+                renderMatchList(filtered);
+            }
+
+            searchBtn.addEventListener("click", doSearch);
             input.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    const id = input.value.trim();
-                    if (id) searchMatchById(id);
+                    doSearch();
                 }
             });
             clearBtn.addEventListener("click", () => {
                 input.value = "";
-                resultBox.textContent = "";
+                renderMatchList(filterMatches(""));
                 input.focus();
             });
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            checkAdmin();
+        async function loadMatches() {
+            try {
+                const res = await fetch("/api/matches");
+                const data = await res.json();
+                if (res.ok && data.success && Array.isArray(data.matches)) {
+                    allMatches = data.matches;
+                } else {
+                    allMatches = [];
+                }
+            } catch {
+                allMatches = [];
+            }
+        }
+
+        // 管理者追加UI
+        async function loadUsers() {
+            try {
+                const res = await fetch("/api/users");
+                const data = await res.json();
+                if (res.ok && data.success && Array.isArray(data.users)) {
+                    return data.users;
+                }
+            } catch { }
+            return [];
+        }
+
+        // 仮: 管理者リストはローカルで保持（本来はAPIで取得/更新すべき）
+        let currentAdmins = [];
+
+        function renderAdminList() {
+            const ul = document.getElementById("adminList");
+            if (!ul) return;
+            ul.innerHTML = currentAdmins.length
+                ? currentAdmins.map(a => `<li>${a.user_name} (${a.user_id})</li>`).join("")
+                : '<li style="color:#888;">未設定</li>';
+        }
+
+        function setupAdminAdd(users) {
+            const select = document.getElementById("userSelect");
+            const addBtn = document.getElementById("addAdminBtn");
+            const msg = document.getElementById("adminAddMsg");
+            select.innerHTML = users.map(u => `<option value="${u.user_id}">${u.user_name} (${u.user_id})</option>`).join("");
+            addBtn.onclick = () => {
+                const userId = select.value;
+                const user = users.find(u => u.user_id === userId);
+                if (!user) return;
+                if (currentAdmins.some(a => a.user_id === userId)) {
+                    msg.textContent = "すでに追加されています";
+                    return;
+                }
+                currentAdmins.push(user);
+                msg.textContent = "";
+                renderAdminList();
+            };
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            await loadMatches();
             setupSearch();
+            renderMatchList(filterMatches(""));
+
+            // 管理者追加UI初期化
+            const users = await loadUsers();
+            setupAdminAdd(users);
+            renderAdminList();
         });
     </script>
 </body>
