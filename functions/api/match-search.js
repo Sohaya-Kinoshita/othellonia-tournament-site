@@ -12,6 +12,7 @@ export async function onRequestGet(context) {
       });
     }
     const db = context.env.DB;
+    const matchOwnerColumn = await getMatchOwnerColumn(db);
     const match = await db
       .prepare(
         `
@@ -26,7 +27,9 @@ export async function onRequestGet(context) {
         m.scheduled_at,
         m.order_deadline,
         m.started_at,
-        m.winner_team_id
+        m.winner_team_id,
+        m.${matchOwnerColumn} AS creator_user_id,
+        m.${matchOwnerColumn} AS admin_user_id
       FROM matches m
       LEFT JOIN teams ta ON m.team_a_id = ta.team_id
       LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -58,4 +61,18 @@ export async function onRequestGet(context) {
       },
     );
   }
+}
+
+async function getMatchOwnerColumn(db) {
+  const columns = await db.prepare("PRAGMA table_info(matches)").all();
+  const columnNames = new Set((columns.results || []).map((col) => col.name));
+
+  if (columnNames.has("creator_user_id")) {
+    return "creator_user_id";
+  }
+  if (columnNames.has("admin_user_id")) {
+    return "admin_user_id";
+  }
+
+  return "creator_user_id";
 }

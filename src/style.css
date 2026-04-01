@@ -2201,3 +2201,124 @@ a.btn:visited {
 .hidden {
   display: none !important;
 }
+
+.match-list-search-row {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.match-list-search-row input {
+  flex: 1;
+}
+
+.match-list-count {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.match-list-table-wrap {
+  overflow-x: auto;
+}
+
+.match-list-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: auto;
+  min-width: 1040px;
+}
+
+.match-list-table thead tr {
+  border-bottom: 2px solid #ccc;
+}
+
+.match-list-table th,
+.match-list-table td {
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+.match-list-col-id,
+.match-list-cell-id {
+  width: 90px;
+  text-align: center;
+  border-right: 2px solid #999;
+}
+
+.match-list-col-card,
+.match-list-cell-card {
+  width: 240px;
+  text-align: left;
+  white-space: nowrap;
+  border-right: 2px dotted #ccc;
+}
+
+.match-list-col-date,
+.match-list-cell-date {
+  width: 180px;
+  text-align: left;
+  white-space: nowrap;
+  border-right: 2px dotted #ccc;
+}
+
+.match-list-col-status,
+.match-list-cell-status {
+  width: 110px;
+  text-align: center;
+  white-space: nowrap;
+  border-right: 2px dotted #ccc;
+}
+
+.match-list-col-progress,
+.match-list-cell-progress {
+  width: 180px;
+  text-align: left;
+  white-space: nowrap;
+  border-right: 2px dotted #ccc;
+}
+
+.match-list-col-admin,
+.match-list-cell-admin {
+  width: 140px;
+  text-align: left;
+  white-space: nowrap;
+  border-right: 2px dotted #ccc;
+}
+
+.match-list-col-actions,
+.match-list-cell-actions {
+  width: 200px;
+  text-align: center;
+}
+
+.match-list-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.match-list-action-link {
+  display: inline-block;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.match-list-empty-message {
+  text-align: center;
+  color: #666;
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .match-list-search-row {
+    flex-wrap: wrap;
+  }
+
+  .match-list-search-row .btn {
+    white-space: nowrap;
+  }
+}

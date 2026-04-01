@@ -118,8 +118,9 @@
                     // 作成日時
                     createdAt.textContent = match.created_at ? match.created_at.replace('T', ' ').replace(/:00$/, '') : '-';
                     // 作成者
-                    let adminId = Array.isArray(match.admin_user_id) ? match.admin_user_id[0] : match.admin_user_id;
-                    createdBy.textContent = getUserNameById(users, adminId);
+                    const creatorIdRaw = match.creator_user_id ?? match.admin_user_id;
+                    const creatorId = Array.isArray(creatorIdRaw) ? creatorIdRaw[0] : creatorIdRaw;
+                    createdBy.textContent = getUserNameById(users, creatorId);
 
                     // オーダー提出状況
                     team1OrderStatus.textContent = '';
