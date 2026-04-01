@@ -78,28 +78,26 @@
                                 <table style="border-collapse:collapse; min-width:600px; width:100%;">
                                     <thead>
                                         <tr style="border-bottom:2px solid #ccc;">
+                                            <th style="padding:5px;">操作</th>
                                             <th style="padding:5px;">試合ID</th>
                                             <th style="padding:5px;">チームA</th>
                                             <th style="padding:5px;">チームB</th>
                                             <th style="padding:5px;">試合日時</th>
-                                            <th style="padding:5px;">進行状況</th>
-                                            <th style="padding:5px;">操作</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         ${matches.map(match => `
                                             <tr style="border-bottom:1px solid #eee;">
+                                                <td style="padding:5px; text-align:center;">
+                                                    <button type="button" class="btn edit-admin-btn" data-match-id="${match.match_id}">編集する</button>
+                                                </td>
                                                 <td style="padding:5px; text-align:center;">${match.match_id}</td>
                                                 <td style="padding:5px;">${match.team_a_name || "-"}</td>
                                                 <td style="padding:5px;">${match.team_b_name || "-"}</td>
                                                 <td style="padding:5px;">${formatDateTime(match.scheduled_at)}</td>
-                                                <td style="padding:5px; text-align:center;">${getStatusLabel(match)}</td>
-                                                <td style="padding:5px; text-align:center;">
-                                                    <button type="button" class="btn edit-admin-btn" data-match-id="${match.match_id}">編集する</button>
-                                                </td>
                                             </tr>
                                             <tr id="admin-row-${match.match_id}" class="admin-edit-row" style="display:none; background:#f8fafc;">
-                                                <td colspan="6">
+                                                <td colspan="5">
                                                     <div id="adminAddSection-${match.match_id}"></div>
                                                 </td>
                                             </tr>
@@ -111,7 +109,7 @@
             // 編集ボタンのイベント設定（毎回再設定）
             const users = window._cachedUsers || [];
             box.querySelectorAll(".edit-admin-btn").forEach(btn => {
-                btn.onclick = function () {
+                btn.onclick = async function () {
                     const matchId = btn.getAttribute("data-match-id");
                     // すべての管理者編集行を非表示
                     box.querySelectorAll(".admin-edit-row").forEach(row => row.style.display = "none");
@@ -119,7 +117,7 @@
                     const targetRow = document.getElementById(`admin-row-${matchId}`);
                     if (targetRow) {
                         targetRow.style.display = "table-row";
-                        renderAdminAddSection(matchId, users);
+                        await renderAdminAddSection(matchId, users);
                     }
                 };
             });
@@ -193,34 +191,29 @@
             return [];
         }
 
-        // 仮: 管理者リストはローカルで保持（本来はAPIで取得/更新すべき）
-        let currentAdmins = [];
-
-        function renderAdminList() {
-            const ul = document.getElementById("adminList");
-            if (!ul) return;
-            ul.innerHTML = currentAdmins.length
-                ? currentAdmins.map(a => `<li>${a.user_name} (${a.user_id})</li>`).join("")
-                : '<li style="color:#888;">未設定</li>';
+        async function fetchMatchAdmins(matchId) {
+            const res = await fetch(`/api/match_admins?matchId=${encodeURIComponent(matchId)}`);
+            const data = await res.json();
+            if (!res.ok || !data.success || !Array.isArray(data.admins)) {
+                throw new Error(data.message || "管理者一覧の取得に失敗しました");
+            }
+            return data.admins.map(a => ({
+                user_id: a.user_id,
+                user_name: a.user_name || a.user_id,
+            }));
         }
 
-        function setupAdminAdd(users) {
-            const select = document.getElementById("userSelect");
-            const addBtn = document.getElementById("addAdminBtn");
-            const msg = document.getElementById("adminAddMsg");
-            select.innerHTML = users.map(u => `<option value="${u.user_id}">${u.user_name} (${u.user_id})</option>`).join("");
-            addBtn.onclick = () => {
-                const userId = select.value;
-                const user = users.find(u => u.user_id === userId);
-                if (!user) return;
-                if (currentAdmins.some(a => a.user_id === userId)) {
-                    msg.textContent = "すでに追加されています";
-                    return;
-                }
-                currentAdmins.push(user);
-                msg.textContent = "";
-                renderAdminList();
-            };
+        async function saveMatchAdmins(matchId, admins) {
+            const adminUserIds = admins.map(a => a.user_id);
+            const res = await fetch("/api/match_admins", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matchId, adminUserIds }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || "管理者の更新に失敗しました");
+            }
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -233,12 +226,15 @@
         });
 
         // 管理者追加UIを試合ごとに描画
-        function renderAdminAddSection(matchId, users) {
+        async function renderAdminAddSection(matchId, users) {
             const section = document.getElementById(`adminAddSection-${matchId}`);
             if (!section) return;
-            // 仮: 管理者リストはローカルで保持（本来はAPIで取得/更新すべき）
             if (!window.matchAdmins) window.matchAdmins = {};
-            if (!window.matchAdmins[matchId]) window.matchAdmins[matchId] = [];
+            try {
+                window.matchAdmins[matchId] = await fetchMatchAdmins(matchId);
+            } catch {
+                window.matchAdmins[matchId] = [];
+            }
             const currentAdmins = window.matchAdmins[matchId];
             section.innerHTML = `
                 <div style="padding: 8px 0;">
@@ -259,19 +255,28 @@
             // 管理者リスト描画
             renderAdminList(matchId);
             // 追加ボタンイベント
-            document.getElementById(`addAdminBtn-${matchId}`).onclick = function () {
+            document.getElementById(`addAdminBtn-${matchId}`).onclick = async function () {
                 const select = document.getElementById(`userSelect-${matchId}`);
                 const msg = document.getElementById(`adminAddMsg-${matchId}`);
                 const userId = select.value;
                 const user = users.find(u => u.user_id === userId);
                 if (!user) return;
                 if (currentAdmins.some(a => a.user_id === userId)) {
+                    msg.style.color = "#b91c1c";
                     msg.textContent = "すでに追加されています";
                     return;
                 }
-                currentAdmins.push(user);
-                msg.textContent = "";
-                renderAdminList(matchId);
+                const nextAdmins = [...currentAdmins, user];
+                try {
+                    await saveMatchAdmins(matchId, nextAdmins);
+                    window.matchAdmins[matchId] = await fetchMatchAdmins(matchId);
+                    msg.style.color = "#166534";
+                    msg.textContent = "管理者を追加しました";
+                    renderAdminList(matchId);
+                } catch (e) {
+                    msg.style.color = "#b91c1c";
+                    msg.textContent = e.message || "管理者の追加に失敗しました";
+                }
             };
         }
 
@@ -285,12 +290,26 @@
 
             // 削除ボタンイベント
             ul.querySelectorAll('.remove-admin-btn').forEach(btn => {
-                btn.onclick = function () {
+                btn.onclick = async function () {
                     const userId = btn.getAttribute('data-user-id');
                     const matchId = btn.getAttribute('data-match-id');
                     if (!window.matchAdmins || !window.matchAdmins[matchId]) return;
-                    window.matchAdmins[matchId] = window.matchAdmins[matchId].filter(a => a.user_id !== userId);
-                    renderAdminList(matchId);
+                    const msg = document.getElementById(`adminAddMsg-${matchId}`);
+                    const nextAdmins = window.matchAdmins[matchId].filter(a => a.user_id !== userId);
+                    try {
+                        await saveMatchAdmins(matchId, nextAdmins);
+                        window.matchAdmins[matchId] = await fetchMatchAdmins(matchId);
+                        if (msg) {
+                            msg.style.color = "#166534";
+                            msg.textContent = "管理者を削除しました";
+                        }
+                        renderAdminList(matchId);
+                    } catch (e) {
+                        if (msg) {
+                            msg.style.color = "#b91c1c";
+                            msg.textContent = e.message || "管理者の削除に失敗しました";
+                        }
+                    }
                 };
             });
         }
