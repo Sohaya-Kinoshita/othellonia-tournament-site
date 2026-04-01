@@ -26,19 +26,6 @@
                 </div>
                 <div id="matchListBox" style="margin-top: 16px; color: #333;"></div>
 
-                <div id="adminAddSection"
-                    style="margin-top: 32px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
-                    <h3 style="margin: 0 0 12px 0; font-size: 17px;">管理者を追加</h3>
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
-                        <select id="userSelect" style="min-width: 180px; padding: 8px 12px; font-size: 15px;"></select>
-                        <button type="button" class="btn" id="addAdminBtn">追加</button>
-                    </div>
-                    <div id="adminAddMsg" style="color: #b91c1c; margin-bottom: 8px;"></div>
-                    <div id="currentAdminsBox" style="margin-top: 8px;">
-                        <b>現在の管理者:</b>
-                        <ul id="adminList" style="margin: 4px 0 0 16px; padding: 0;"></ul>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
@@ -120,6 +107,22 @@
                                     </tbody>
                                 </table>
                         `;
+
+            // 編集ボタンのイベント設定（毎回再設定）
+            const users = window._cachedUsers || [];
+            box.querySelectorAll(".edit-admin-btn").forEach(btn => {
+                btn.onclick = function () {
+                    const matchId = btn.getAttribute("data-match-id");
+                    // すべての管理者編集行を非表示
+                    box.querySelectorAll(".admin-edit-row").forEach(row => row.style.display = "none");
+                    // 対象のみ表示
+                    const targetRow = document.getElementById(`admin-row-${matchId}`);
+                    if (targetRow) {
+                        targetRow.style.display = "table-row";
+                        renderAdminAddSection(matchId, users);
+                    }
+                };
+            });
         }
 
         function filterMatches(keyword) {
@@ -225,23 +228,8 @@
             await loadMatches();
             setupSearch();
             const users = await loadUsers();
+            window._cachedUsers = users; // グローバルキャッシュ
             renderMatchList(filterMatches(""));
-
-            // 編集ボタンのイベント設定
-            document.getElementById("matchListBox").addEventListener("click", function (e) {
-                if (e.target.classList.contains("edit-admin-btn")) {
-                    const matchId = e.target.getAttribute("data-match-id");
-                    // すべての管理者編集行を非表示
-                    document.querySelectorAll(".admin-edit-row").forEach(row => row.style.display = "none");
-                    // 対象のみ表示
-                    const targetRow = document.getElementById(`admin-row-${matchId}`);
-                    if (targetRow) {
-                        targetRow.style.display = "table-row";
-                        // 管理者追加UI描画
-                        renderAdminAddSection(matchId, users);
-                    }
-                }
-            });
         });
 
         // 管理者追加UIを試合ごとに描画
