@@ -15,16 +15,16 @@
         <div class="card">
             <h1>管理する試合の決定</h1>
             <a href="./admin.html" class="btn" style="margin-bottom: 16px;">管理者ページに戻る</a>
-        </div>
-
-        <div class="card" style="max-width: 400px; margin: 32px auto 0;">
-            <h2>試合管理</h2>
-            <hr>
-            <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <label for="searchMatchId">マッチIDで検索</label>
-                <input type="text" id="searchMatchId" placeholder="例: M01, S01"
-                    style="padding: 6px; min-width: 180px;" />
-                <button type="button" class="btn">クリア</button>
+            <div style="margin-top: 24px;">
+                <h2 style="margin: 0 0 12px 0; font-size: 20px;">試合管理</h2>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                    <label for="searchMatchId" style="margin-right: 4px;">マッチIDで検索</label>
+                    <input type="text" id="searchMatchId" placeholder="例: M01, S01"
+                        style="padding: 6px; min-width: 180px;" />
+                    <button type="button" class="btn" id="searchButton">検索</button>
+                    <button type="button" class="btn" id="clearButton">クリア</button>
+                </div>
+                <div id="searchResultBox" style="margin-top: 16px; color: #333;"></div>
             </div>
         </div>
     </main>
@@ -46,7 +46,62 @@
                 return;
             }
         }
-        window.addEventListener('DOMContentLoaded', checkAdmin);
+
+        async function searchMatchById(matchId) {
+            const resultBox = document.getElementById("searchResultBox");
+            resultBox.textContent = "検索中...";
+            try {
+                const res = await fetch(`/api/match-search?matchId=${encodeURIComponent(matchId)}`);
+                if (!res.ok) {
+                    resultBox.textContent = "該当する試合が見つかりません。";
+                    return;
+                }
+                const data = await res.json();
+                if (!data.match) {
+                    resultBox.textContent = "該当する試合が見つかりません。";
+                    return;
+                }
+                const match = data.match;
+                resultBox.innerHTML = `
+                    <div style="margin-bottom:8px;"><b>試合ID:</b> ${match.match_id}</div>
+                    <div style="margin-bottom:8px;"><b>チームA:</b> ${match.team_a_name || "-"}</div>
+                    <div style="margin-bottom:8px;"><b>チームB:</b> ${match.team_b_name || "-"}</div>
+                    <div style="margin-bottom:8px;"><b>試合日時:</b> ${match.scheduled_at ? match.scheduled_at.replace('T', ' ').replace(/:00$/, '') : "-"}</div>
+                    <div style="margin-bottom:8px;"><b>進行状況:</b> ${match.winner_team_id ? "完了" : (match.started_at ? "進行中" : "試合前")}</div>
+                `;
+            } catch {
+                resultBox.textContent = "検索中にエラーが発生しました。";
+            }
+        }
+
+        function setupSearch() {
+            const input = document.getElementById("searchMatchId");
+            const searchBtn = document.getElementById("searchButton");
+            const clearBtn = document.getElementById("clearButton");
+            const resultBox = document.getElementById("searchResultBox");
+
+            searchBtn.addEventListener("click", () => {
+                const id = input.value.trim();
+                if (id) searchMatchById(id);
+            });
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    const id = input.value.trim();
+                    if (id) searchMatchById(id);
+                }
+            });
+            clearBtn.addEventListener("click", () => {
+                input.value = "";
+                resultBox.textContent = "";
+                input.focus();
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAdmin();
+            setupSearch();
+        });
     </script>
 </body>
 

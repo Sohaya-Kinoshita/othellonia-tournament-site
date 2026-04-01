@@ -21,8 +21,21 @@
         <div class="card hidden" id="matchListCard">
             <h2>登録されている試合</h2>
 
+
             <div class="match-list-search-row">
-                <input type="text" id="matchSearchInput" placeholder="試合ID・チーム名・進行状況で検索..." />
+                <select id="searchFieldSelect" class="match-list-search-select">
+                    <option value="match_id">試合ID</option>
+                    <option value="team">チーム名</option>
+                    <option value="status">進行状況</option>
+                    <option value="admin">管理者</option>
+                </select>
+                <input type="text" id="matchSearchInput" placeholder="キーワードを入力..." />
+                <select id="statusSelect" class="match-list-search-select" style="display:none;">
+                    <option value="">すべて</option>
+                    <option value="before">試合前</option>
+                    <option value="in_progress">進行中</option>
+                    <option value="finished">完了</option>
+                </select>
                 <button type="button" class="btn" id="searchButton">検索</button>
                 <button type="button" class="btn" id="clearButton">クリア</button>
             </div>
@@ -163,15 +176,44 @@
         }
 
         function applySearch() {
+            const searchField = document.getElementById("searchFieldSelect").value;
             const searchInput = document.getElementById("matchSearchInput");
-            const keyword = searchInput.value.trim().toLowerCase();
+            const statusSelect = document.getElementById("statusSelect");
+            let keyword = searchInput.value.trim().toLowerCase();
+            let filtered = allMatches;
 
-            if (!keyword) {
-                renderMatches(allMatches);
-                return;
+            if (searchField === "status") {
+                const statusValue = statusSelect.value;
+                if (statusValue) {
+                    filtered = filtered.filter(match => (match.match_status || "") === statusValue);
+                }
+            } else if (searchField === "match_id") {
+                if (keyword) {
+                    filtered = filtered.filter(match => (match.match_id || "").toLowerCase().includes(keyword));
+                }
+            } else if (searchField === "team") {
+                if (keyword) {
+                    filtered = filtered.filter(match =>
+                        (match.team_a_name || "").toLowerCase().includes(keyword) ||
+                        (match.team_b_name || "").toLowerCase().includes(keyword)
+                    );
+                }
+            } else if (searchField === "admin") {
+                if (keyword) {
+                    filtered = filtered.filter(match => {
+                        let adminIds = [];
+                        if (Array.isArray(match.admin_user_id)) {
+                            adminIds = match.admin_user_id;
+                        } else if (typeof match.admin_user_id === "string" && match.admin_user_id.includes(",")) {
+                            adminIds = match.admin_user_id.split(",").map(s => s.trim()).filter(Boolean);
+                        } else if (match.admin_user_id) {
+                            adminIds = [match.admin_user_id];
+                        }
+                        // 名前で部分一致
+                        return adminIds.some(id => (userIdToName[id] || id || "").toLowerCase().includes(keyword));
+                    });
+                }
             }
-
-            const filtered = allMatches.filter((match) => toSearchText(match).includes(keyword));
             renderMatches(filtered);
         }
 
@@ -179,6 +221,26 @@
             const searchInput = document.getElementById("matchSearchInput");
             const searchButton = document.getElementById("searchButton");
             const clearButton = document.getElementById("clearButton");
+            const searchFieldSelect = document.getElementById("searchFieldSelect");
+            const statusSelect = document.getElementById("statusSelect");
+
+            function updateSearchUI() {
+                if (searchFieldSelect.value === "status") {
+                    searchInput.style.display = "none";
+                    statusSelect.style.display = "inline-block";
+                } else {
+                    searchInput.style.display = "inline-block";
+                    statusSelect.style.display = "none";
+                }
+            }
+
+            searchFieldSelect.addEventListener("change", () => {
+                updateSearchUI();
+                // 検索欄切り替え時はクリア
+                searchInput.value = "";
+                statusSelect.value = "";
+                renderMatches(allMatches);
+            });
 
             searchButton.addEventListener("click", applySearch);
             searchInput.addEventListener("keydown", (event) => {
@@ -187,11 +249,14 @@
                     applySearch();
                 }
             });
+            statusSelect.addEventListener("change", applySearch);
             clearButton.addEventListener("click", () => {
                 searchInput.value = "";
+                statusSelect.value = "";
                 renderMatches(allMatches);
                 searchInput.focus();
             });
+            updateSearchUI();
         }
 
         async function checkAdminAndLoadMatches() {
