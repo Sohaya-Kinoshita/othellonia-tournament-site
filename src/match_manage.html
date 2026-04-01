@@ -235,7 +235,6 @@
             } catch {
                 window.matchAdmins[matchId] = [];
             }
-            const currentAdmins = window.matchAdmins[matchId];
             section.innerHTML = `
                 <div style="padding: 8px 0;">
                   <h3 style="margin: 0 0 8px 0; font-size: 16px;">管理者を追加</h3>
@@ -257,17 +256,20 @@
             // 追加ボタンイベント
             document.getElementById(`addAdminBtn-${matchId}`).onclick = async function () {
                 const select = document.getElementById(`userSelect-${matchId}`);
+                const addBtn = document.getElementById(`addAdminBtn-${matchId}`);
                 const msg = document.getElementById(`adminAddMsg-${matchId}`);
                 const userId = select.value;
                 const user = users.find(u => u.user_id === userId);
                 if (!user) return;
-                if (currentAdmins.some(a => a.user_id === userId)) {
+                const latestAdmins = (window.matchAdmins && window.matchAdmins[matchId]) ? window.matchAdmins[matchId] : [];
+                if (latestAdmins.some(a => a.user_id === userId)) {
                     msg.style.color = "#b91c1c";
                     msg.textContent = "すでに追加されています";
                     return;
                 }
-                const nextAdmins = [...currentAdmins, user];
+                const nextAdmins = [...latestAdmins, user];
                 try {
+                    addBtn.disabled = true;
                     await saveMatchAdmins(matchId, nextAdmins);
                     window.matchAdmins[matchId] = await fetchMatchAdmins(matchId);
                     msg.style.color = "#166534";
@@ -276,6 +278,8 @@
                 } catch (e) {
                     msg.style.color = "#b91c1c";
                     msg.textContent = e.message || "管理者の追加に失敗しました";
+                } finally {
+                    addBtn.disabled = false;
                 }
             };
         }
