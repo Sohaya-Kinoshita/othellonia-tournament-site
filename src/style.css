@@ -443,6 +443,16 @@ th {
   text-decoration: underline;
 }
 
+.organizer-support {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #000;
+  font-size: 14px;
+}
+
 /* フッター */
 #footerSlot {
   margin-top: auto;
