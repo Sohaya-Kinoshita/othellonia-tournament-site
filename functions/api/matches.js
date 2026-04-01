@@ -7,6 +7,9 @@
       await ensureOrdersConfirmedAtColumn(db);
       await ensureMatchesStartedAtColumn(db);
       const matchOwnerColumn = await getMatchOwnerColumn(db);
+      const matchOwnerSelect = matchOwnerColumn
+        ? `m.${matchOwnerColumn}`
+        : "NULL";
 
       const matches = await db
         .prepare(
@@ -23,7 +26,7 @@
             m.order_deadline,
             m.started_at,
             m.winner_team_id,
-            m.${matchOwnerColumn} AS admin_user_id,
+            ${matchOwnerSelect} AS admin_user_id,
             (
               SELECT COUNT(*) FROM games g
               WHERE g.match_id = m.match_id
@@ -215,6 +218,18 @@
       await ensureMatchesStartedAtColumn(db);
       await ensureMatchAdminsTable(db);
       const matchOwnerColumn = await getMatchOwnerColumn(db);
+
+      if (!matchOwnerColumn) {
+        return new Response(
+          JSON.stringify({
+            message: "matchesテーブルの作成者カラムが見つかりません",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
       const existingMatch = await db
         .prepare("SELECT match_id FROM matches WHERE match_id = ?")
@@ -409,7 +424,7 @@
       }
 
       let hasLegacyAssignment = false;
-      if (!assigned) {
+      if (!assigned && matchOwnerColumn) {
         const legacyOwner = await db
           .prepare(
             `SELECT ${matchOwnerColumn} AS admin_user_id FROM matches WHERE match_id = ?`,
@@ -636,7 +651,7 @@ async function getMatchOwnerColumn(db) {
     return "creator_user_id";
   }
 
-  return "admin_user_id";
+  return null;
 }
 
 async function getLatestOrderPlayers(db, schemaType, matchId, teamId) {
