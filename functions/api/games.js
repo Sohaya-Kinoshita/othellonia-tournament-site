@@ -187,8 +187,18 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
     .bind(matchId, match.team_b_id)
     .first();
 
-  const isMatchConfirmed = Boolean(confirmedOrderA && confirmedOrderB);
+  const hasConfirmedOrders = Boolean(confirmedOrderA && confirmedOrderB);
+  const isMatchConfirmed = Boolean(hasConfirmedOrders || match.started_at);
   const isMatchStarted = Boolean(match.started_at);
+
+  if (isMatchConfirmed && isMatchStarted) {
+    await ensureGamesInitialized(
+      env.DB,
+      matchId,
+      match.team_a_id,
+      match.team_b_id,
+    );
+  }
 
   // ゲーム一覧を取得
   let gamesResult;
@@ -322,29 +332,6 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
     );
   }
 
-  const existingGamesCount = await env.DB.prepare(
-    `
-      SELECT COUNT(*) AS count
-      FROM games
-      WHERE match_id = ?
-    `,
-  )
-    .bind(match_id)
-    .first();
-
-  if (Number(existingGamesCount?.count || 0) === 0) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "このマッチは未確定のため試合結果を入力できません。先にオーダーの確定でマッチを確定してください。",
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
-
   await ensureMatchesStartedAtColumn(env.DB);
 
   const match = await env.DB.prepare(
@@ -427,11 +414,43 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
     .bind(match_id, match.team_b_id)
     .first();
 
-  if (!confirmedOrderA || !confirmedOrderB) {
+  const hasConfirmedOrders = Boolean(confirmedOrderA && confirmedOrderB);
+
+  if (!hasConfirmedOrders && !match.started_at) {
     return new Response(
       JSON.stringify({
         error:
           "このマッチは未確定のため試合結果を入力できません。先にオーダーの確定でマッチを確定してください。",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  await ensureGamesInitialized(
+    env.DB,
+    match_id,
+    match.team_a_id,
+    match.team_b_id,
+  );
+
+  const existingGamesCount = await env.DB.prepare(
+    `
+      SELECT COUNT(*) AS count
+      FROM games
+      WHERE match_id = ?
+    `,
+  )
+    .bind(match_id)
+    .first();
+
+  if (Number(existingGamesCount?.count || 0) === 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "ゲーム情報を初期化できませんでした。オーダー内容を確認してください。",
       }),
       {
         status: 400,
@@ -707,4 +726,158 @@ async function getMatchOwnerColumn(db) {
   }
 
   return null;
+}
+
+async function detectOrderSchema(db) {
+  const columns = await db.prepare("PRAGMA table_info(orders)").all();
+  const names = new Set((columns.results || []).map((row) => row.name));
+
+  if (names.has("order_id") && names.has("submitted_by")) {
+    return "v2";
+  }
+
+  if (
+    names.has("match_id") &&
+    names.has("team_id") &&
+    names.has("player_order")
+  ) {
+    return "legacy";
+  }
+
+  return "unknown";
+}
+
+function safeParseOrderJson(playerOrder) {
+  try {
+    const parsed = JSON.parse(playerOrder);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+async function getLatestOrderPlayers(db, schemaType, matchId, teamId) {
+  if (schemaType === "legacy") {
+    const order = await db
+      .prepare(
+        `
+          SELECT player_order
+          FROM orders
+          WHERE match_id = ? AND team_id = ?
+          ORDER BY submitted_at DESC
+          LIMIT 1
+        `,
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    if (!order) {
+      return null;
+    }
+
+    return safeParseOrderJson(order.player_order);
+  }
+
+  if (schemaType === "v2") {
+    const latestOrder = await db
+      .prepare(
+        `
+          SELECT order_id
+          FROM orders
+          WHERE match_id = ? AND team_id = ?
+          ORDER BY submitted_at DESC, order_id DESC
+          LIMIT 1
+        `,
+      )
+      .bind(matchId, teamId)
+      .first();
+
+    if (!latestOrder || !latestOrder.order_id) {
+      return null;
+    }
+
+    const details = await db
+      .prepare(
+        `
+          SELECT game_number, player_id
+          FROM order_details
+          WHERE order_id = ?
+          ORDER BY game_number
+        `,
+      )
+      .bind(latestOrder.order_id)
+      .all();
+
+    return (details.results || []).map((row) => row.player_id);
+  }
+
+  return null;
+}
+
+async function ensureGamesInitialized(db, matchId, teamAId, teamBId) {
+  const existing = await db
+    .prepare("SELECT COUNT(*) AS count FROM games WHERE match_id = ?")
+    .bind(matchId)
+    .first();
+
+  if (Number(existing?.count || 0) > 0) {
+    return;
+  }
+
+  const schemaType = await detectOrderSchema(db);
+  const teamAPlayers = await getLatestOrderPlayers(
+    db,
+    schemaType,
+    matchId,
+    teamAId,
+  );
+  const teamBPlayers = await getLatestOrderPlayers(
+    db,
+    schemaType,
+    matchId,
+    teamBId,
+  );
+
+  if (
+    !Array.isArray(teamAPlayers) ||
+    !Array.isArray(teamBPlayers) ||
+    teamAPlayers.length < 5 ||
+    teamBPlayers.length < 5
+  ) {
+    return;
+  }
+
+  for (let i = 0; i < 5; i += 1) {
+    const gameNumber = i + 1;
+    const gameId = `${matchId}${gameNumber}`;
+    const battleMode = gameNumber <= 3 ? "S" : "G";
+
+    await db
+      .prepare(
+        `
+          INSERT INTO games (
+            game_id,
+            match_id,
+            game_number,
+            battle_mode,
+            player_a_id,
+            player_b_id,
+            player_a_score,
+            player_b_score,
+            winner_team_id,
+            winner_player_id
+          )
+          VALUES (?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL)
+        `,
+      )
+      .bind(
+        gameId,
+        matchId,
+        gameNumber,
+        battleMode,
+        teamAPlayers[i],
+        teamBPlayers[i],
+      )
+      .run();
+  }
 }

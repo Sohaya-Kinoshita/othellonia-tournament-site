@@ -578,16 +578,54 @@
           .first();
 
         if (!confirmedOrderA || !confirmedOrderB) {
-          return new Response(
-            JSON.stringify({
-              message:
-                "オーダーが未確定のため開始できません。先に両チームのオーダーを確定してください。",
-            }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
+          const submittedOrderA = await db
+            .prepare(
+              `
+                SELECT 1
+                FROM orders
+                WHERE match_id = ? AND team_id = ?
+                LIMIT 1
+              `,
+            )
+            .bind(matchId, match.team_a_id)
+            .first();
+
+          const submittedOrderB = await db
+            .prepare(
+              `
+                SELECT 1
+                FROM orders
+                WHERE match_id = ? AND team_id = ?
+                LIMIT 1
+              `,
+            )
+            .bind(matchId, match.team_b_id)
+            .first();
+
+          if (!submittedOrderA || !submittedOrderB) {
+            return new Response(
+              JSON.stringify({
+                message:
+                  "オーダーが未確定のため開始できません。先に両チームのオーダーを確定してください。",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          // 旧データ互換: confirmed_at が未設定でも提出済みなら開始時に確定扱いへ補正
+          await db
+            .prepare(
+              `
+                UPDATE orders
+                SET confirmed_at = datetime('now', '+9 hours')
+                WHERE match_id = ? AND confirmed_at IS NULL
+              `,
+            )
+            .bind(matchId)
+            .run();
         }
 
         const existingGames = await db
