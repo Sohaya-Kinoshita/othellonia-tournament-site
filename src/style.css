@@ -2338,6 +2338,16 @@ a.btn:visited {
   flex-wrap: nowrap;
 }
 
+.match-edit-search-type-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.match-edit-search-type {
+  padding: 6px;
+  min-width: 150px;
+}
+
 .match-edit-search-input {
   width: 200px;
   flex: 1 1 auto !important;

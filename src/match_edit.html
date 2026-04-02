@@ -11,22 +11,27 @@
 <body>
     <div id="headerSlot"></div>
     <main class="container">
-        <div class="card match-edit-back-card">
+        <div class="card">
+            <h1>マッチ情報を編集</h1>
+            <hr>
+            <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
         </div>
 
         <div class="card">
-            <h1>マッチ情報を編集</h1>
-            <hr>
-
             <h2>未開始マッチ一覧</h2>
             <div id="unstartedMatchesBox" class="match-edit-unstarted-box"></div>
 
             <form id="matchIdSearchForm" class="match-edit-search-form">
                 <div class="form-group match-edit-search-row">
+                    <label for="matchSearchType" class="match-edit-search-type-label">項目</label>
+                    <select id="matchSearchType" class="match-edit-search-type">
+                        <option value="match_id">マッチID</option>
+                        <option value="team_name" selected>チーム名</option>
+                    </select>
                     <input type="text" id="searchMatchId" name="searchMatchId" maxlength="20"
                         placeholder="例: M0 / チーム名（部分一致）" class="match-edit-search-input">
-                    <button type="submit" class="btn">検索</button>
+                    <button type="button" class="btn" id="matchSearchBtn">検索</button>
                     <button type="button" class="btn" id="matchSearchClearBtn">クリア</button>
                 </div>
                 <div id="matchDetailBox" class="match-edit-detail-box"></div>

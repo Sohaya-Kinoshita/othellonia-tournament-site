@@ -2,7 +2,9 @@
 document.addEventListener("DOMContentLoaded", function () {
   const unstartedMatchesBox = document.getElementById("unstartedMatchesBox");
   const matchIdSearchForm = document.getElementById("matchIdSearchForm");
+  const matchSearchType = document.getElementById("matchSearchType");
   const searchMatchIdInput = document.getElementById("searchMatchId");
+  const matchSearchBtn = document.getElementById("matchSearchBtn");
   const matchSearchClearBtn = document.getElementById("matchSearchClearBtn");
   const searchError = document.getElementById("searchError");
   const editMatchCard = document.getElementById("editMatchCard");
@@ -116,11 +118,16 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    const selectedType = matchSearchType ? matchSearchType.value : "team_name";
     const filtered = unstartedMatches.filter((m) => {
       const id = String(m.match_id || "").toLowerCase();
       const teamA = String(m.team_a_name || m.team_a_id || "").toLowerCase();
       const teamB = String(m.team_b_name || m.team_b_id || "").toLowerCase();
-      return id.includes(q) || teamA.includes(q) || teamB.includes(q);
+
+      if (selectedType === "match_id") {
+        return id.includes(q);
+      }
+      return teamA.includes(q) || teamB.includes(q);
     });
     renderUnstartedMatches(filtered);
   }
@@ -153,18 +160,38 @@ document.addEventListener("DOMContentLoaded", function () {
 
   matchIdSearchForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    setSearchError("");
-    filterAndRenderMatches(searchMatchIdInput.value);
+    if (matchSearchBtn) {
+      matchSearchBtn.click();
+    }
   });
+
+  if (matchSearchBtn) {
+    matchSearchBtn.addEventListener("click", function () {
+      setSearchError("");
+      filterAndRenderMatches(searchMatchIdInput.value);
+    });
+  }
 
   if (matchSearchClearBtn) {
     matchSearchClearBtn.addEventListener("click", function () {
       searchMatchIdInput.value = "";
+      if (matchSearchType) {
+        matchSearchType.value = "team_name";
+      }
       setSearchError("");
       renderUnstartedMatches(unstartedMatches);
       editMatchCard.classList.add("hidden");
     });
   }
+
+  searchMatchIdInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (matchSearchBtn) {
+        matchSearchBtn.click();
+      }
+    }
+  });
 
   // 保存処理（PATCHで更新）
   form.addEventListener("submit", async function (e) {
