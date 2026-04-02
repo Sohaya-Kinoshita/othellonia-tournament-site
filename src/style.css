@@ -2328,14 +2328,15 @@ a.btn:visited {
 }
 
 .match-edit-search-form {
-  margin-bottom: 24px;
+  margin: 12px 0 24px;
 }
 
 .match-edit-search-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .match-edit-search-type-label {
@@ -2349,9 +2350,9 @@ a.btn:visited {
 }
 
 .match-edit-search-input {
-  width: 200px;
-  flex: 1 1 auto !important;
-  min-width: 0;
+  width: 220px;
+  min-width: 220px;
+  flex: 0 1 auto !important;
 }
 
 .match-edit-detail-box {
@@ -2398,6 +2399,6 @@ a.btn:visited {
   }
 
   .match-edit-search-row {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 }
