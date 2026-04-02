@@ -131,7 +131,7 @@
 
             // 両チームのオーダーが未確定で、かつ確定済みでないマッチのみ表示
             const pendingMatches = allMatches.filter(
-                (match) => match.confirmed_order_count < 2 && !match.started_at && !match.winner_team_id,
+                (match) => (match.confirmed_team_count || 0) < 2 && !match.started_at && !match.winner_team_id,
             );
 
             pendingMatches.forEach((match) => {
