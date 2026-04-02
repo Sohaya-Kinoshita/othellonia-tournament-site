@@ -316,16 +316,25 @@
         }
 
         function getMatchStatusLabel(matchStatus) {
+            if (matchStatus === "before_order_submission") {
+                return "オーダー提出前";
+            }
+            if (matchStatus === "confirmed_before_start") {
+                return "オーダー確定・試合前";
+            }
             if (matchStatus === "in_progress") {
-                return "対戦中";
+                return "試合進行中";
             }
             if (matchStatus === "finished") {
-                return "対戦終了";
+                return "試合終了";
             }
-            return "対戦前";
+            return "オーダー提出前";
         }
 
         function getMatchStatusClass(matchStatus) {
+            if (matchStatus === "confirmed_before_start") {
+                return "status-confirmed-before-start";
+            }
             if (matchStatus === "in_progress") {
                 return "status-in-progress";
             }

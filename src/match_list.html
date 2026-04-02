@@ -23,18 +23,20 @@
 
 
             <div class="match-list-search-row">
-                <select id="searchFieldSelect" class="match-list-search-select">
+                <select id="searchFieldSelect" class="match-list-search-select" aria-label="検索条件">
                     <option value="match_id">試合ID</option>
                     <option value="team">チーム名</option>
                     <option value="status">進行状況</option>
                     <option value="admin">管理者</option>
                 </select>
                 <input type="text" id="matchSearchInput" placeholder="キーワードを入力..." />
-                <select id="statusSelect" class="match-list-search-select" style="display:none; min-width: 120px;">
+                <select id="statusSelect" class="match-list-search-select match-list-status-select"
+                    aria-label="進行状況の絞り込み">
                     <option value="">すべて</option>
-                    <option value="before">試合前</option>
-                    <option value="in_progress">進行中</option>
-                    <option value="finished">完了</option>
+                    <option value="before_order_submission">オーダー提出前</option>
+                    <option value="confirmed_before_start">オーダー確定・試合前</option>
+                    <option value="in_progress">試合進行中</option>
+                    <option value="finished">試合終了</option>
                 </select>
                 <button type="button" class="btn" id="searchButton">検索</button>
                 <button type="button" class="btn" id="clearButton">クリア</button>
@@ -98,12 +100,15 @@
 
         function getStatusMeta(matchStatus) {
             if (matchStatus === "finished") {
-                return { label: "完了", className: "status-finished" };
+                return { label: "試合終了", className: "status-finished" };
             }
             if (matchStatus === "in_progress") {
-                return { label: "進行中", className: "status-in-progress" };
+                return { label: "試合進行中", className: "status-in-progress" };
             }
-            return { label: "試合前", className: "status-before" };
+            if (matchStatus === "confirmed_before_start") {
+                return { label: "オーダー確定・試合前", className: "status-confirmed-before-start" };
+            }
+            return { label: "オーダー提出前", className: "status-before" };
         }
 
         function toSearchText(match) {

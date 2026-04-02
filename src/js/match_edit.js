@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       allTeams = teamsData.teams;
       unstartedMatches = (matchesData.matches || []).filter(
-        (m) => m.match_status === "before",
+        (m) => m.match_status === "before_order_submission",
       );
       renderUnstartedMatches(unstartedMatches);
       setSearchError("");

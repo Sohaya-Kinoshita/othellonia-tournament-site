@@ -1039,6 +1039,11 @@ th {
   min-width: 88px;
 }
 
+.match-list-status-select {
+  display: none;
+  min-width: 120px;
+}
+
 #todaySectionContent.is-collapsed {
   display: none;
 }
@@ -1297,6 +1302,12 @@ th {
   background: #fff6cc;
   color: #8a5c00;
   border: 1px solid #e9d18b;
+}
+
+.match-status-pill.status-confirmed-before-start {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #93c5fd;
 }
 
 .match-status-pill.status-in-progress {

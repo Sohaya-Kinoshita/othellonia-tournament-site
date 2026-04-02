@@ -33,10 +33,10 @@
                 AND g.winner_player_id IS NOT NULL
             ) AS completed_game_count,
             (
-              SELECT COUNT(*) FROM orders o
+              SELECT COUNT(DISTINCT o.team_id) FROM orders o
               WHERE o.match_id = m.match_id
                 AND o.confirmed_at IS NOT NULL
-            ) AS confirmed_order_count
+            ) AS confirmed_team_count
           FROM matches m
           LEFT JOIN teams ta ON m.team_a_id = ta.team_id
           LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -65,11 +65,15 @@
 
       const processedMatches = (matches.results || []).map((match) => {
         const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
+        const hasBothTeamsConfirmed =
+          Number(match.confirmed_team_count || 0) >= 2;
         const matchStatus = match.winner_team_id
           ? "finished"
           : match.started_at || hasCompletedGame
             ? "in_progress"
-            : "before";
+            : hasBothTeamsConfirmed
+              ? "confirmed_before_start"
+              : "before_order_submission";
 
         const assignedAdmins = adminMap.get(match.match_id) || [];
         let fallbackAdminIds = [];
@@ -704,17 +708,24 @@
 
         if (!match.started_at) {
           await db
-            .prepare("UPDATE matches SET started_at = ? WHERE match_id = ?")
-            .bind(new Date().toISOString(), matchId)
+            .prepare(
+              "UPDATE matches SET started_at = datetime('now', '+9 hours') WHERE match_id = ?",
+            )
+            .bind(matchId)
             .run();
         }
+
+        const startedAt = await db
+          .prepare("SELECT started_at FROM matches WHERE match_id = ?")
+          .bind(matchId)
+          .first();
 
         return new Response(
           JSON.stringify({
             success: true,
             message: "試合を開始しました",
             matchId,
-            startedAt: new Date().toISOString(),
+            startedAt: startedAt?.started_at || null,
           }),
           {
             status: 200,
@@ -797,12 +808,11 @@
       }
 
       if (confirmMatch) {
-        updateSql = `${updateSql.replace(" WHERE match_id = ?", ", started_at = ? WHERE match_id = ?")}`;
-        updateParams = [
-          ...updateParams.slice(0, -1),
-          new Date().toISOString(),
-          matchId,
-        ];
+        updateSql = `${updateSql.replace(
+          " WHERE match_id = ?",
+          ", started_at = datetime('now', '+9 hours') WHERE match_id = ?",
+        )}`;
+        updateParams = [...updateParams.slice(0, -1), matchId];
       }
 
       await db
