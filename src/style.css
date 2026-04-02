@@ -34,12 +34,10 @@
   padding: 2px 0 2px 8px;
   font-size: 1.08em;
 }
-.match-list-vertical-team.team-a {
+.match-list-vertical-team.team-a,
+.match-list-vertical-team.team-b {
   color: #1e293b;
   font-weight: 600;
-}
-.match-list-vertical-team.team-b {
-  color: #475569;
 }
 /* 検索プルダウンの縦幅を入力欄と揃える */
 .match-list-search-select {
@@ -2410,6 +2408,13 @@ a.btn:visited {
 
 .match-edit-select {
   width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  height: 40px;
 }
 
 .match-edit-unstarted-box .table-wrap {

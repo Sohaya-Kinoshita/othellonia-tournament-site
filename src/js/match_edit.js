@@ -209,6 +209,17 @@ document.addEventListener("DOMContentLoaded", function () {
   // 保存処理（PATCHで更新）
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
+    // バリデーション: 試合日時 < オーダー提出期限 ならエラー
+    const matchDate = new Date(matchDateTimeInput.value);
+    const orderDeadline = new Date(orderDeadlineInput.value);
+    if (matchDate < orderDeadline) {
+      editErrorMsg.textContent =
+        "試合日時はオーダー提出期限と同じか後にしてください。";
+      editErrorMsg.classList.remove("hidden");
+      return;
+    }
+    editErrorMsg.textContent = "";
+    editErrorMsg.classList.add("hidden");
     const body = {
       matchId: matchIdInput.value,
       teamAId: teamASelect.value,
