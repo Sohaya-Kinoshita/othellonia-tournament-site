@@ -94,12 +94,21 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    let html =
-      '<div class="table-wrap"><table><thead><tr><th>ID</th><th>チームA</th><th>チームB</th><th>日時</th><th>操作</th></tr></thead><tbody>';
+    let html = '<div class="match-list-vertical-wrap">';
     for (const match of matches) {
-      html += `<tr><td>${match.match_id}</td><td>${match.team_a_name || match.team_a_id}</td><td>${match.team_b_name || match.team_b_id}</td><td>${toDateTimeLocalValue(match.scheduled_at).replace("T", " ")}</td><td><button type="button" class="btn edit-btn" data-match-id="${match.match_id}">編集</button></td></tr>`;
+      html += `
+        <div class="match-list-vertical-item">
+          <div class="match-list-vertical-header">
+            <span class="match-list-vertical-id">${match.match_id}</span>
+            <span class="match-list-vertical-date">${toDateTimeLocalValue(match.scheduled_at).replace("T", " ")}</span>
+            <button type="button" class="btn edit-btn" data-match-id="${match.match_id}">編集</button>
+          </div>
+          <div class="match-list-vertical-team team-a">${match.team_a_name || match.team_a_id}</div>
+          <div class="match-list-vertical-team team-b">${match.team_b_name || match.team_b_id}</div>
+        </div>
+      `;
     }
-    html += "</tbody></table></div>";
+    html += "</div>";
     unstartedMatchesBox.innerHTML = html;
 
     unstartedMatchesBox.querySelectorAll(".edit-btn").forEach((button) => {

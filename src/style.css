@@ -1,3 +1,46 @@
+.match-list-vertical-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.match-list-vertical-item {
+  background: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px #0001;
+  padding: 12px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match-list-vertical-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+.match-list-vertical-id {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #2563eb;
+}
+.match-list-vertical-date {
+  color: #666;
+  font-size: 0.95em;
+  margin-right: auto;
+}
+.match-list-vertical-team {
+  padding: 2px 0 2px 8px;
+  font-size: 1.08em;
+}
+.match-list-vertical-team.team-a {
+  color: #1e293b;
+  font-weight: 600;
+}
+.match-list-vertical-team.team-b {
+  color: #475569;
+}
 /* 検索プルダウンの縦幅を入力欄と揃える */
 .match-list-search-select {
   padding: 10px 12px;
