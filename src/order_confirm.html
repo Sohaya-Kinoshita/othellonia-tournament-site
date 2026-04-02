@@ -228,7 +228,7 @@
                     if (hasSubmittedA && hasSubmittedB) {
                         initializeMatchButton.style.display = "block";
                         initializeMatchButton.onclick = async () => {
-                            await initializeMatch(match.match_id);
+                            await initializeMatch(match);
                         };
                     } else {
                         initializeMatchButton.style.display = "none";
@@ -240,7 +240,7 @@
                 }
             }
 
-            async function initializeMatch(matchId) {
+            async function initializeMatch(match) {
                 if (!confirm("マッチを確定し、ゲームを初期化してよろしいですか？")) {
                     return;
                 }
@@ -252,7 +252,11 @@
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                            matchId,
+                            matchId: match.match_id,
+                            teamAId: match.team_a_id,
+                            teamBId: match.team_b_id,
+                            scheduledAt: match.scheduled_at,
+                            orderDeadline: match.order_deadline,
                         }),
                     });
 
