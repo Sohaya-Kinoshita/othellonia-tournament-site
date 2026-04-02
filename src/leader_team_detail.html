@@ -273,10 +273,11 @@
                 const hasSubmitted = currentOrder.length > 0;
                 const isConfirmed = result.confirmedAt !== null && result.confirmedAt !== undefined;
                 const isMatchLocked = Boolean(match.started_at || match.winner_team_id);
+                const isOrderLocked = isConfirmed || isMatchLocked;
 
-                matchCardDiv.dataset.orderLocked = isConfirmed ? "true" : "false";
+                matchCardDiv.dataset.orderLocked = isOrderLocked ? "true" : "false";
 
-                if (isConfirmed) {
+                if (isOrderLocked) {
                     const existingUpdateButton = matchCardSection.querySelector(".update-match-card-btn");
                     if (existingUpdateButton) {
                         existingUpdateButton.remove();
@@ -284,8 +285,10 @@
                 }
 
                 if (hasSubmitted) {
-                    if (isConfirmed) {
-                        orderStatus.textContent = `確定済み（${formatDateTime(result.confirmedAt)}）`;
+                    if (isOrderLocked) {
+                        orderStatus.textContent = isConfirmed
+                            ? `確定済み（${formatDateTime(result.confirmedAt)}）`
+                            : "マッチ確定済み";
                         orderStatus.style.color = "#1b5e20";
                         submitButton.style.display = "none";
                         orderList.style.display = "none";
@@ -347,8 +350,8 @@
                     );
                 }
 
-                // 確定済みなら選択を無効化
-                if (isConfirmed) {
+                // 確定済み/マッチ確定済みなら選択を無効化
+                if (isOrderLocked) {
                     const selects = orderList.querySelectorAll("select");
                     selects.forEach((select) => {
                         select.disabled = true;
@@ -361,7 +364,7 @@
 
                 const shouldShowUpdateButton =
                     match.winner_team_id === null &&
-                    !isConfirmed &&
+                    !isOrderLocked &&
                     matchCardDiv.classList.contains("team-detail-match-card-host");
                 const existingUpdateButton = matchCardSection.querySelector(".update-match-card-btn");
 

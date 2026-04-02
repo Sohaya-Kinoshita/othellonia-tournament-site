@@ -583,7 +583,9 @@ async function handlePost(context) {
 
     if (match.started_at || match.winner_team_id) {
       return new Response(
-        JSON.stringify({ message: "マッチ確定後はオーダーを変更できません" }),
+        JSON.stringify({
+          message: "マッチが確定されているのでオーダーを変更できません",
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -608,7 +610,7 @@ async function handlePost(context) {
     if (confirmedOrder) {
       return new Response(
         JSON.stringify({
-          message: "マッチ確定後はオーダーを変更できません",
+          message: "マッチが確定されているのでオーダーを変更できません",
         }),
         {
           status: 400,
