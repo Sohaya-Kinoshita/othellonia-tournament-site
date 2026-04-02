@@ -80,6 +80,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     applyEditLockState(match);
     editMatchCard.classList.remove("hidden");
+    // 編集フォーム表示後に対象位置までスクロール
+    requestAnimationFrame(() => {
+      editMatchCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function renderUnstartedMatches(matches) {
