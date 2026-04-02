@@ -594,6 +594,19 @@
         .bind(...updateParams)
         .run();
 
+      // マッチ確定時に、両チームのオーダーも確定状態に設定
+      if (confirmMatch) {
+        await ensureOrdersConfirmedAtColumn(db);
+        await db
+          .prepare(
+            `UPDATE orders
+             SET confirmed_at = datetime('now', '+9 hours')
+             WHERE match_id = ? AND confirmed_at IS NULL`,
+          )
+          .bind(matchId)
+          .run();
+      }
+
       return new Response(
         JSON.stringify({ success: true, message: "マッチ情報を更新しました" }),
         {
