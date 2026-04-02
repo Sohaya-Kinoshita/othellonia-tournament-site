@@ -854,15 +854,23 @@
 
                 // BO3スコア表示
                 const result = gameResults[game.game_id] || {};
-                const scoreA = result.player_a_score || 0;
-                const scoreB = result.player_b_score || 0;
+                const scoreA = Number(result.player_a_score || 0);
+                const scoreB = Number(result.player_b_score || 0);
                 let scoreDisplay;
+
+                // 不戦勝フラグが立っている場合は明示的に不戦勝と表示
                 if (result.forfeit_winner) {
                     scoreDisplay = '不戦勝';
-                } else if (scoreA > 0 || scoreB > 0) {
-                    scoreDisplay = `${scoreA} - ${scoreB}`;
                 } else {
-                    scoreDisplay = '未入力';
+                    // サーバーによって不戦勝がスコアとして2-0で保存される場合があるため、そのケースも不戦勝として扱う
+                    if ((scoreA === 2 && scoreB === 0 && game.winner_team_id === match.team_a_id) ||
+                        (scoreB === 2 && scoreA === 0 && game.winner_team_id === match.team_b_id)) {
+                        scoreDisplay = '不戦勝';
+                    } else if (scoreA > 0 || scoreB > 0) {
+                        scoreDisplay = `${scoreA} - ${scoreB}`;
+                    } else {
+                        scoreDisplay = '未入力';
+                    }
                 }
 
                 // 確定済み表示はconfirmedフラグがtrueの場合のみ
