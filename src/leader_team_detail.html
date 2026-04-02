@@ -477,7 +477,7 @@
             `;
         }
 
-        async function submitOrder(matchId, teamId, members) {
+        async function submitOrder(matchId, teamId, members, match) {
             const selects = [];
             for (let index = 0; index < 5; index += 1) {
                 selects.push(document.getElementById(`order_${matchId}_${index}`));
@@ -538,7 +538,7 @@
                 }
 
                 alert("オーダーを提出しました。");
-                await loadMatchOrder(matchId, teamId, members);
+                await loadMatchOrder(matchId, teamId, members, match);
             } catch (error) {
                 console.error("Order submit error:", error);
                 alert("オーダー提出に失敗しました。");
@@ -778,7 +778,7 @@
                     const submitButton = document.getElementById(`submitOrderBtn_${match.match_id}`);
                     if (submitButton) {
                         submitButton.addEventListener("click", () => {
-                            submitOrder(match.match_id, teamId, members);
+                            submitOrder(match.match_id, teamId, members, match);
                         });
                     }
 
