@@ -294,31 +294,6 @@
                         orderList.style.display = "none";
                         if (reserveLabel) reserveLabel.style.display = "none";
                         reserveList.style.display = "none";
-
-                        // 対戦カードを読み込み・表示
-                        try {
-                            const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
-                            const cardData = await cardResponse.json();
-
-                            if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
-                                matchCardSection.style.display = "block";
-                                matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
-                                const saveBtn = document.createElement("button");
-                                saveBtn.textContent = "📷 画像として保存";
-                                saveBtn.className = "btn";
-                                saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
-                                saveBtn.addEventListener("click", function () {
-                                    const scheduledAt = matchCardDiv.dataset.scheduledAt;
-                                    const exportMetaText = scheduledAt
-                                        ? `対戦日: ${formatDateTime(scheduledAt)}`
-                                        : "";
-                                    exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, { targetWidth: 430, exportMetaText });
-                                });
-                                matchCardDiv.insertAdjacentElement("afterend", saveBtn);
-                            }
-                        } catch (cardError) {
-                            console.error("Match card load error:", cardError);
-                        }
                     } else {
                         orderStatus.textContent = `提出済み（${formatDateTime(result.submittedAt)}）`;
                         orderStatus.style.color = "#2e7d32";
@@ -328,11 +303,39 @@
                         matchCardSection.style.display = "none";
                     }
                 } else {
-                    orderStatus.textContent = "未提出";
-                    orderStatus.style.color = "#f57f17";
+                    orderStatus.textContent = isMatchLocked ? "マッチ確定済み" : "未提出";
+                    orderStatus.style.color = isMatchLocked ? "#1b5e20" : "#f57f17";
                     submitButton.style.display = isMatchLocked ? "none" : "block";
                     orderList.style.display = "grid";
                     reserveList.style.display = "grid";
+                }
+
+                if (isOrderLocked) {
+                    // マッチ確定後は、オーダー提出状況に関係なく対戦カードを表示する
+                    try {
+                        const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
+                        const cardData = await cardResponse.json();
+
+                        if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                            matchCardSection.style.display = "block";
+                            matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
+                            const saveBtn = document.createElement("button");
+                            saveBtn.textContent = "📷 画像として保存";
+                            saveBtn.className = "btn";
+                            saveBtn.style.cssText = "margin-top: 12px; width: 100%;";
+                            saveBtn.addEventListener("click", function () {
+                                const scheduledAt = matchCardDiv.dataset.scheduledAt;
+                                const exportMetaText = scheduledAt
+                                    ? `対戦日: ${formatDateTime(scheduledAt)}`
+                                    : "";
+                                exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, { targetWidth: 430, exportMetaText });
+                            });
+                            matchCardDiv.insertAdjacentElement("afterend", saveBtn);
+                        }
+                    } catch (cardError) {
+                        console.error("Match card load error:", cardError);
+                    }
+                } else {
                     matchCardSection.style.display = "none";
                 }
 
