@@ -1,5 +1,6 @@
 // マッチID検索→編集フォーム表示の流れに対応
 document.addEventListener("DOMContentLoaded", function () {
+  const unstartedMatchesBox = document.getElementById("unstartedMatchesBox");
   const matchIdSearchForm = document.getElementById("matchIdSearchForm");
   const searchMatchIdInput = document.getElementById("searchMatchId");
   const searchError = document.getElementById("searchError");
@@ -13,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let allTeams = [];
 
-  // 初回に全チーム一覧のみ取得
+  // 初回に全チーム一覧と未開始マッチ一覧を取得
   fetch("/api/teams")
     .then((res) => {
       if (!res.ok) {
@@ -29,10 +30,48 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       allTeams = data.teams;
     })
-    .catch(() => {
-      searchError.textContent = "チーム情報の取得に失敗しました";
-      searchError.style.display = "block";
+
+    // 未開始マッチ一覧取得
+    fetch("/api/matches")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) return;
+        let matches = data.matches || [];
+        // 未開始のみ
+        matches = matches.filter((m) => m.match_status === "before");
+        renderUnstartedMatches(matches);
+      });
+  })
+  .catch(() => {
+    searchError.textContent = "チーム情報の取得に失敗しました";
+    searchError.style.display = "block";
+  });
+
+  // 未開始マッチ一覧を表示
+  function renderUnstartedMatches(matches) {
+    if (!unstartedMatchesBox) return;
+    if (!matches.length) {
+      unstartedMatchesBox.innerHTML = '<div>未開始のマッチはありません</div>';
+      return;
+    }
+    let html = '<table class="simple-table"><thead><tr><th>ID</th><th>チームA</th><th>チームB</th><th>日時</th><th>操作</th></tr></thead><tbody>';
+    for (const m of matches) {
+      html += `<tr><td>${m.match_id}</td><td>${m.team_a_name || m.team_a_id}</td><td>${m.team_b_name || m.team_b_id}</td><td>${m.scheduled_at ? m.scheduled_at.replace('T', ' ').slice(0, 16) : ''}</td><td><button class="edit-btn" data-match-id="${m.match_id}">編集</button></td></tr>`;
+    }
+    html += '</tbody></table>';
+    unstartedMatchesBox.innerHTML = html;
+    // 編集ボタンにイベント
+    unstartedMatchesBox.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const matchId = this.getAttribute('data-match-id');
+        if (matchId) {
+          searchMatchIdInput.value = matchId;
+          // 検索実行
+          matchIdSearchForm.dispatchEvent(new Event('submit'));
+        }
+      });
     });
+  }
 
   matchIdSearchForm.addEventListener("submit", function (e) {
     e.preventDefault();
