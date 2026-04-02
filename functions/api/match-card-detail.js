@@ -63,11 +63,127 @@ export async function onRequest(context) {
       )
       .bind(matchId)
       .all();
-    const games = gamesResult.results || [];
-    return new Response(JSON.stringify({ success: true, match, games }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    let games = gamesResult.results || [];
+
+    // gamesが未生成でも、両チームの確定済みオーダーから対戦カードを組み立てる
+    if (games.length === 0) {
+      const teamAOrder = await db
+        .prepare(
+          `
+          SELECT order_id
+          FROM orders
+          WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+          ORDER BY submitted_at DESC, order_id DESC
+          LIMIT 1
+        `,
+        )
+        .bind(matchId, match.team_a_id)
+        .first();
+
+      const teamBOrder = await db
+        .prepare(
+          `
+          SELECT order_id
+          FROM orders
+          WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+          ORDER BY submitted_at DESC, order_id DESC
+          LIMIT 1
+        `,
+        )
+        .bind(matchId, match.team_b_id)
+        .first();
+
+      if (teamAOrder && teamBOrder) {
+        const teamADetailsResult = await db
+          .prepare(
+            `
+            SELECT od.game_number, od.player_id, p.player_name
+            FROM order_details od
+            LEFT JOIN players p ON od.player_id = p.player_id
+            WHERE od.order_id = ?
+            ORDER BY od.game_number
+          `,
+          )
+          .bind(teamAOrder.order_id)
+          .all();
+
+        const teamBDetailsResult = await db
+          .prepare(
+            `
+            SELECT od.game_number, od.player_id, p.player_name
+            FROM order_details od
+            LEFT JOIN players p ON od.player_id = p.player_id
+            WHERE od.order_id = ?
+            ORDER BY od.game_number
+          `,
+          )
+          .bind(teamBOrder.order_id)
+          .all();
+
+        const teamAByGame = new Map(
+          (teamADetailsResult.results || []).map((row) => [
+            Number(row.game_number),
+            row,
+          ]),
+        );
+        const teamBByGame = new Map(
+          (teamBDetailsResult.results || []).map((row) => [
+            Number(row.game_number),
+            row,
+          ]),
+        );
+
+        games = Array.from({ length: 5 }, (_, index) => {
+          const gameNumber = index + 1;
+          const teamAPlayer = teamAByGame.get(gameNumber) || {};
+          const teamBPlayer = teamBByGame.get(gameNumber) || {};
+          return {
+            game_number: gameNumber,
+            player_a_id: teamAPlayer.player_id || null,
+            player_b_id: teamBPlayer.player_id || null,
+            player_a_score: 0,
+            player_b_score: 0,
+            winner_team_id: null,
+            winner_player_id: null,
+            player_a_name: teamAPlayer.player_name || null,
+            player_b_name: teamBPlayer.player_name || null,
+          };
+        }).filter((game) => game.player_a_id && game.player_b_id);
+      }
+    }
+
+    const reservesResult = await db
+      .prepare(
+        `
+        SELECT r.team_id, r.reserve_number, r.player_id, p.player_name
+        FROM reserves r
+        LEFT JOIN players p ON r.player_id = p.player_id
+        WHERE r.match_id = ?
+        ORDER BY r.team_id, r.reserve_number
+      `,
+      )
+      .bind(matchId)
+      .all();
+
+    const reservesByTeam = {};
+    (reservesResult.results || []).forEach((row) => {
+      if (!reservesByTeam[row.team_id]) {
+        reservesByTeam[row.team_id] = [];
+      }
+      reservesByTeam[row.team_id].push({
+        reserve_number: row.reserve_number,
+        player_id: row.player_id,
+        player_name: row.player_name,
+      });
     });
+
+    return new Response(
+      JSON.stringify({ success: true, match, games, reservesByTeam }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     console.error("match-card-detail error:", error);
     return new Response(

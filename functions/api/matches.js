@@ -499,6 +499,7 @@
       }
 
       // リクエストボディを解析
+      const requestBody = await context.request.json();
       const {
         matchId,
         teamAId,
@@ -506,7 +507,184 @@
         scheduledAt,
         orderDeadline,
         confirmMatch,
-      } = await context.request.json();
+        action,
+      } = requestBody;
+
+      // PATCH action=start: 試合開始（games生成 + started_at更新）
+      if (action === "start") {
+        if (!matchId) {
+          return new Response(
+            JSON.stringify({ message: "マッチIDが必要です" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const db = context.env.DB;
+        await ensureMatchesStartedAtColumn(db);
+        await ensureOrdersConfirmedAtColumn(db);
+
+        const match = await db
+          .prepare(
+            "SELECT match_id, team_a_id, team_b_id, started_at, winner_team_id FROM matches WHERE match_id = ?",
+          )
+          .bind(matchId)
+          .first();
+
+        if (!match) {
+          return new Response(
+            JSON.stringify({ message: "マッチが見つかりません" }),
+            {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        if (match.winner_team_id) {
+          return new Response(
+            JSON.stringify({ message: "このマッチは既に確定済みです" }),
+            {
+              status: 409,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const confirmedOrderA = await db
+          .prepare(
+            `
+              SELECT 1
+              FROM orders
+              WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+              LIMIT 1
+            `,
+          )
+          .bind(matchId, match.team_a_id)
+          .first();
+
+        const confirmedOrderB = await db
+          .prepare(
+            `
+              SELECT 1
+              FROM orders
+              WHERE match_id = ? AND team_id = ? AND confirmed_at IS NOT NULL
+              LIMIT 1
+            `,
+          )
+          .bind(matchId, match.team_b_id)
+          .first();
+
+        if (!confirmedOrderA || !confirmedOrderB) {
+          return new Response(
+            JSON.stringify({
+              message:
+                "オーダーが未確定のため開始できません。先に両チームのオーダーを確定してください。",
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const existingGames = await db
+          .prepare("SELECT COUNT(*) AS count FROM games WHERE match_id = ?")
+          .bind(matchId)
+          .first();
+        const existingGamesCount = Number(existingGames?.count || 0);
+
+        if (existingGamesCount === 0) {
+          const schemaType = await detectOrderSchema(db);
+          const teamAPlayers = await getLatestOrderPlayers(
+            db,
+            schemaType,
+            matchId,
+            match.team_a_id,
+          );
+          const teamBPlayers = await getLatestOrderPlayers(
+            db,
+            schemaType,
+            matchId,
+            match.team_b_id,
+          );
+
+          if (
+            !Array.isArray(teamAPlayers) ||
+            !Array.isArray(teamBPlayers) ||
+            teamAPlayers.length < 5 ||
+            teamBPlayers.length < 5
+          ) {
+            return new Response(
+              JSON.stringify({
+                message:
+                  "オーダー詳細が不足しているため開始できません。オーダー内容を確認してください。",
+              }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+
+          for (let i = 0; i < 5; i += 1) {
+            const gameNumber = i + 1;
+            const gameId = `${matchId}${gameNumber}`;
+            const battleMode = gameNumber <= 3 ? "S" : "G";
+
+            await db
+              .prepare(
+                `
+                  INSERT INTO games (
+                    game_id,
+                    match_id,
+                    game_number,
+                    battle_mode,
+                    player_a_id,
+                    player_b_id,
+                    player_a_score,
+                    player_b_score,
+                    winner_team_id,
+                    winner_player_id
+                  )
+                  VALUES (?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL)
+                `,
+              )
+              .bind(
+                gameId,
+                matchId,
+                gameNumber,
+                battleMode,
+                teamAPlayers[i],
+                teamBPlayers[i],
+              )
+              .run();
+          }
+        }
+
+        if (!match.started_at) {
+          await db
+            .prepare("UPDATE matches SET started_at = ? WHERE match_id = ?")
+            .bind(new Date().toISOString(), matchId)
+            .run();
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "試合を開始しました",
+            matchId,
+            startedAt: new Date().toISOString(),
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       if (!matchId || !teamAId || !teamBId || !scheduledAt) {
         return new Response(
           JSON.stringify({
