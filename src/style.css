@@ -139,6 +139,10 @@ body.no-scroll {
   margin: 0 auto;
 }
 
+.order-confirm-section-title {
+  margin-top: 20px;
+}
+
 .brand {
   font-size: 18px;
   font-weight: 700;
@@ -1161,7 +1165,7 @@ th {
 }
 
 .match-card.exporting .player-item {
-  min-height: auto;
+  min-height: 0;
 }
 
 .match-datetime {

@@ -499,8 +499,14 @@
       }
 
       // リクエストボディを解析
-      const { matchId, teamAId, teamBId, scheduledAt, orderDeadline } =
-        await context.request.json();
+      const {
+        matchId,
+        teamAId,
+        teamBId,
+        scheduledAt,
+        orderDeadline,
+        confirmMatch,
+      } = await context.request.json();
       if (!matchId || !teamAId || !teamBId || !scheduledAt) {
         return new Response(
           JSON.stringify({
@@ -526,6 +532,18 @@
           JSON.stringify({ message: "マッチが見つかりません" }),
           {
             status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (match.started_at) {
+        return new Response(
+          JSON.stringify({
+            message: "このマッチは確定済みのため更新できません",
+          }),
+          {
+            status: 409,
             headers: { "Content-Type": "application/json" },
           },
         );
@@ -558,6 +576,15 @@
           teamBId,
           scheduledAtForDb,
           orderDeadlineForDb,
+          matchId,
+        ];
+      }
+
+      if (confirmMatch) {
+        updateSql = `${updateSql.replace(" WHERE match_id = ?", ", started_at = ? WHERE match_id = ?")}`;
+        updateParams = [
+          ...updateParams.slice(0, -1),
+          new Date().toISOString(),
           matchId,
         ];
       }

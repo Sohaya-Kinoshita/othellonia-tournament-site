@@ -39,7 +39,7 @@
                     <p><strong>対戦開始日時:</strong> <span id="displayScheduledAt"></span></p>
                     <p><strong>提出期限:</strong> <span id="displayDeadline"></span></p>
 
-                    <h3 style="margin-top: 20px;">オーダー確認</h3>
+                    <h3 class="order-confirm-section-title">オーダー確認</h3>
                     <div class="order-container">
                         <div class="team-section">
                             <h4 id="teamAHeader" class="team-header"></h4>
@@ -68,6 +68,7 @@
     <script>
         let allMatches = [];
         let currentMatchId = null;
+        let isCurrentMatchConfirmed = false;
 
         function formatDateTime(datetimeText) {
             if (!datetimeText) {
@@ -126,9 +127,12 @@
 
         function populateMatchSelect() {
             const matchSelect = document.getElementById("matchSelect");
+            matchSelect.innerHTML = '<option value="">-- マッチを選択してください --</option>';
 
-            // 両チームのオーダーが未確定のマッチのみ表示
-            const pendingMatches = allMatches.filter((match) => match.confirmed_order_count < 2);
+            // 両チームのオーダーが未確定で、かつ確定済みでないマッチのみ表示
+            const pendingMatches = allMatches.filter(
+                (match) => match.confirmed_order_count < 2 && !match.started_at && !match.winner_team_id,
+            );
 
             pendingMatches.forEach((match) => {
                 const option = document.createElement("option");
@@ -141,6 +145,7 @@
                 const selectedMatchId = matchSelect.value;
                 if (selectedMatchId) {
                     currentMatchId = selectedMatchId;
+                    isCurrentMatchConfirmed = false;
                     displayMatchDetails();
                 } else {
                     document.getElementById("matchDetailsContainer").style.display = "none";
@@ -165,6 +170,17 @@
             const teamBOrderDetails = document.getElementById("teamBOrderDetails");
             const matchDetailsContainer = document.getElementById("matchDetailsContainer");
             const refreshButton = document.getElementById("refreshButton");
+            const initializeMatchButton = document.getElementById("initializeMatchButton");
+
+            const setMatchLockedState = (locked) => {
+                document.getElementById("matchSelect").disabled = locked;
+                refreshButton.disabled = locked;
+                initializeMatchButton.disabled = locked;
+                if (locked) {
+                    initializeMatchButton.style.display = "none";
+                    document.getElementById("confirmMessage").textContent = "このマッチは確定済みのため更新できません。";
+                }
+            };
 
             displayMatchId.textContent = match.match_id;
             displayTeamA.textContent = `${match.team_a_id} - ${match.team_a_name}`;
@@ -174,6 +190,12 @@
 
             teamAHeader.textContent = `${match.team_a_id} - ${match.team_a_name}`;
             teamBHeader.textContent = `${match.team_b_id} - ${match.team_b_name}`;
+
+            if (match.started_at || match.winner_team_id || isCurrentMatchConfirmed) {
+                setMatchLockedState(true);
+            } else {
+                setMatchLockedState(false);
+            }
 
             refreshButton.onclick = async () => {
                 await loadOrderStatus(match);
@@ -189,8 +211,6 @@
 
                     const responseB = await fetch(`/api/order?matchId=${encodeURIComponent(match.match_id)}&teamId=${encodeURIComponent(match.team_b_id)}`);
                     const resultB = await responseB.json();
-
-                    const initializeMatchButton = document.getElementById("initializeMatchButton");
 
                     // Team A
                     const playerOrderA = resultA.playerOrder || [];
@@ -225,7 +245,7 @@
                     }
 
                     // Show match initialization button if both teams have submitted orders
-                    if (hasSubmittedA && hasSubmittedB) {
+                    if (hasSubmittedA && hasSubmittedB && !isCurrentMatchConfirmed && !match.started_at && !match.winner_team_id) {
                         initializeMatchButton.style.display = "block";
                         initializeMatchButton.onclick = async () => {
                             await initializeMatch(match);
@@ -257,6 +277,7 @@
                             teamBId: match.team_b_id,
                             scheduledAt: match.scheduled_at,
                             orderDeadline: match.order_deadline,
+                            confirmMatch: true,
                         }),
                     });
 
@@ -268,6 +289,8 @@
                     }
 
                     alert("マッチを確定し、ゲームを初期化しました");
+                    isCurrentMatchConfirmed = true;
+                    setMatchLockedState(true);
                     await loadOrderStatus(match);
                 } catch (error) {
                     console.error("Error initializing match:", error);
