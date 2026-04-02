@@ -561,7 +561,38 @@
                 }
 
                 showStartDialog(false);
-                location.reload();
+
+                // 更新中はボタンを無効化
+                const startButton = document.getElementById("startMatchButton");
+                if (startButton) {
+                    startButton.disabled = true;
+                    startButton.style.display = "none";
+                }
+
+                // サーバーが返した startedAt があればローカル状態を先に更新して、入力を即時有効化
+                try {
+                    if (!currentMatchData) currentMatchData = {};
+                    if (!currentMatchData.match) currentMatchData.match = {};
+                    currentMatchData.match.started_at = result.startedAt || currentMatchData.match.started_at || new Date().toISOString();
+                    currentMatchData.isMatchStarted = true;
+                    currentMatchData.isMatchConfirmed = true;
+                    setResultInputEnabled(true);
+                } catch (_e) {
+                    // 無視
+                }
+
+                // サーバー側の最新情報を再取得して正しいゲーム情報を表示
+                await loadGameResults();
+                await loadMatches();
+
+                const confirmMessage = document.getElementById("confirmMessage");
+                if (confirmMessage) {
+                    confirmMessage.textContent = "試合を開始しました。ゲーム情報を初期化しました。";
+                    confirmMessage.className = "message success";
+                    confirmMessage.style.display = "block";
+                }
+
+                if (startButton) startButton.disabled = false;
             } catch (error) {
                 console.error("Start match error:", error);
                 alert("試合開始に失敗しました");
