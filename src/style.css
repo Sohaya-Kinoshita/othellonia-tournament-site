@@ -216,6 +216,16 @@ input[type="password"] {
   font-size: 16px;
 }
 
+.select-full-width {
+  width: 100%;
+  max-width: 520px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  min-height: 44px;
+}
+
 /* 通常ボタン（メニュー以外） */
 button:not(.menu-toggle) {
   padding: 10px 14px;

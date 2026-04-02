@@ -68,6 +68,14 @@ async function ensureOrdersConfirmedAtColumn(db) {
   }
 }
 
+async function ensureMatchesStartedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN started_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 async function ensureReservesTable(db) {
   await db
     .prepare(
@@ -540,10 +548,12 @@ async function handlePost(context) {
       return auth.response;
     }
 
+    await ensureMatchesStartedAtColumn(db);
+
     const match = await db
       .prepare(
         `
-        SELECT match_id, team_a_id, team_b_id, order_deadline
+        SELECT match_id, team_a_id, team_b_id, order_deadline, started_at, winner_team_id
 				FROM matches
 				WHERE match_id = ?
 			`,
@@ -564,6 +574,16 @@ async function handlePost(context) {
     if (match.team_a_id !== teamId && match.team_b_id !== teamId) {
       return new Response(
         JSON.stringify({ message: "このチームは対象マッチに参加していません" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (match.started_at || match.winner_team_id) {
+      return new Response(
+        JSON.stringify({ message: "マッチ確定後はオーダーを変更できません" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },

@@ -272,6 +272,7 @@
                 const currentReserves = result.reservePlayers || [];
                 const hasSubmitted = currentOrder.length > 0;
                 const isConfirmed = result.confirmedAt !== null && result.confirmedAt !== undefined;
+                const isMatchLocked = Boolean(match.started_at || match.winner_team_id);
 
                 matchCardDiv.dataset.orderLocked = isConfirmed ? "true" : "false";
 
@@ -318,7 +319,7 @@
                     } else {
                         orderStatus.textContent = `提出済み（${formatDateTime(result.submittedAt)}）`;
                         orderStatus.style.color = "#2e7d32";
-                        submitButton.style.display = "block";
+                        submitButton.style.display = isMatchLocked ? "none" : "block";
                         orderList.style.display = "grid";
                         reserveList.style.display = "grid";
                         matchCardSection.style.display = "none";
@@ -326,7 +327,7 @@
                 } else {
                     orderStatus.textContent = "未提出";
                     orderStatus.style.color = "#f57f17";
-                    submitButton.style.display = "block";
+                    submitButton.style.display = isMatchLocked ? "none" : "block";
                     orderList.style.display = "grid";
                     reserveList.style.display = "grid";
                     matchCardSection.style.display = "none";
@@ -757,7 +758,7 @@
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
                                     <div id="reserveLabel_${match.match_id}" style="font-weight: 700; margin-bottom: 8px;">リザーブ（最大2名・任意）</div>
                                     <div id="reserveList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
-                                    <button class="btn" id="submitOrderBtn_${match.match_id}">このマッチのオーダーを提出</button>
+                                    <button class="btn" id="submitOrderBtn_${match.match_id}" style="display: none;">このマッチのオーダーを提出</button>
                                 </div>
 
                                 <div id="matchCardSection_${match.match_id}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
@@ -769,9 +770,11 @@
                     targetList.appendChild(matchElement);
 
                     const submitButton = document.getElementById(`submitOrderBtn_${match.match_id}`);
-                    submitButton.addEventListener("click", () => {
-                        submitOrder(match.match_id, teamId, members);
-                    });
+                    if (submitButton) {
+                        submitButton.addEventListener("click", () => {
+                            submitOrder(match.match_id, teamId, members);
+                        });
+                    }
 
                     loadMatchOrder(match.match_id, teamId, members, match);
                 };
