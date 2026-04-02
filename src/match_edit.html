@@ -10,24 +10,24 @@
 
 <body>
     <div id="headerSlot"></div>
-    <div style="margin: 16px 0 0 0; text-align: left;">
-        <a href="./admin.html" class="btn">管理者ページに戻る</a>
-    </div>
     <main class="container">
         <div class="card">
-            <h2>未開始マッチ一覧</h2>
-            <div id="unstartedMatchesBox" style="margin-bottom: 24px;"></div>
             <h1>マッチ情報を編集</h1>
             <hr>
-            <form id="matchIdSearchForm" style="margin-bottom: 24px;">
-                <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-                    <label for="searchMatchId" style="margin-bottom: 0; white-space: nowrap;">マッチID検索</label>
-                    <input type="text" id="searchMatchId" name="searchMatchId" maxlength="3" required
-                        pattern="[A-Za-z][0-9]{2}" placeholder="例: M01, m01" style="width: 120px;">
+            <a href="./admin.html" class="btn match-edit-back-link">管理者ページに戻る</a>
+
+            <h2>未開始マッチ一覧</h2>
+            <div id="unstartedMatchesBox" class="match-edit-unstarted-box"></div>
+
+            <form id="matchIdSearchForm" class="match-edit-search-form">
+                <div class="form-group match-list-search-row">
+                    <label for="searchMatchId" class="match-edit-search-label">マッチID検索</label>
+                    <input type="text" id="searchMatchId" name="searchMatchId" maxlength="20"
+                        placeholder="例: M0 / チーム名（部分一致）" class="match-edit-search-input">
                     <button type="submit" class="btn">検索</button>
                 </div>
-                <div id="matchDetailBox" style="margin: 12px 0; color: #333;"></div>
-                <div id="searchError" style="color: red; display: none; margin-top: 8px;"></div>
+                <div id="matchDetailBox" class="match-edit-detail-box"></div>
+                <div id="searchError" class="match-edit-error hidden"></div>
             </form>
         </div>
         <div class="card hidden" id="editMatchCard">
@@ -39,11 +39,11 @@
                 </div>
                 <div class="form-group">
                     <label for="editTeamAId">チームA</label>
-                    <select id="editTeamAId" name="editTeamAId" required style="width: 100%;"></select>
+                    <select id="editTeamAId" name="editTeamAId" required class="match-edit-select"></select>
                 </div>
                 <div class="form-group">
                     <label for="editTeamBId">チームB</label>
-                    <select id="editTeamBId" name="editTeamBId" required style="width: 100%;"></select>
+                    <select id="editTeamBId" name="editTeamBId" required class="match-edit-select"></select>
                 </div>
                 <div class="form-group">
                     <label for="editMatchDateTime">試合日時</label>
@@ -54,7 +54,7 @@
                     <input type="datetime-local" id="editOrderDeadline" name="editOrderDeadline" required>
                 </div>
                 <button type="submit" class="btn" id="editSaveBtn">保存</button>
-                <div id="editErrorMsg" style="color: red; display: none; margin-top: 8px;"></div>
+                <div id="editErrorMsg" class="match-edit-error hidden"></div>
             </form>
         </div>
     </main>

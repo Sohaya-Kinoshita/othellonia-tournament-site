@@ -1,4 +1,4 @@
-// マッチID検索→編集フォーム表示の流れに対応
+// 未開始マッチ一覧表示＋部分一致検索＋編集フォーム表示
 document.addEventListener("DOMContentLoaded", function () {
   const unstartedMatchesBox = document.getElementById("unstartedMatchesBox");
   const matchIdSearchForm = document.getElementById("matchIdSearchForm");
@@ -10,163 +10,150 @@ document.addEventListener("DOMContentLoaded", function () {
   const teamBSelect = document.getElementById("editTeamBId");
   const matchDateTimeInput = document.getElementById("editMatchDateTime");
   const orderDeadlineInput = document.getElementById("editOrderDeadline");
+  const editErrorMsg = document.getElementById("editErrorMsg");
+  const editSaveBtn = document.getElementById("editSaveBtn");
   const form = document.getElementById("editMatchForm");
 
   let allTeams = [];
+  let unstartedMatches = [];
 
-  // 初回に全チーム一覧と未開始マッチ一覧を取得
-  fetch("/api/teams")
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      if (!Array.isArray(data.teams)) {
-        searchError.textContent = "チーム情報の取得に失敗しました";
-        searchError.style.display = "block";
-        return;
-      }
-      allTeams = data.teams;
-    })
+  function setSearchError(message) {
+    if (message) {
+      searchError.textContent = message;
+      searchError.classList.remove("hidden");
+      return;
+    }
+    searchError.textContent = "";
+    searchError.classList.add("hidden");
+  }
 
-    // 未開始マッチ一覧取得
-    fetch("/api/matches")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.success) return;
-        let matches = data.matches || [];
-        // 未開始のみ
-        matches = matches.filter((m) => m.match_status === "before");
-        renderUnstartedMatches(matches);
+  function toDateTimeLocalValue(value) {
+    if (!value) return "";
+    return String(value).replace(" ", "T").slice(0, 16);
+  }
+
+  function setTeamSelectOptions() {
+    [teamASelect, teamBSelect].forEach((select) => {
+      select.innerHTML = "";
+      allTeams.forEach((team) => {
+        const opt = document.createElement("option");
+        opt.value = team.team_id;
+        opt.textContent = team.team_name || team.team_id;
+        select.appendChild(opt);
       });
-  })
-  .catch(() => {
-    searchError.textContent = "チーム情報の取得に失敗しました";
-    searchError.style.display = "block";
-  });
+    });
+  }
 
-  // 未開始マッチ一覧を表示
+  function applyEditLockState(match) {
+    const isFinished = !!match.winner_team_id;
+    [teamASelect, teamBSelect, matchDateTimeInput, orderDeadlineInput].forEach(
+      (element) => {
+        element.disabled = isFinished;
+        element.title = isFinished ? "試合終了後は編集できません" : "";
+        element.style.backgroundColor = isFinished ? "#eee" : "";
+      },
+    );
+
+    editSaveBtn.disabled = isFinished;
+    if (isFinished) {
+      editErrorMsg.textContent = "マッチが確定しているので、更新できません。";
+      editErrorMsg.classList.remove("hidden");
+      return;
+    }
+    editErrorMsg.textContent = "";
+    editErrorMsg.classList.add("hidden");
+  }
+
+  function openEditor(match) {
+    matchIdInput.value = match.match_id;
+    matchIdInput.readOnly = true;
+    matchIdInput.style.backgroundColor = "#eee";
+
+    setTeamSelectOptions();
+    teamASelect.value = match.team_a_id || "";
+    teamBSelect.value = match.team_b_id || "";
+    matchDateTimeInput.value = toDateTimeLocalValue(match.scheduled_at);
+    orderDeadlineInput.value = toDateTimeLocalValue(match.order_deadline);
+
+    applyEditLockState(match);
+    editMatchCard.classList.remove("hidden");
+  }
+
   function renderUnstartedMatches(matches) {
     if (!unstartedMatchesBox) return;
     if (!matches.length) {
-      unstartedMatchesBox.innerHTML = '<div>未開始のマッチはありません</div>';
+      unstartedMatchesBox.innerHTML =
+        "<div>条件に一致する未開始マッチはありません</div>";
       return;
     }
-    let html = '<table class="simple-table"><thead><tr><th>ID</th><th>チームA</th><th>チームB</th><th>日時</th><th>操作</th></tr></thead><tbody>';
-    for (const m of matches) {
-      html += `<tr><td>${m.match_id}</td><td>${m.team_a_name || m.team_a_id}</td><td>${m.team_b_name || m.team_b_id}</td><td>${m.scheduled_at ? m.scheduled_at.replace('T', ' ').slice(0, 16) : ''}</td><td><button class="edit-btn" data-match-id="${m.match_id}">編集</button></td></tr>`;
+
+    let html =
+      '<div class="table-wrap"><table><thead><tr><th>ID</th><th>チームA</th><th>チームB</th><th>日時</th><th>操作</th></tr></thead><tbody>';
+    for (const match of matches) {
+      html += `<tr><td>${match.match_id}</td><td>${match.team_a_name || match.team_a_id}</td><td>${match.team_b_name || match.team_b_id}</td><td>${toDateTimeLocalValue(match.scheduled_at).replace("T", " ")}</td><td><button type="button" class="btn edit-btn" data-match-id="${match.match_id}">編集</button></td></tr>`;
     }
-    html += '</tbody></table>';
+    html += "</tbody></table></div>";
     unstartedMatchesBox.innerHTML = html;
-    // 編集ボタンにイベント
-    unstartedMatchesBox.querySelectorAll('.edit-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const matchId = this.getAttribute('data-match-id');
-        if (matchId) {
-          searchMatchIdInput.value = matchId;
-          // 検索実行
-          matchIdSearchForm.dispatchEvent(new Event('submit'));
+
+    unstartedMatchesBox.querySelectorAll(".edit-btn").forEach((button) => {
+      button.addEventListener("click", function () {
+        const targetMatchId = this.getAttribute("data-match-id");
+        const target = unstartedMatches.find(
+          (m) => m.match_id === targetMatchId,
+        );
+        if (target) {
+          openEditor(target);
         }
       });
     });
   }
 
+  function filterAndRenderMatches(keyword) {
+    const q = (keyword || "").trim().toLowerCase();
+    if (!q) {
+      renderUnstartedMatches(unstartedMatches);
+      return;
+    }
+
+    const filtered = unstartedMatches.filter((m) => {
+      const id = String(m.match_id || "").toLowerCase();
+      const teamA = String(m.team_a_name || m.team_a_id || "").toLowerCase();
+      const teamB = String(m.team_b_name || m.team_b_id || "").toLowerCase();
+      return id.includes(q) || teamA.includes(q) || teamB.includes(q);
+    });
+    renderUnstartedMatches(filtered);
+  }
+
+  Promise.all([fetch("/api/teams"), fetch("/api/matches")])
+    .then(async ([teamsRes, matchesRes]) => {
+      if (!teamsRes.ok || !matchesRes.ok) {
+        throw new Error("データ取得失敗");
+      }
+
+      const teamsData = await teamsRes.json();
+      const matchesData = await matchesRes.json();
+
+      if (!Array.isArray(teamsData.teams) || !matchesData.success) {
+        throw new Error("データ形式エラー");
+      }
+
+      allTeams = teamsData.teams;
+      unstartedMatches = (matchesData.matches || []).filter(
+        (m) => m.match_status === "before",
+      );
+      renderUnstartedMatches(unstartedMatches);
+      setSearchError("");
+    })
+    .catch(() => {
+      setSearchError("マッチ情報の取得に失敗しました");
+      unstartedMatchesBox.innerHTML =
+        "<div>未開始マッチ一覧を読み込めませんでした</div>";
+    });
+
   matchIdSearchForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    const matchId = searchMatchIdInput.value.trim();
-    searchError.style.display = "none";
-    if (!matchId) {
-      searchError.textContent = "マッチIDを入力してください";
-      searchError.style.display = "block";
-      return;
-    }
-    if (!/^[A-Z][0-9]{2}$/.test(matchId)) {
-      searchError.textContent =
-        "マッチIDは大文字アルファベット1文字+数字2桁で入力してください（例: M01, S02）";
-      searchError.style.display = "block";
-      return;
-    }
-    fetch(`/api/match-search?matchId=${encodeURIComponent(matchId)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.success) {
-          searchError.textContent =
-            data.message || "指定されたマッチが見つかりません";
-          searchError.style.display = "block";
-          editMatchCard.classList.add("hidden");
-          return;
-        }
-        const match = data.match;
-        // 編集フォームに値をセット
-        matchIdInput.value = match.match_id;
-        // マッチIDは常に編集不可（readonly）なので灰色背景に
-        matchIdInput.readOnly = true;
-        matchIdInput.style.backgroundColor = "#eee";
-        // チームセレクト
-        [teamASelect, teamBSelect].forEach((select) => {
-          select.innerHTML = "";
-          allTeams.forEach((team) => {
-            const opt = document.createElement("option");
-            opt.value = team.team_id;
-            opt.textContent = team.team_name || team.team_id;
-            select.appendChild(opt);
-          });
-        });
-        teamASelect.value = match.team_a_id;
-        teamBSelect.value = match.team_b_id;
-        matchDateTimeInput.value = match.scheduled_at
-          ? match.scheduled_at.replace(" ", "T").slice(0, 16)
-          : "";
-        orderDeadlineInput.value = match.order_deadline
-          ? match.order_deadline.replace(" ", "T").slice(0, 16)
-          : "";
-        // 試合終了済みならチームA/B・試合日時・提出期限すべて編集不可
-        if (match.winner_team_id) {
-          teamASelect.disabled = true;
-          teamASelect.title = "試合終了後は編集できません";
-          teamASelect.style.backgroundColor = "#eee";
-          teamBSelect.disabled = true;
-          teamBSelect.title = "試合終了後は編集できません";
-          teamBSelect.style.backgroundColor = "#eee";
-          matchDateTimeInput.disabled = true;
-          matchDateTimeInput.title = "試合終了後は編集できません";
-          matchDateTimeInput.style.backgroundColor = "#eee";
-          orderDeadlineInput.disabled = true;
-          orderDeadlineInput.title = "試合終了後は編集できません";
-          orderDeadlineInput.style.backgroundColor = "#eee";
-          // 保存ボタン無効化＆エラー文表示
-          document.getElementById("editSaveBtn").disabled = true;
-          const errMsg = document.getElementById("editErrorMsg");
-          errMsg.textContent = "マッチが確定しているので、更新できません。";
-          errMsg.style.display = "block";
-        } else {
-          orderDeadlineInput.disabled = false;
-          orderDeadlineInput.title = "";
-          orderDeadlineInput.style.backgroundColor = "";
-          teamASelect.disabled = false;
-          teamASelect.title = "";
-          teamASelect.style.backgroundColor = "";
-          teamBSelect.disabled = false;
-          teamBSelect.title = "";
-          teamBSelect.style.backgroundColor = "";
-          matchDateTimeInput.disabled = false;
-          matchDateTimeInput.title = "";
-          matchDateTimeInput.style.backgroundColor = "";
-          // 保存ボタン有効化＆エラー文非表示
-          document.getElementById("editSaveBtn").disabled = false;
-          const errMsg = document.getElementById("editErrorMsg");
-          errMsg.textContent = "";
-          errMsg.style.display = "none";
-        }
-        editMatchCard.classList.remove("hidden");
-      })
-      .catch((err) => {
-        searchError.textContent = "検索中にエラーが発生しました";
-        searchError.style.display = "block";
-        editMatchCard.classList.add("hidden");
-      });
+    setSearchError("");
+    filterAndRenderMatches(searchMatchIdInput.value);
   });
 
   // 保存処理（PATCHで更新）
