@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const unstartedMatchesBox = document.getElementById("unstartedMatchesBox");
   const matchIdSearchForm = document.getElementById("matchIdSearchForm");
   const searchMatchIdInput = document.getElementById("searchMatchId");
+  const matchSearchClearBtn = document.getElementById("matchSearchClearBtn");
   const searchError = document.getElementById("searchError");
   const editMatchCard = document.getElementById("editMatchCard");
   const matchIdInput = document.getElementById("editMatchId");
@@ -155,6 +156,15 @@ document.addEventListener("DOMContentLoaded", function () {
     setSearchError("");
     filterAndRenderMatches(searchMatchIdInput.value);
   });
+
+  if (matchSearchClearBtn) {
+    matchSearchClearBtn.addEventListener("click", function () {
+      searchMatchIdInput.value = "";
+      setSearchError("");
+      renderUnstartedMatches(unstartedMatches);
+      editMatchCard.classList.add("hidden");
+    });
+  }
 
   // 保存処理（PATCHで更新）
   form.addEventListener("submit", async function (e) {
