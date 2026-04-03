@@ -6,6 +6,7 @@
       await ensureMatchAdminsTable(db);
       await ensureOrdersConfirmedAtColumn(db);
       await ensureMatchesStartedAtColumn(db);
+      await ensureMatchesStatusColumn(db);
       const matchOwnerColumn = await getMatchOwnerColumn(db);
       const matchOwnerSelect = matchOwnerColumn
         ? `m.${matchOwnerColumn}`
@@ -26,6 +27,7 @@
             m.order_deadline,
             m.started_at,
             m.winner_team_id,
+            m.status AS status,
             ${matchOwnerSelect} AS admin_user_id,
             (
               SELECT COUNT(*) FROM games g
@@ -67,13 +69,16 @@
         const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
         const hasBothTeamsConfirmed =
           Number(match.confirmed_team_count || 0) >= 2;
-        const matchStatus = match.winner_team_id
-          ? "finished"
-          : match.started_at || hasCompletedGame
-            ? "in_progress"
-            : hasBothTeamsConfirmed
-              ? "confirmed_before_start"
-              : "before_order_submission";
+        // 優先的にDBに保存された明示的なステータスを使用
+        const matchStatus = match.status
+          ? match.status
+          : match.winner_team_id
+            ? "finished"
+            : match.started_at || hasCompletedGame
+              ? "in_progress"
+              : hasBothTeamsConfirmed
+                ? "confirmed_before_start"
+                : "before_order_submission";
 
         const assignedAdmins = adminMap.get(match.match_id) || [];
         let fallbackAdminIds = [];
@@ -444,6 +449,19 @@
         .bind(winnerTeamId || null, matchId)
         .run();
 
+      // 勝者確定時はステータスを finished にする
+      try {
+        await ensureMatchesStatusColumn(db);
+        if (winnerTeamId) {
+          await db
+            .prepare("UPDATE matches SET status = ? WHERE match_id = ?")
+            .bind("finished", matchId)
+            .run();
+        }
+      } catch (e) {
+        // 無視
+      }
+
       return new Response(
         JSON.stringify({ success: true, message: "マッチを確定しました" }),
         {
@@ -529,6 +547,7 @@
         const db = context.env.DB;
         await ensureMatchesStartedAtColumn(db);
         await ensureOrdersConfirmedAtColumn(db);
+        await ensureMatchesStatusColumn(db);
 
         const match = await db
           .prepare(
@@ -715,6 +734,16 @@
             .run();
         }
 
+        // ステータスを対戦中(in_progress)に更新
+        try {
+          await db
+            .prepare("UPDATE matches SET status = ? WHERE match_id = ?")
+            .bind("in_progress", matchId)
+            .run();
+        } catch (e) {
+          // 既にstatusカラムがない等は握りつぶす
+        }
+
         const startedAt = await db
           .prepare("SELECT started_at FROM matches WHERE match_id = ?")
           .bind(matchId)
@@ -808,11 +837,8 @@
       }
 
       if (confirmMatch) {
-        updateSql = `${updateSql.replace(
-          " WHERE match_id = ?",
-          ", started_at = datetime('now', '+9 hours') WHERE match_id = ?",
-        )}`;
-        updateParams = [...updateParams.slice(0, -1), matchId];
+        // マッチ確定時は started_at をここで自動設定しない（対戦開始は明示的に行う）
+        // 確定フラグのみを更新し、ステータスを "confirmed_before_start" に設定する
       }
 
       await db
@@ -831,6 +857,17 @@
           )
           .bind(matchId)
           .run();
+
+        // ステータスを確定前（confirmed_before_start）に設定
+        await ensureMatchesStatusColumn(db);
+        try {
+          await db
+            .prepare("UPDATE matches SET status = ? WHERE match_id = ?")
+            .bind("confirmed_before_start", matchId)
+            .run();
+        } catch (e) {
+          // 無視
+        }
       }
 
       return new Response(
@@ -888,6 +925,14 @@ async function ensureOrdersConfirmedAtColumn(db) {
 async function ensureMatchesStartedAtColumn(db) {
   try {
     await db.prepare("ALTER TABLE matches ADD COLUMN started_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
+async function ensureMatchesStatusColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN status TEXT").run();
   } catch (_error) {
     // 既に存在する場合は何もしない
   }

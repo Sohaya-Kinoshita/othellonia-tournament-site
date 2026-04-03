@@ -76,6 +76,14 @@ async function ensureMatchesStartedAtColumn(db) {
   }
 }
 
+async function ensureMatchesStatusColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN status TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 async function ensureReservesTable(db) {
   await db
     .prepare(
@@ -880,6 +888,30 @@ async function handlePatch(context) {
       )
       .bind(matchId, teamId)
       .first();
+
+    // 両チームのオーダーが確定している場合はマッチのステータスを更新
+    try {
+      const confirmedCountRow = await db
+        .prepare(
+          `SELECT COUNT(DISTINCT team_id) AS count FROM orders WHERE match_id = ? AND confirmed_at IS NOT NULL`,
+        )
+        .bind(matchId)
+        .first();
+
+      if (Number(confirmedCountRow?.count || 0) >= 2) {
+        await ensureMatchesStatusColumn(db);
+        try {
+          await db
+            .prepare("UPDATE matches SET status = ? WHERE match_id = ?")
+            .bind("confirmed_before_start", matchId)
+            .run();
+        } catch (_e) {
+          // 無視
+        }
+      }
+    } catch (_e) {
+      // 無視
+    }
 
     return new Response(
       JSON.stringify({
