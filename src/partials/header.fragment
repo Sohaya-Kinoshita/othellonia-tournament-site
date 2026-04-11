@@ -2,8 +2,7 @@
     <div class="header-inner">
         <div class="brand">
             <a href="./index.html" class="brand-link">
-                <img src="./images/Logo.jpg" alt="Logo" class="brand-logo" />
-                <img src="./images/Title.jpg" alt="Title" class="brand-title" />
+                <img src="./images/Logo_Title.jpg" alt="Logo_Title" class="brand-logo" />
             </a>
         </div>
 
