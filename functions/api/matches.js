@@ -744,7 +744,7 @@
             .run();
         }
 
-        // ステータスを対戦中(in_progress)に更新
+        // ステータスを試合進行中(in_progress)に更新
         try {
           await db
             .prepare("UPDATE matches SET status = ? WHERE match_id = ?")

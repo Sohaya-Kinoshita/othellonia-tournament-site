@@ -32,6 +32,9 @@ function getJstDateRange() {
 export async function onRequest(context) {
   try {
     const db = context.env.DB;
+    await ensureOrdersConfirmedAtColumn(db);
+    await ensureMatchesStartedAtColumn(db);
+    await ensureMatchesStatusColumn(db);
     const { start, end } = getJstDateRange();
     // scheduled_atが本日範囲のマッチを取得
     const matchesResult = await db
@@ -43,7 +46,24 @@ export async function onRequest(context) {
         m.team_b_id,
         ta.team_name as team_a_name,
         tb.team_name as team_b_name,
-        m.scheduled_at
+        m.scheduled_at,
+        m.started_at,
+        m.winner_team_id,
+        m.status,
+        (
+          SELECT COUNT(*) FROM games g
+          WHERE g.match_id = m.match_id
+            AND g.winner_player_id IS NOT NULL
+        ) AS completed_game_count,
+        (
+          SELECT COUNT(DISTINCT o.team_id) FROM orders o
+          WHERE o.match_id = m.match_id
+            AND o.confirmed_at IS NOT NULL
+        ) AS confirmed_team_count,
+        (
+          SELECT COUNT(DISTINCT o.team_id) FROM orders o
+          WHERE o.match_id = m.match_id
+        ) AS submitted_team_count
       FROM matches m
       LEFT JOIN teams ta ON m.team_a_id = ta.team_id
       LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -53,7 +73,28 @@ export async function onRequest(context) {
       )
       .bind(start, end)
       .all();
-    const matches = matchesResult.results || [];
+    const matches = (matchesResult.results || []).map((match) => {
+      const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
+      const hasBothTeamsConfirmed =
+        Number(match.confirmed_team_count || 0) >= 2;
+      const hasBothTeamsSubmitted =
+        Number(match.submitted_team_count || 0) >= 2;
+
+      const matchStatus = match.status
+        ? match.status
+        : match.winner_team_id
+          ? "finished"
+          : match.started_at || hasCompletedGame
+            ? "in_progress"
+            : hasBothTeamsConfirmed || hasBothTeamsSubmitted
+              ? "confirmed_before_start"
+              : "before_order_submission";
+
+      return {
+        ...match,
+        match_status: matchStatus,
+      };
+    });
     return new Response(JSON.stringify({ success: true, matches }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -70,5 +111,29 @@ export async function onRequest(context) {
         headers: { "Content-Type": "application/json" },
       },
     );
+  }
+}
+
+async function ensureOrdersConfirmedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE orders ADD COLUMN confirmed_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
+async function ensureMatchesStartedAtColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN started_at TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
+async function ensureMatchesStatusColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN status TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
   }
 }
