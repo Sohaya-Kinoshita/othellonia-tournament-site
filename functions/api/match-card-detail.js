@@ -7,6 +7,7 @@ export async function onRequest(context) {
     await ensureOrdersConfirmedAtColumn(db);
     await ensureMatchesStartedAtColumn(db);
     await ensureMatchesStatusColumn(db);
+    await ensureMatchPlayerStreamPlansTable(db);
     const url = new URL(context.request.url);
     const matchId = (url.searchParams.get("matchId") || "").trim();
     if (!matchId) {
@@ -88,10 +89,20 @@ export async function onRequest(context) {
         g.winner_team_id,
         g.winner_player_id,
         pa.player_name as player_a_name,
-        pb.player_name as player_b_name
+        pb.player_name as player_b_name,
+        pa.mirrativ_id as player_a_mirrativ_id,
+        pb.mirrativ_id as player_b_mirrativ_id,
+        COALESCE(spa.stream_status, 'undecided') as player_a_stream_status,
+        COALESCE(spb.stream_status, 'undecided') as player_b_stream_status,
+        spa.mirrativ_url as player_a_plan_mirrativ_url,
+        spb.mirrativ_url as player_b_plan_mirrativ_url,
+        NULL as player_a_mirrativ_url,
+        NULL as player_b_mirrativ_url
       FROM games g
       LEFT JOIN players pa ON g.player_a_id = pa.player_id
       LEFT JOIN players pb ON g.player_b_id = pb.player_id
+      LEFT JOIN match_player_stream_plans spa ON spa.match_id = g.match_id AND spa.player_id = g.player_a_id
+      LEFT JOIN match_player_stream_plans spb ON spb.match_id = g.match_id AND spb.player_id = g.player_b_id
       WHERE g.match_id = ?
       ORDER BY g.game_number
     `,
@@ -182,8 +193,20 @@ export async function onRequest(context) {
             winner_player_id: null,
             player_a_name: teamAPlayer.player_name || null,
             player_b_name: teamBPlayer.player_name || null,
+            player_a_mirrativ_id: null,
+            player_b_mirrativ_id: null,
+            player_a_stream_status: "undecided",
+            player_b_stream_status: "undecided",
+            player_a_plan_mirrativ_url: null,
+            player_b_plan_mirrativ_url: null,
+            player_a_mirrativ_url: null,
+            player_b_mirrativ_url: null,
           };
         }).filter((game) => game.player_a_id && game.player_b_id);
+
+        if (games.length > 0) {
+          games = await enrichGamesWithStreamInfo(db, matchId, games);
+        }
       }
     }
 
@@ -256,4 +279,95 @@ async function ensureMatchesStatusColumn(db) {
   } catch (_error) {
     // 既に存在する場合は何もしない
   }
+}
+
+async function ensureMatchPlayerStreamPlansTable(db) {
+  await db
+    .prepare(
+      `
+      CREATE TABLE IF NOT EXISTS match_player_stream_plans (
+        match_id CHAR(3) NOT NULL,
+        player_id CHAR(12) NOT NULL,
+        stream_status TEXT NOT NULL DEFAULT 'undecided' CHECK(stream_status IN ('available', 'unavailable', 'undecided')),
+        mirrativ_url TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (match_id, player_id),
+        FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (player_id) REFERENCES players(player_id) ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `,
+    )
+    .run();
+}
+
+async function enrichGamesWithStreamInfo(db, matchId, games) {
+  const playerIds = Array.from(
+    new Set(
+      games
+        .flatMap((game) => [game.player_a_id, game.player_b_id])
+        .filter(Boolean),
+    ),
+  );
+
+  if (playerIds.length === 0) {
+    return games;
+  }
+
+  const placeholders = playerIds.map(() => "?").join(",");
+
+  const playersResult = await db
+    .prepare(
+      `
+      SELECT player_id, mirrativ_id
+      FROM players
+      WHERE player_id IN (${placeholders})
+    `,
+    )
+    .bind(...playerIds)
+    .all();
+
+  const playerMap = new Map(
+    (playersResult.results || []).map((row) => [row.player_id, row]),
+  );
+
+  const plansResult = await db
+    .prepare(
+      `
+      SELECT player_id, stream_status, mirrativ_url
+      FROM match_player_stream_plans
+      WHERE match_id = ?
+        AND player_id IN (${placeholders})
+    `,
+    )
+    .bind(matchId, ...playerIds)
+    .all();
+
+  const planMap = new Map(
+    (plansResult.results || []).map((row) => [row.player_id, row]),
+  );
+
+  return games.map((game) => {
+    const playerA = playerMap.get(game.player_a_id) || null;
+    const playerB = playerMap.get(game.player_b_id) || null;
+    const planA = planMap.get(game.player_a_id) || null;
+    const planB = planMap.get(game.player_b_id) || null;
+
+    return {
+      ...game,
+      player_a_mirrativ_id:
+        game.player_a_mirrativ_id ?? playerA?.mirrativ_id ?? null,
+      player_b_mirrativ_id:
+        game.player_b_mirrativ_id ?? playerB?.mirrativ_id ?? null,
+      player_a_stream_status:
+        game.player_a_stream_status || planA?.stream_status || "undecided",
+      player_b_stream_status:
+        game.player_b_stream_status || planB?.stream_status || "undecided",
+      player_a_plan_mirrativ_url:
+        game.player_a_plan_mirrativ_url ?? planA?.mirrativ_url ?? null,
+      player_b_plan_mirrativ_url:
+        game.player_b_plan_mirrativ_url ?? planB?.mirrativ_url ?? null,
+      player_a_mirrativ_url: game.player_a_mirrativ_url ?? null,
+      player_b_mirrativ_url: game.player_b_mirrativ_url ?? null,
+    };
+  });
 }
