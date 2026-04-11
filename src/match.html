@@ -128,19 +128,38 @@
         }
 
         function parseDateTime(datetimeText) {
-            if (!datetimeText) {
-                return null;
+            if (!datetimeText) return null;
+            const s = String(datetimeText).trim();
+            if (!s || /^0{4}[-\/]0{2}[-\/]0{2}/.test(s) || s.toLowerCase() === "null" || s.toLowerCase() === "undefined") return null;
+
+            // Try native parsing first
+            let date = new Date(s);
+
+            // Try replacing whitespace with 'T' (handles 'YYYY-MM-DD HH:MM:SS')
+            if (Number.isNaN(date.getTime())) {
+                date = new Date(s.replace(/\s+/, "T"));
             }
-            const normalized = String(datetimeText).replace(" ", "T");
-            const date = new Date(normalized);
+
+            // Fallback: manual parse for common DB format 'YYYY-MM-DD HH:MM:SS' or 'YYYY/MM/DD HH:MM'
+            if (Number.isNaN(date.getTime())) {
+                const m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+                if (m) {
+                    const Y = Number(m[1]);
+                    const M = Number(m[2]);
+                    const D = Number(m[3]);
+                    const hh = Number(m[4]);
+                    const mm = Number(m[5]);
+                    const ss = Number(m[6] || 0);
+                    date = new Date(Y, M - 1, D, hh, mm, ss);
+                }
+            }
+
             return Number.isNaN(date.getTime()) ? null : date;
         }
 
         function formatDateTime(datetimeText) {
             const date = parseDateTime(datetimeText);
-            if (!date) {
-                return "日時未設定";
-            }
+            if (!date) return "-";
             return date.toLocaleString("ja-JP", {
                 year: "numeric",
                 month: "numeric",
@@ -353,6 +372,9 @@
                 ? `<span class="match-status-pill ${getMatchStatusClass(match.match_status)}">${escapeHtml(statusLabel)}</span>`
                 : "";
 
+            const formatted = formatDateTime(match.scheduled_at);
+            const scheduledSuffix = parseDateTime(match.scheduled_at) ? "～" : "";
+
             return `
                 <div class="match-meta-grid">
                     <div class="match-meta-section">
@@ -365,7 +387,7 @@
                     <div class="match-meta-section">
                         <div class="match-meta-title">対戦日</div>
                         <div class="match-meta-datetime-row">
-                            <span class="match-meta-datetime">${escapeHtml(formatDateTime(match.scheduled_at))}～</span>
+                            <span class="match-meta-datetime">${escapeHtml(formatted)}${scheduledSuffix}</span>
                             ${statusHtml}
                         </div>
                         <div class="match-meta-title" style="margin-top:8px;">
@@ -584,9 +606,11 @@
                     const errorCard = document.createElement("div");
                     errorCard.className = "match-card";
                     errorCard.style.marginTop = "12px";
+                    const scheduledText = escapeHtml(formatDateTime(match.scheduled_at));
+                    const scheduledSuffix = parseDateTime(match.scheduled_at) ? "～" : "";
                     errorCard.innerHTML = `
                         <div class="match-datetime">
-                            <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                            <div>${scheduledText}${scheduledSuffix}</div>
                         </div>
                         <p style="margin:0; color:#c62828;">${escapeHtml(match.match_id)} の対戦カード取得に失敗しました</p>
                     `;
