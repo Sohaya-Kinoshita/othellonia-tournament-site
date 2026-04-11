@@ -642,25 +642,16 @@
                     });
                 }
 
-                // マッチ一覧を表示（statusベースで進行中 / 試合終了を分割）
-                const getMatchStatus = (match) => {
-                    if (match.match_status) {
-                        return match.match_status;
-                    }
-                    if (match.winner_team_id) {
-                        return "finished";
-                    }
-                    return "before_order_submission";
+                // マッチ一覧を表示（終了条件を優先して進行中 / 試合終了を分割）
+                const getMatchStatus = (match) => String(match.match_status || "").trim().toLowerCase();
+                const hasWinnerTeam = (match) => {
+                    const winnerTeamId = match.winner_team_id;
+                    return winnerTeamId !== null && winnerTeamId !== undefined && String(winnerTeamId).trim() !== "";
                 };
+                const isFinishedMatch = (match) => getMatchStatus(match) === "finished" || hasWinnerTeam(match);
 
-                const ongoingStatusSet = new Set([
-                    "before_order_submission",
-                    "confirmed_before_start",
-                    "in_progress",
-                ]);
-
-                const ongoingMatches = matches.filter((match) => ongoingStatusSet.has(getMatchStatus(match)));
-                const finishedMatches = matches.filter((match) => getMatchStatus(match) === "finished");
+                const finishedMatches = matches.filter((match) => isFinishedMatch(match));
+                const ongoingMatches = matches.filter((match) => !isFinishedMatch(match));
 
                 if (ongoingMatches.length === 0) {
                     ongoingMatchesList.innerHTML = `<p style="color: #999;">進行中のマッチはありません</p>`;
