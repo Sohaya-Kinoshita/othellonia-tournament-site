@@ -187,6 +187,20 @@ body.no-scroll {
   display: block;
 }
 
+/* タイトル画像（index の h1 内） */
+.title-image {
+  height: 3em;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
+}
+.title-image {
+  height: 3em;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 /* PC向けナビ（デフォルト） */
 .nav {
   position: fixed;
