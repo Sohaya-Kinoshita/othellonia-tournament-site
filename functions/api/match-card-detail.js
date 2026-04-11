@@ -195,8 +195,8 @@ export async function onRequest(context) {
             player_b_name: teamBPlayer.player_name || null,
             player_a_mirrativ_id: null,
             player_b_mirrativ_id: null,
-            player_a_stream_status: "undecided",
-            player_b_stream_status: "undecided",
+            player_a_stream_status: null,
+            player_b_stream_status: null,
             player_a_plan_mirrativ_url: null,
             player_b_plan_mirrativ_url: null,
             player_a_mirrativ_url: null,
@@ -359,9 +359,9 @@ async function enrichGamesWithStreamInfo(db, matchId, games) {
       player_b_mirrativ_id:
         game.player_b_mirrativ_id ?? playerB?.mirrativ_id ?? null,
       player_a_stream_status:
-        game.player_a_stream_status || planA?.stream_status || "undecided",
+        planA?.stream_status ?? game.player_a_stream_status ?? "undecided",
       player_b_stream_status:
-        game.player_b_stream_status || planB?.stream_status || "undecided",
+        planB?.stream_status ?? game.player_b_stream_status ?? "undecided",
       player_a_plan_mirrativ_url:
         game.player_a_plan_mirrativ_url ?? planA?.mirrativ_url ?? null,
       player_b_plan_mirrativ_url:
