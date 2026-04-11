@@ -1127,7 +1127,13 @@ th {
 }
 
 .upcoming-filter-item input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 #resultDateFrom,
@@ -1136,6 +1142,8 @@ th {
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .upcoming-filter-team {
