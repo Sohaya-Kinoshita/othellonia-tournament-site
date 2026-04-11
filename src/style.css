@@ -2032,7 +2032,7 @@ body.export-mode .hide-for-export {
   border-radius: var(--radius);
   max-width: 600px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   z-index: 2001;
