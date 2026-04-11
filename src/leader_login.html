@@ -36,14 +36,49 @@
             <div id="errorMessage" class="error-message hidden"></div>
 
             <div class="login-footer">
-                <a href="./login.html" class="signup-link">プレイヤーログインページはこちら</a>
+                <a href="#" id="helpButtonLink" class="signup-link">ログインできない方はこちら</a>
             </div>
 
             <div class="login-footer">
-                <a href="./admin_login.html" class="signup-link">管理者用ログイン</a>
+                <a href="./login.html" class="signup-link">プレイヤーログインページはこちら</a>
             </div>
         </div>
     </main>
+
+    <!-- ヘルプモーダル（ログインできない方はこちら） -->
+    <div id="helpModal" class="modal" style="display: none;">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>リーダーログインサポート</h2>
+                <button type="button" class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="urgent-notice">
+                    <h3>試合中・試合直前の方へ</h3>
+                    <p>ログインできない場合は、Discordにて直接管理者へお知らせください。</p>
+                </div>
+
+                <h3>よくある質問</h3>
+                <div class="faq-item">
+                    <p class="faq-question">Q. 正しいリーダーIDとパスワードを入力しているのにエラーが出ます。</p>
+                    <p class="faq-answer">A. Discordのチャットにて通知したリーダーIDとパスワードをコピー＆ペーストしてください。<br>
+                        また、半角数字が正しく入力されているかご確認ください。さらに詳しくは、以下のサポート連絡先までお問い合わせください。</p>
+                </div>
+
+                <h3>サポート連絡先</h3>
+                <p class="support-text">問題が解決しない場合は、公式Twitter、もしくはTREEのDMまでお問い合わせください</p>
+                <ul class="support-list">
+                    <li><strong>公式Twitter</strong>: <a href="https://x.com/taikousen_info" target="_blank"
+                            rel="noopener">@taikousen_info</a></li>
+                    <li><strong>TREE</strong>：<a href="https://x.com/TREE_Othellonia" target="_blank"
+                            rel="noopener">@TREE_Othellonia
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <div id="footerSlot"></div>
 
@@ -118,6 +153,38 @@
                 errorMessage.textContent = 'エラーが発生しました';
                 errorMessage.classList.remove('hidden');
                 console.error('Leader login error:', error);
+            }
+        });
+
+        // ヘルプモーダル用の要素取得とイベント登録（leader_login 用）
+        const helpModal = document.getElementById('helpModal');
+        const helpButtonLink = document.getElementById('helpButtonLink');
+        const modalClose = document.getElementById('modalClose');
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        if (helpButtonLink) {
+            helpButtonLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (helpModal) {
+                    helpModal.style.display = 'flex';
+                    document.body.classList.add('no-scroll');
+                }
+            });
+        }
+
+        function closeHelpModal() {
+            if (helpModal) {
+                helpModal.style.display = 'none';
+                document.body.classList.remove('no-scroll');
+            }
+        }
+
+        if (modalClose) modalClose.addEventListener('click', closeHelpModal);
+        if (modalOverlay) modalOverlay.addEventListener('click', closeHelpModal);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && helpModal && helpModal.style.display === 'flex') {
+                closeHelpModal();
             }
         });
     </script>
