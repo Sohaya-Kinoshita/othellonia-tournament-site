@@ -17,6 +17,14 @@ async function ensureMatchPlayerStreamPlansTable(db) {
     .run();
 }
 
+async function ensureMatchesStatusColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN status TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 function decodePlayerSession(request) {
   const cookies = request.headers.get("cookie") || "";
   const sessionId = cookies
@@ -48,6 +56,7 @@ export async function onRequest(context) {
   try {
     const db = context.env.DB;
     await ensureMatchPlayerStreamPlansTable(db);
+    await ensureMatchesStatusColumn(db);
 
     const auth = decodePlayerSession(context.request);
     if (!auth.ok) {
@@ -66,7 +75,7 @@ export async function onRequest(context) {
         .first();
       const myMirrativId = playerRow?.mirrativ_id || null;
 
-      const rows = await db
+      const rowsFromGames = await db
         .prepare(
           `
           SELECT DISTINCT
@@ -92,6 +101,7 @@ export async function onRequest(context) {
            AND sp.player_id = ?
           WHERE (g.player_a_id = ? OR g.player_b_id = ?)
             AND m.winner_team_id IS NULL
+            AND (m.status IS NULL OR m.status <> 'finished')
             AND m.scheduled_at IS NOT NULL
           ORDER BY m.scheduled_at, m.match_id
         `,
@@ -99,10 +109,96 @@ export async function onRequest(context) {
         .bind(playerId, playerId, playerId, playerId)
         .all();
 
+      const rowsFromOrders = await db
+        .prepare(
+          `
+          WITH latest_confirmed_orders AS (
+            SELECT o.match_id, o.team_id, o.order_id
+            FROM orders o
+            INNER JOIN (
+              SELECT match_id, team_id, MAX(order_id) AS max_order_id
+              FROM orders
+              WHERE confirmed_at IS NOT NULL
+              GROUP BY match_id, team_id
+            ) latest
+              ON latest.match_id = o.match_id
+             AND latest.team_id = o.team_id
+             AND latest.max_order_id = o.order_id
+          ),
+          confirmed_matches AS (
+            SELECT lco.match_id
+            FROM latest_confirmed_orders lco
+            GROUP BY lco.match_id
+            HAVING COUNT(DISTINCT lco.team_id) >= 2
+          )
+          SELECT DISTINCT
+            m.match_id,
+            m.scheduled_at,
+            ta.team_name AS team_a_name,
+            tb.team_name AS team_b_name,
+            opp_p.player_name AS opponent_player_name,
+            COALESCE(sp.stream_status, 'undecided') AS stream_status,
+            sp.mirrativ_url,
+            sp.updated_at
+          FROM confirmed_matches cm
+          INNER JOIN matches m ON m.match_id = cm.match_id
+          INNER JOIN latest_confirmed_orders my_o
+            ON my_o.match_id = m.match_id
+          INNER JOIN order_details my_od
+            ON my_od.order_id = my_o.order_id
+          INNER JOIN latest_confirmed_orders opp_o
+            ON opp_o.match_id = m.match_id
+           AND opp_o.team_id <> my_o.team_id
+          INNER JOIN order_details opp_od
+            ON opp_od.order_id = opp_o.order_id
+           AND opp_od.game_number = my_od.game_number
+          LEFT JOIN players opp_p ON opp_p.player_id = opp_od.player_id
+          LEFT JOIN teams ta ON ta.team_id = m.team_a_id
+          LEFT JOIN teams tb ON tb.team_id = m.team_b_id
+          LEFT JOIN match_player_stream_plans sp
+            ON sp.match_id = m.match_id
+           AND sp.player_id = ?
+          WHERE my_od.player_id = ?
+            AND m.winner_team_id IS NULL
+            AND (m.status IS NULL OR m.status <> 'finished')
+            AND m.scheduled_at IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1
+              FROM games g
+              WHERE g.match_id = m.match_id
+                AND (g.player_a_id = ? OR g.player_b_id = ?)
+            )
+          ORDER BY m.scheduled_at, m.match_id
+        `,
+        )
+        .bind(playerId, playerId, playerId, playerId)
+        .all();
+
+      const rowMap = new Map();
+      [
+        ...(rowsFromGames.results || []),
+        ...(rowsFromOrders.results || []),
+      ].forEach((row) => {
+        if (!rowMap.has(row.match_id)) {
+          rowMap.set(row.match_id, row);
+        }
+      });
+
+      const rows = Array.from(rowMap.values()).sort((a, b) => {
+        const aTime = a.scheduled_at
+          ? Date.parse(String(a.scheduled_at).replace(" ", "T"))
+          : Number.MAX_SAFE_INTEGER;
+        const bTime = b.scheduled_at
+          ? Date.parse(String(b.scheduled_at).replace(" ", "T"))
+          : Number.MAX_SAFE_INTEGER;
+        if (aTime !== bTime) return aTime - bTime;
+        return String(a.match_id).localeCompare(String(b.match_id));
+      });
+
       return new Response(
         JSON.stringify({
           success: true,
-          plans: rows.results || [],
+          plans: rows,
           mirrativId: myMirrativId,
         }),
         {
@@ -135,7 +231,7 @@ export async function onRequest(context) {
         );
       }
 
-      const assignment = await db
+      let assignment = await db
         .prepare(
           `
           SELECT 1
@@ -147,6 +243,35 @@ export async function onRequest(context) {
         )
         .bind(matchId, playerId, playerId)
         .first();
+
+      if (!assignment) {
+        assignment = await db
+          .prepare(
+            `
+            WITH latest_confirmed_orders AS (
+              SELECT o.match_id, o.team_id, o.order_id
+              FROM orders o
+              INNER JOIN (
+                SELECT match_id, team_id, MAX(order_id) AS max_order_id
+                FROM orders
+                WHERE confirmed_at IS NOT NULL
+                GROUP BY match_id, team_id
+              ) latest
+                ON latest.match_id = o.match_id
+               AND latest.team_id = o.team_id
+               AND latest.max_order_id = o.order_id
+            )
+            SELECT 1
+            FROM latest_confirmed_orders lco
+            INNER JOIN order_details od ON od.order_id = lco.order_id
+            WHERE lco.match_id = ?
+              AND od.player_id = ?
+            LIMIT 1
+          `,
+          )
+          .bind(matchId, playerId)
+          .first();
+      }
 
       if (!assignment) {
         return new Response(
