@@ -291,24 +291,25 @@
                 ? streamStatus
                 : null;
             const hasCustomLiveUrl = !!customMirrativUrl;
-            const fallbackUrl = mirrativUrl || (mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "");
-            const hasMirrativ = !!fallbackUrl;
+            const profileUrl = mirrativId ? `https://www.mirrativ.com/user/${encodeURIComponent(mirrativId)}` : "";
+            const fallbackUrl = customMirrativUrl || mirrativUrl || profileUrl;
+            const hasViewableUrl = !!fallbackUrl;
             const safeName = escapeHtml(playerName || "未定");
             const statusClass = normalizedStatus === "unavailable"
                 ? "player-status unavailable"
                 : normalizedStatus === "undecided"
                     ? "player-status"
-                    : hasMirrativ
+                    : normalizedStatus === "available"
                         ? "player-status"
                         : "player-status unavailable";
             const statusText = normalizedStatus === "unavailable"
                 ? "予定無し"
                 : normalizedStatus === "undecided"
                     ? "配信未定"
-                    : hasMirrativ
+                    : normalizedStatus === "available"
                         ? "配信予定あり"
                         : "予定無し";
-            const linkHtml = hasMirrativ && (normalizedStatus !== "unavailable")
+            const linkHtml = hasViewableUrl && (normalizedStatus !== "unavailable")
                 ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
                 : "";
             const liveBadgeHtml = isLiveGame
