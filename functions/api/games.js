@@ -85,6 +85,14 @@ async function ensureMatchesStartedAtColumn(db) {
   }
 }
 
+async function ensureMatchesStatusColumn(db) {
+  try {
+    await db.prepare("ALTER TABLE matches ADD COLUMN status TEXT").run();
+  } catch (_error) {
+    // 既に存在する場合は何もしない
+  }
+}
+
 // GET: 指定されたマッチのゲーム一覧を取得
 async function handleGet(env, url, corsHeaders, adminUserId) {
   const matchId = url.searchParams.get("match_id");
@@ -134,6 +142,7 @@ async function handleGet(env, url, corsHeaders, adminUserId) {
 
   // マッチ情報とゲーム一覧を取得
   await ensureMatchesStartedAtColumn(env.DB);
+  await ensureMatchesStatusColumn(env.DB);
 
   const match = await env.DB.prepare(
     `
@@ -333,6 +342,7 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
   }
 
   await ensureMatchesStartedAtColumn(env.DB);
+  await ensureMatchesStatusColumn(env.DB);
 
   const match = await env.DB.prepare(
     `
@@ -637,7 +647,7 @@ async function handlePut(env, request, corsHeaders, adminUserId) {
         await env.DB.prepare(
           `
           UPDATE matches 
-          SET winner_team_id = ?
+          SET winner_team_id = ?, status = 'finished'
           WHERE match_id = ?
         `,
         )
