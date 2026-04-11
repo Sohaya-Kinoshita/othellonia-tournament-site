@@ -20,6 +20,35 @@ document.addEventListener("DOMContentLoaded", function () {
   let allTeams = [];
   let unstartedMatches = [];
 
+  function getNormalizedMatchStatus(match) {
+    return String(match?.match_status || "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function hasWinnerTeam(match) {
+    const winnerTeamId = match?.winner_team_id;
+    return (
+      winnerTeamId !== null &&
+      winnerTeamId !== undefined &&
+      String(winnerTeamId).trim() !== ""
+    );
+  }
+
+  function isFinishedMatch(match) {
+    return (
+      getNormalizedMatchStatus(match) === "finished" || hasWinnerTeam(match)
+    );
+  }
+
+  function isInProgressMatch(match) {
+    return getNormalizedMatchStatus(match) === "in_progress";
+  }
+
+  function isUnstartedMatch(match) {
+    return !isFinishedMatch(match) && !isInProgressMatch(match);
+  }
+
   function setSearchError(message) {
     if (message) {
       searchError.textContent = message;
@@ -159,8 +188,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       allTeams = teamsData.teams;
-      unstartedMatches = (matchesData.matches || []).filter(
-        (m) => m.match_status === "before_order_submission",
+      unstartedMatches = (matchesData.matches || []).filter((m) =>
+        isUnstartedMatch(m),
       );
       renderUnstartedMatches(unstartedMatches);
       setSearchError("");
