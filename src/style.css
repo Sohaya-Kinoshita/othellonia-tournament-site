@@ -149,12 +149,40 @@ body.no-scroll {
 }
 
 .brand a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-decoration: none;
 }
 
-.brand img {
+.brand-logo {
   height: 32px;
+  width: auto;
+  display: block;
+}
+
+.brand-title {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
+/* エクスポート用ブランディング（カード画像エクスポート） */
+.export-brand-header {
+  margin-bottom: 8px;
+}
+.export-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.export-brand-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+.export-brand-title-img {
+  height: 28px;
   width: auto;
   display: block;
 }

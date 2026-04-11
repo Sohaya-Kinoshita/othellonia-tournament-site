@@ -79,10 +79,10 @@ async function exportCardAsImage(
   exportBrandHeader = document.createElement("div");
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
-    <div class="export-brand-mark">
-      <img src="${new URL("./images/oc_mark.png", window.location.href).href}" alt="OC_mark">
+    <div class="export-brand">
+      <img src="${new URL("./images/Logo.jpg", window.location.href).href}" alt="Logo" class="export-brand-logo">
+      <img src="${new URL("./images/Title.jpg", window.location.href).href}" alt="Title" class="export-brand-title-img">
     </div>
-    <div class="export-brand-title">隊抗戦</div>
   `;
   card.prepend(exportBrandHeader);
   if (exportMetaText) {

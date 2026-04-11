@@ -1,8 +1,9 @@
 <header class="header">
     <div class="header-inner">
         <div class="brand">
-            <a href="./index.html">
-                <img src="./images/oc_mark.png" alt="OC_mark" />
+            <a href="./index.html" class="brand-link">
+                <img src="./images/Logo.jpg" alt="Logo" class="brand-logo" />
+                <img src="./images/Title.jpg" alt="Title" class="brand-title" />
             </a>
         </div>
 
