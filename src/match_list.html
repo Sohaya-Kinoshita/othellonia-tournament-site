@@ -85,14 +85,33 @@
         }
 
         function formatDateTime(datetimeText) {
-            if (!datetimeText) {
-                return "-";
-            }
-            const normalized = String(datetimeText).replace(" ", "T");
-            const date = new Date(normalized);
+            if (!datetimeText) return "-";
+            const s = String(datetimeText).trim();
+            if (!s || /^0{4}[-\/]0{2}[-\/]0{2}/.test(s) || s.toLowerCase() === "null" || s.toLowerCase() === "undefined") return "-";
+
+            // Try native parsing first
+            let date = new Date(s);
+
+            // Try replacing whitespace with 'T' (handles 'YYYY-MM-DD HH:MM:SS')
             if (Number.isNaN(date.getTime())) {
-                return "-";
+                date = new Date(s.replace(/\s+/, "T"));
             }
+
+            // Fallback: manual parse for common DB format 'YYYY-MM-DD HH:MM:SS' or 'YYYY/MM/DD HH:MM'
+            if (Number.isNaN(date.getTime())) {
+                const m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+                if (m) {
+                    const Y = Number(m[1]);
+                    const M = Number(m[2]);
+                    const D = Number(m[3]);
+                    const hh = Number(m[4]);
+                    const mm = Number(m[5]);
+                    const ss = Number(m[6] || 0);
+                    date = new Date(Y, M - 1, D, hh, mm, ss);
+                }
+            }
+
+            if (Number.isNaN(date.getTime())) return "-";
             return date.toLocaleString("ja-JP", {
                 year: "numeric",
                 month: "numeric",

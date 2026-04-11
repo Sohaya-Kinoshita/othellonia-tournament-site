@@ -294,9 +294,10 @@
             best_of,
             created_at,
             scheduled_at,
-            order_deadline
+            order_deadline,
+            status
           )
-          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), ?, datetime(date(?, '-3 days') || ' 23:59:00'))
+          VALUES (?, ?, ?, ?, 5, datetime('now', '+9 hours'), ?, datetime(date(?, '-3 days') || ' 23:59:00'), ?)
         `,
         )
         .bind(
@@ -306,6 +307,7 @@
           adminUserId,
           scheduledAtForDb,
           scheduledAtForDb,
+          "before_order_submission",
         )
         .run();
 

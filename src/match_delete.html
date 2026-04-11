@@ -149,7 +149,7 @@
                     } catch { }
 
                     // 勝敗確定済みなら削除不可
-                    if (match.winner_team_id) {
+                    if (match.match_status === "finished") {
                         deleteBtn.disabled = true;
                         document.getElementById('cannotDeleteMsg').style.display = '';
                     } else {

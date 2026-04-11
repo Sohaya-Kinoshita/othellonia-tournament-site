@@ -89,8 +89,8 @@
         }
 
         function getStatusLabel(match) {
-            if (match.winner_team_id) return "完了";
-            if (match.started_at) return "進行中";
+            if (match.match_status === "finished") return "完了";
+            if (match.match_status === "in_progress") return "進行中";
             return "試合前";
         }
 
@@ -153,10 +153,10 @@
             keyword = keyword.trim().toLowerCase();
             if (!keyword) {
                 // 初期表示: 試合前・進行中のみ
-                return allMatches.filter(m => !m.winner_team_id);
+                return allMatches.filter(m => m.match_status !== "finished");
             }
             return allMatches.filter(m => {
-                if (m.winner_team_id) return false;
+                if (m.match_status === "finished") return false;
                 return (
                     (m.match_id || "").toLowerCase().includes(keyword) ||
                     (m.team_a_name || "").toLowerCase().includes(keyword) ||
