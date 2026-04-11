@@ -1105,6 +1105,7 @@ th {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .upcoming-filter-item label {
@@ -1116,6 +1117,7 @@ th {
 .upcoming-filter-item input,
 .upcoming-filter-item select {
   width: 100%;
+  min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
   border: 1px solid #c8d6e5;
@@ -1124,8 +1126,20 @@ th {
   font: inherit;
 }
 
+.upcoming-filter-item input[type="date"] {
+  max-width: 100%;
+}
+
+#resultDateFrom,
+#resultDateTo {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .upcoming-filter-team {
-  min-width: 180px;
+  min-width: 0;
 }
 
 .upcoming-filter-action {
