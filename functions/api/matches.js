@@ -38,7 +38,11 @@
               SELECT COUNT(DISTINCT o.team_id) FROM orders o
               WHERE o.match_id = m.match_id
                 AND o.confirmed_at IS NOT NULL
-            ) AS confirmed_team_count
+            ) AS confirmed_team_count,
+            (
+              SELECT COUNT(DISTINCT o.team_id) FROM orders o
+              WHERE o.match_id = m.match_id
+            ) AS submitted_team_count
           FROM matches m
           LEFT JOIN teams ta ON m.team_a_id = ta.team_id
           LEFT JOIN teams tb ON m.team_b_id = tb.team_id
@@ -69,14 +73,18 @@
         const hasCompletedGame = Number(match.completed_game_count || 0) > 0;
         const hasBothTeamsConfirmed =
           Number(match.confirmed_team_count || 0) >= 2;
+        const hasBothTeamsSubmitted =
+          Number(match.submitted_team_count || 0) >= 2;
+
         // 優先的にDBに保存された明示的なステータスを使用
+        // 両チームがオーダーを提出していればフロント上は確定前扱いにする
         const matchStatus = match.status
           ? match.status
           : match.winner_team_id
             ? "finished"
             : match.started_at || hasCompletedGame
               ? "in_progress"
-              : hasBothTeamsConfirmed
+              : hasBothTeamsConfirmed || hasBothTeamsSubmitted
                 ? "confirmed_before_start"
                 : "before_order_submission";
 
