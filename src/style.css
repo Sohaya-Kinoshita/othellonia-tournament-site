@@ -2539,3 +2539,85 @@ a.btn:visited {
     flex-wrap: wrap;
   }
 }
+
+/* Entry form image styling */
+.entry-form-image {
+  display: block;
+  max-width: 420px;
+  width: 100%;
+  height: auto;
+  margin: 12px auto;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Entry form layout */
+.entry-forms {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+.entry-form-item {
+  flex: 1 1 260px;
+  max-width: 420px;
+  text-align: center;
+}
+
+.entry-form-caption {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.entry-note {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  text-align: left;
+  line-height: 1.5;
+}
+
+/* 小タイトル（サブタイトル） */
+.entry-form-item > p:first-child {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #000;
+  text-align: left;
+  position: relative;
+  padding-left: 22px;
+}
+
+.entry-form-item > p:first-child::before {
+  content: "・";
+  position: absolute;
+  left: 4px;
+  top: 0.08em;
+  color: #000;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.entry-subtitle {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .entry-form-item > p:first-child,
+  .entry-subtitle {
+    font-size: 14px;
+  }
+  .entry-form-item > p:first-child::before {
+    font-size: 16px;
+    left: 3px;
+    top: 0.06em;
+  }
+}
