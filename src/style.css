@@ -194,6 +194,60 @@
   display: none;
   margin-top: 16px;
 }
+
+@media (max-width: 640px) {
+  .public-list-card {
+    padding: 12px;
+  }
+
+  .public-stats {
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .public-stat-box {
+    flex: 1 1 100%;
+    padding: 10px 12px;
+  }
+
+  .public-stat-value {
+    font-size: 20px;
+  }
+
+  .public-search-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .public-search-input {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .public-search-row .btn {
+    width: 100%;
+  }
+
+  .public-table-wrap {
+    margin: 0 -4px;
+    padding: 0 4px 4px;
+  }
+
+  .public-team-table,
+  .public-member-table {
+    min-width: 560px;
+  }
+
+  .public-team-table th,
+  .public-member-table th,
+  .public-team-table td,
+  .public-member-table td {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+}
+
 :root {
   --max-width: 980px;
   --gap: 16px;
