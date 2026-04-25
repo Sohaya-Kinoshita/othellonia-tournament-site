@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
+    <link rel="manifest" href="./manifest.json">
+    <title>参加チーム・メンバー | 隊抗戦</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>参加チーム・メンバー</h1>
+            <p>本大会に参加しているチームとメンバーを、1ページで確認できます。</p>
+        </div>
+
+        <div class="card public-list-card">
+            <h2>参加チーム一覧</h2>
+            <p>本大会に参加しているチームの一覧です。</p>
+            <div class="public-stats">
+                <div class="public-stat-box">
+                    <div class="public-stat-label">登録チーム数</div>
+                    <div id="teamCount" class="public-stat-value">0</div>
+                </div>
+            </div>
+            <div class="public-search-row">
+                <input type="text" id="teamSearchInput" class="public-search-input" placeholder="チーム名やリーダー名で検索">
+                <button type="button" class="btn" id="teamSearchButton">検索</button>
+                <button type="button" class="btn" id="teamClearButton">クリア</button>
+            </div>
+            <p id="teamStatusMessage" class="public-status-message">仮DATAを表示しています</p>
+
+            <div class="public-table-wrap public-list-card is-hidden" id="teamListCard">
+                <table class="public-table public-team-table">
+                    <thead>
+                        <tr>
+                            <th class="col-team-name">チーム名</th>
+                            <th class="col-team-leader">チームリーダー</th>
+                            <th class="col-team-subleader">サブリーダー</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamTableBody"></tbody>
+                </table>
+            </div>
+            <p id="noTeamsMessage" class="public-empty-message">該当するチームがありません</p>
+        </div>
+
+        <div class="card public-list-card">
+            <h2>参加メンバー一覧</h2>
+            <p>本大会に参加しているメンバーの一覧です。</p>
+            <div class="public-stats">
+                <div class="public-stat-box">
+                    <div class="public-stat-label">登録メンバー数</div>
+                    <div id="playerCount" class="public-stat-value">0</div>
+                </div>
+            </div>
+            <div class="public-search-row">
+                <input type="text" id="memberSearchInput" class="public-search-input" placeholder="プレイヤー名や所属チームで検索">
+                <button type="button" class="btn" id="memberSearchButton">検索</button>
+                <button type="button" class="btn" id="memberClearButton">クリア</button>
+            </div>
+            <p id="memberStatusMessage" class="public-status-message">仮DATAを表示しています</p>
+
+            <div class="public-table-wrap public-list-card is-hidden" id="memberListCard">
+                <table class="public-table public-member-table">
+                    <thead>
+                        <tr>
+                            <th class="col-player-name">プレイヤー名</th>
+                            <th class="col-player-teams">所属チーム</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTableBody"></tbody>
+                </table>
+            </div>
+            <p id="noMembersMessage" class="public-empty-message">該当するメンバーがありません</p>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script src="./js/participating-teams-data.js"></script>
+    <script src="./js/participating-players-data.js"></script>
+    <script>
+        const allTeams = Array.isArray(window.participatingTeams) ? window.participatingTeams : [];
+        const allPlayers = Array.isArray(window.participatingPlayers) ? window.participatingPlayers : [];
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function renderTeams(teams) {
+            const teamTableBody = document.getElementById("teamTableBody");
+            const noTeamsMessage = document.getElementById("noTeamsMessage");
+
+            if (teams.length === 0) {
+                teamTableBody.innerHTML = "";
+                noTeamsMessage.style.display = "block";
+                return;
+            }
+
+            noTeamsMessage.style.display = "none";
+            teamTableBody.innerHTML = teams.map((team) => `
+                <tr>
+                    <td class="col-team-name">${escapeHtml(team.team_name)}</td>
+                    <td class="col-team-leader">${escapeHtml(team.leader_name || "(未設定)")}</td>
+                    <td class="col-team-subleader">${escapeHtml(team.subleader_name || "(未設定)")}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderPlayers(players) {
+            const playerTableBody = document.getElementById("memberTableBody");
+            const noMembersMessage = document.getElementById("noMembersMessage");
+
+            if (players.length === 0) {
+                playerTableBody.innerHTML = "";
+                noMembersMessage.style.display = "block";
+                return;
+            }
+
+            noMembersMessage.style.display = "none";
+            playerTableBody.innerHTML = players.map((player) => {
+                const teamNames = [player.team_name_1, player.team_name_2]
+                    .map((value) => String(value || "").trim())
+                    .filter(Boolean)
+                    .join(" / ") || "(未所属)";
+
+                return `
+                    <tr>
+                        <td class="col-player-name">${escapeHtml(player.player_name)}</td>
+                        <td class="col-player-teams">${escapeHtml(teamNames)}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function filterTeams() {
+            const keyword = document.getElementById("teamSearchInput").value.trim().toLowerCase();
+            if (!keyword) return allTeams;
+
+            return allTeams.filter((team) => {
+                return [team.team_name, team.leader_name, team.subleader_name]
+                    .some((value) => String(value || "").toLowerCase().includes(keyword));
+            });
+        }
+
+        function filterPlayers() {
+            const keyword = document.getElementById("memberSearchInput").value.trim().toLowerCase();
+
+            return allPlayers.filter((player) => {
+                if (!keyword) return true;
+
+                return [player.player_name, player.team_name_1, player.team_name_2]
+                    .some((value) => String(value || "").toLowerCase().includes(keyword));
+            });
+        }
+
+        function showStaticData() {
+            const teamListCard = document.getElementById("teamListCard");
+            const memberListCard = document.getElementById("memberListCard");
+            const teamStatusMessage = document.getElementById("teamStatusMessage");
+            const memberStatusMessage = document.getElementById("memberStatusMessage");
+            const teamCount = document.getElementById("teamCount");
+            const playerCount = document.getElementById("playerCount");
+
+            teamStatusMessage.style.display = "none";
+            memberStatusMessage.style.display = "none";
+            teamListCard.classList.remove("is-hidden");
+            memberListCard.classList.remove("is-hidden");
+            // 固定の総数を表示（検索で変わらない）
+            teamCount.textContent = String(allTeams.length);
+            playerCount.textContent = String(allPlayers.length);
+            // 表示は検索結果に応じて更新
+            renderTeams(filterTeams());
+            renderPlayers(filterPlayers());
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("teamSearchButton").addEventListener("click", () => renderTeams(filterTeams()));
+            document.getElementById("teamClearButton").addEventListener("click", () => {
+                document.getElementById("teamSearchInput").value = "";
+                renderTeams(filterTeams());
+            });
+            document.getElementById("teamSearchInput").addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    renderTeams(filterTeams());
+                }
+            });
+
+            document.getElementById("memberSearchButton").addEventListener("click", () => renderPlayers(filterPlayers()));
+            document.getElementById("memberClearButton").addEventListener("click", () => {
+                document.getElementById("memberSearchInput").value = "";
+                renderPlayers(filterPlayers());
+            });
+            document.getElementById("memberSearchInput").addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    renderPlayers(filterPlayers());
+                }
+            });
+
+            showStaticData();
+        });
+    </script>
+</body>
+
+</html>

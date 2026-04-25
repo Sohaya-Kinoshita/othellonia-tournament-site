@@ -17,4 +17,4 @@ jobs:
             -d '{}' \
             -w "\nStatus: %{http_code}\n"
         env:
-          PAGES_DOMAIN: c5b3ccf0.othellonia-tournament-site.pages.dev
+          PAGES_DOMAIN: taikousen.com
