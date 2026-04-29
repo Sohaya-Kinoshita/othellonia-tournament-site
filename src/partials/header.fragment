@@ -25,9 +25,14 @@
             <a class="menu-item" href="./leader.html" id="leaderPageLink" data-title="リーダーページ" style="display: none;">リーダーページ</a>
             <a class="menu-item" href="./player.html" id="playerPageLink" data-title="プレイヤーページ" style="display: none;">プレイヤーページ</a>
             <a class="menu-item" href="./index.html" data-title="トップ">トップ</a>
+
+            <!-- 一時的に非表示-->
+            <!--
             <a class="menu-item" href="./match.html" data-title="対戦カード">対戦カード</a>
             <a class="menu-item" href="./result.html" data-title="対戦結果">対戦結果</a>
             <a class="menu-item" href="./participating.html" data-title="参加チーム・メンバー">参加チーム・メンバー</a>
+            -->
+
             <a class="menu-item" href="./rules.html" data-title="大会ルール・エントリー">大会ルール・エントリー</a>
 
             <a class="menu-item" href="./login.html" id="loginLink" data-title="ログイン">ログイン</a>
