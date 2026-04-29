@@ -40,6 +40,21 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
+    player_name: "えなπ",
+    team_name_1: "味噌ラーメン",
+    team_name_2: "",
+  },
+  {
+    player_name: "ユカリ",
+    team_name_1: "味噌ラーメン",
+    team_name_2: "",
+  },
+  {
+    player_name: "こーだゐ",
+    team_name_1: "味噌ラーメン",
+    team_name_2: "",
+  },
+  {
     player_name: "あびｽ",
     team_name_1: "塩ラーメン",
     team_name_2: "",
