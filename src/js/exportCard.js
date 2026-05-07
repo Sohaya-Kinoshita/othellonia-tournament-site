@@ -84,21 +84,34 @@ async function exportCardAsImage(
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
     <div class="export-brand">
-      <img src="${new URL("./images/Logo_Title.jpg", window.location.href).href}" alt="Logo_Title" class="export-brand-logo">
+      <img src="${new URL("./images/Logo.jpg", window.location.href).href}" alt="Logo" class="export-brand-logo">
     </div>
   `;
   // ロゴの大きさはエクスポート時のみ確実に適用するため、インラインスタイルで設定する
   const headerImg = exportBrandHeader.querySelector(".export-brand-logo");
   if (headerImg) {
-    headerImg.style.height = "96px";
+    headerImg.style.setProperty("height", "96px", "important");
     headerImg.style.width = "auto";
     headerImg.setAttribute("loading", "eager");
   }
   card.prepend(exportBrandHeader);
-
   // ロゴ下に対戦日を追加しない（重複を避けるため）
-  // exportMetaText は渡されるが、カード本文に対戦日がある/ないに関わらず
-  // ロゴ下には表示しない仕様とする。
+  // ページ上のカード外にある「対戦日」要素も一時的に非表示にする
+  const hiddenExternalDateElements = [];
+  try {
+    let sib = card.previousElementSibling;
+    let checks = 0;
+    while (sib && checks < 3) {
+      if (/対戦日/.test(sib.textContent || "")) {
+        hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
+        sib.style.display = "none";
+      }
+      sib = sib.previousElementSibling;
+      checks += 1;
+    }
+  } catch (e) {
+    // ignore
+  }
 
   // --- サイトの背景画像をエクスポート画像にも適用 ---
   // body::before などで設定してある背景画像を取得して、
@@ -220,6 +233,14 @@ async function exportCardAsImage(
       hiddenElements.forEach(({ el, prev }) => {
         el.style.display = prev;
       });
+      // 外部の対戦日要素を復元
+      try {
+        hiddenExternalDateElements.forEach(({ el, prev }) => {
+          el.style.display = prev;
+        });
+      } catch (e) {
+        // ignore
+      }
       card.classList.remove("exporting");
       if (targetWidth) {
         card.style.width = originalWidth;
@@ -257,6 +278,13 @@ async function exportCardAsImage(
     hiddenElements.forEach(({ el, prev }) => {
       el.style.display = prev;
     });
+    try {
+      hiddenExternalDateElements.forEach(({ el, prev }) => {
+        el.style.display = prev;
+      });
+    } catch (e) {
+      // ignore
+    }
     card.classList.remove("exporting");
     if (targetWidth) {
       card.style.width = originalWidth;
