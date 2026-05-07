@@ -76,6 +76,10 @@ async function exportCardAsImage(
     card.style.maxWidth = `${targetWidth}px`;
     card.style.boxSizing = "border-box";
   }
+  // 事前にカード本文内に「対戦日」が含まれているか確認しておく（重複防止）
+  const cardTextBefore = card.textContent || "";
+  const hasScheduledInCard = /対戦日/.test(cardTextBefore);
+
   exportBrandHeader = document.createElement("div");
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
@@ -83,22 +87,24 @@ async function exportCardAsImage(
       <img src="${new URL("./images/Logo_Title.jpg", window.location.href).href}" alt="Logo_Title" class="export-brand-logo">
     </div>
   `;
+  // ロゴの大きさはエクスポート時のみ確実に適用するため、インラインスタイルで設定する
+  const headerImg = exportBrandHeader.querySelector(".export-brand-logo");
+  if (headerImg) {
+    headerImg.style.height = "96px";
+    headerImg.style.width = "auto";
+    headerImg.setAttribute("loading", "eager");
+  }
   card.prepend(exportBrandHeader);
-  if (exportMetaText) {
-    // カード本文に既に「対戦日」などのメタ情報が含まれている場合、
-    // ロゴ下に同じメタを追加すると重複するため追加をスキップする。
-    const cardText = card.textContent || "";
-    const hasScheduledInCard = /対戦日/.test(cardText);
-    if (!hasScheduledInCard) {
-      exportMetaElement = document.createElement("div");
-      exportMetaElement.textContent = exportMetaText;
-      exportMetaElement.style.cssText =
-        "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
-      if (exportBrandHeader.nextSibling) {
-        card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
-      } else {
-        card.appendChild(exportMetaElement);
-      }
+
+  if (exportMetaText && !hasScheduledInCard) {
+    exportMetaElement = document.createElement("div");
+    exportMetaElement.textContent = exportMetaText;
+    exportMetaElement.style.cssText =
+      "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
+    if (exportBrandHeader.nextSibling) {
+      card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
+    } else {
+      card.appendChild(exportMetaElement);
     }
   }
 
@@ -161,7 +167,7 @@ async function exportCardAsImage(
 
   try {
     const canvas = await html2canvas(card, {
-      backgroundColor: "#ffffff",
+      backgroundColor: null,
       scale: window.devicePixelRatio || 2,
       logging: false,
       useCORS: true,
