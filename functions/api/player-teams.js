@@ -160,7 +160,7 @@ export async function onRequest(context) {
           m.match_id,
           m.scheduled_at,
           my_od.game_number,
-          CASE WHEN my_od.game_number <= 3 THEN 'S' ELSE 'G' END AS battle_mode,
+          CASE WHEN my_od.game_number <= 2 THEN 'G' ELSE 'S' END AS battle_mode,
           CASE
             WHEN m.team_a_id = my_od.team_id THEN ta.team_name
             ELSE tb.team_name

@@ -860,7 +860,7 @@ async function ensureGamesInitialized(db, matchId, teamAId, teamBId) {
   for (let i = 0; i < 5; i += 1) {
     const gameNumber = i + 1;
     const gameId = `${matchId}${gameNumber}`;
-    const battleMode = gameNumber <= 3 ? "S" : "G";
+    const battleMode = gameNumber <= 2 ? "G" : "S";
 
     await db
       .prepare(
