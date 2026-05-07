@@ -136,7 +136,7 @@
                 <div class="match-meta-grid team-detail-meta-grid">
                     <div class="match-meta-section">
                         <div class="match-meta-title">対戦相手</div>
-                        <div class="team-detail-meta-value">${escapeHtml(opponentName)} (${escapeHtml(opponentId)})</div>
+                        <div class="team-detail-meta-value">${escapeHtml(opponentName)}</div>
                     </div>
                     <div class="match-meta-section">
                         <div class="match-meta-title">勝敗</div>
@@ -758,9 +758,8 @@
                             <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                     <div>
-                                        <strong>${match.match_id}</strong>
-                                        <span style="margin-left: 8px; font-size: 0.9em;">
-                                            ${team.team_name} vs ${opponentName} (${opponentId})
+                                        <span style="font-size: 0.9em;">
+                                            ${team.team_name} vs ${opponentName}
                                         </span>
                                     </div>
                                     <span style="
@@ -774,16 +773,13 @@
                                         ${status}
                                     </span>
                                 </div>
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
-                                    Best of ${match.best_of}
-                                </div>
                                 ${match.scheduled_at ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>` : ''}
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 12px;">
                                     提出期限: ${formatDateTime(match.order_deadline)}
                                 </div>
 
                                 <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                                    <div style="font-weight: 700; margin-bottom: 8px;">オーダー提出（1〜5戦）</div>
+                                    <div style="font-weight: 700; margin-bottom: 8px;">オーダー提出</div>
                                     <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">1〜2戦: グローリー / 3〜5戦: シーズン</div>
                                     <div id="orderStatus_${match.match_id}" style="font-size: 0.9em; margin-bottom: 8px; color: #666;">読込中...</div>
                                     <div id="orderList_${match.match_id}" style="display: grid; gap: 8px; margin-bottom: 10px;"></div>
