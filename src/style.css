@@ -375,9 +375,13 @@ body.no-scroll {
   gap: 8px;
 }
 .export-brand-logo {
-  height: 96px;
+  height: 32px;
   width: auto;
   display: block;
+}
+/* エクスポート時のみロゴを大きくする */
+.exporting .export-brand-logo {
+  height: 96px;
 }
 .export-brand-title-img {
   height: 28px;
