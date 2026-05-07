@@ -91,27 +91,51 @@ async function exportCardAsImage(
   const headerImg = exportBrandHeader.querySelector(".export-brand-logo");
   if (headerImg) {
     headerImg.style.setProperty("height", "96px", "important");
-    headerImg.style.width = "auto";
+    headerImg.style.setProperty("max-height", "none", "important");
+    headerImg.style.setProperty("width", "auto", "important");
+    headerImg.style.display = "block";
+    headerImg.style.margin = "0 auto";
     headerImg.setAttribute("loading", "eager");
   }
   card.prepend(exportBrandHeader);
-  // ロゴ下に対戦日を追加しない（重複を避けるため）
-  // ページ上のカード外にある「対戦日」要素も一時的に非表示にする
+  console.debug("exportCard: inserted exportBrandHeader into", cardId);
+
+  // ロゴ下に対戦日を追加しない（重複を避けるため）。
+  // matchCardSection の直前要素（ページ上に表示されている対戦日など）を探して一時的に非表示にする。
   const hiddenExternalDateElements = [];
   try {
-    let sib = card.previousElementSibling;
-    let checks = 0;
-    while (sib && checks < 3) {
-      if (/対戦日/.test(sib.textContent || "")) {
-        hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
-        sib.style.display = "none";
+    const section = card.closest('[id^="matchCardSection_"]');
+    if (section) {
+      let sib = section.previousElementSibling;
+      let checks = 0;
+      while (sib && checks < 5) {
+        if (/対戦日/.test(sib.textContent || "")) {
+          hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
+          sib.style.display = "none";
+        }
+        sib = sib.previousElementSibling;
+        checks += 1;
       }
-      sib = sib.previousElementSibling;
-      checks += 1;
+    } else {
+      let sib = card.previousElementSibling;
+      let checks = 0;
+      while (sib && checks < 5) {
+        if (/対戦日/.test(sib.textContent || "")) {
+          hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
+          sib.style.display = "none";
+        }
+        sib = sib.previousElementSibling;
+        checks += 1;
+      }
     }
   } catch (e) {
     // ignore
   }
+  if (hiddenExternalDateElements.length)
+    console.debug(
+      "exportCard: hid external date elements",
+      hiddenExternalDateElements,
+    );
 
   // --- サイトの背景画像をエクスポート画像にも適用 ---
   // body::before などで設定してある背景画像を取得して、
@@ -195,6 +219,9 @@ async function exportCardAsImage(
       });
     }
 
+    console.debug("exportCard: calling html2canvas", {
+      targetWidth: targetWidth || card.offsetWidth,
+    });
     const canvas = await html2canvas(card, {
       backgroundColor: null,
       scale: window.devicePixelRatio || 2,
@@ -202,6 +229,7 @@ async function exportCardAsImage(
       useCORS: true,
       width: targetWidth || card.offsetWidth,
     });
+    console.debug("exportCard: html2canvas finished");
 
     canvas.toBlob(function (blob) {
       const url = URL.createObjectURL(blob);
