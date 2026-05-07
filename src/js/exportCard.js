@@ -96,17 +96,9 @@ async function exportCardAsImage(
   }
   card.prepend(exportBrandHeader);
 
-  if (exportMetaText && !hasScheduledInCard) {
-    exportMetaElement = document.createElement("div");
-    exportMetaElement.textContent = exportMetaText;
-    exportMetaElement.style.cssText =
-      "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
-    if (exportBrandHeader.nextSibling) {
-      card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
-    } else {
-      card.appendChild(exportMetaElement);
-    }
-  }
+  // ロゴ下に対戦日を追加しない（重複を避けるため）
+  // exportMetaText は渡されるが、カード本文に対戦日がある/ないに関わらず
+  // ロゴ下には表示しない仕様とする。
 
   // --- サイトの背景画像をエクスポート画像にも適用 ---
   // body::before などで設定してある背景画像を取得して、
@@ -166,6 +158,30 @@ async function exportCardAsImage(
   }
 
   try {
+    // 挿入した画像が読み込まれるのを待つ（読み込みが完了していないと小さくレンダリングされる）
+    const insertedImg = exportBrandHeader.querySelector(".export-brand-logo");
+    if (insertedImg) {
+      await new Promise((resolve) => {
+        if (insertedImg.complete && insertedImg.naturalWidth > 0)
+          return resolve();
+        const onLoad = () => {
+          insertedImg.removeEventListener("load", onLoad);
+          insertedImg.removeEventListener("error", onError);
+          resolve();
+        };
+        const onError = () => {
+          insertedImg.removeEventListener("load", onLoad);
+          insertedImg.removeEventListener("error", onError);
+          // タイムアウトで進める
+          resolve();
+        };
+        insertedImg.addEventListener("load", onLoad);
+        insertedImg.addEventListener("error", onError);
+        // フェイルセーフ: 2秒後に進める
+        setTimeout(resolve, 2000);
+      });
+    }
+
     const canvas = await html2canvas(card, {
       backgroundColor: null,
       scale: window.devicePixelRatio || 2,
