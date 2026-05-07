@@ -685,9 +685,8 @@
                             <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                     <div>
-                                        <strong>${match.match_id}</strong>
                                         <span style="margin-left: 8px; font-size: 0.9em;">
-                                            ${team.team_name} vs ${opponentName} (${opponentId})
+                                            ${team.team_name} vs ${opponentName}
                                         </span>
                                     </div>
                                     <span style="
@@ -701,9 +700,7 @@
                                         ${status}
                                     </span>
                                 </div>
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">Best of ${match.best_of}</div>
                                 ${match.scheduled_at ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>` : ''}
-                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">提出期限: ${formatDateTime(match.order_deadline)}</div>
                                 <button type="button" id="toggleBtn_${match.match_id}" class="btn" style="font-size: 0.85em; padding: 4px 10px;">▽ 対戦カードを見る</button>
                                 <div id="${cardId}" style="display: none; border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;">
                                     <div id="matchCard_${match.match_id}" data-scheduled-at="${match.scheduled_at || ""}" data-order-locked="false" class="team-detail-match-card-host">読込中...</div>
@@ -775,7 +772,7 @@
                                 </div>
                                 ${match.scheduled_at ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">対戦日: ${formatDateTime(match.scheduled_at)}</div>` : ''}
                                 <div style="font-size: 0.9em; color: #666; margin-bottom: 12px;">
-                                    提出期限: ${formatDateTime(match.order_deadline)}
+                                    オーダー提出期限: ${formatDateTime(match.order_deadline)}
                                 </div>
 
                                 <div style="border-top: 1px solid #eee; padding-top: 12px;">

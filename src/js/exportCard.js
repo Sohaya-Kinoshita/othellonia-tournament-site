@@ -85,15 +85,78 @@ async function exportCardAsImage(
   `;
   card.prepend(exportBrandHeader);
   if (exportMetaText) {
-    exportMetaElement = document.createElement("div");
-    exportMetaElement.textContent = exportMetaText;
-    exportMetaElement.style.cssText =
-      "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
-    if (exportBrandHeader.nextSibling) {
-      card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
-    } else {
-      card.appendChild(exportMetaElement);
+    // カード本文に既に「対戦日」などのメタ情報が含まれている場合、
+    // ロゴ下に同じメタを追加すると重複するため追加をスキップする。
+    const cardText = card.textContent || "";
+    const hasScheduledInCard = /対戦日/.test(cardText);
+    if (!hasScheduledInCard) {
+      exportMetaElement = document.createElement("div");
+      exportMetaElement.textContent = exportMetaText;
+      exportMetaElement.style.cssText =
+        "font-size: 14px; color: #333; margin-bottom: 10px; text-align: right;";
+      if (exportBrandHeader.nextSibling) {
+        card.insertBefore(exportMetaElement, exportBrandHeader.nextSibling);
+      } else {
+        card.appendChild(exportMetaElement);
+      }
     }
+  }
+
+  // --- サイトの背景画像をエクスポート画像にも適用 ---
+  // body::before などで設定してある背景画像を取得して、
+  // エクスポート対象のカード要素に一時的に適用する。
+  const originalBg = {
+    background: card.style.background || "",
+    backgroundImage: card.style.backgroundImage || "",
+    backgroundRepeat: card.style.backgroundRepeat || "",
+    backgroundPosition: card.style.backgroundPosition || "",
+    backgroundSize: card.style.backgroundSize || "",
+    backgroundAttachment: card.style.backgroundAttachment || "",
+    backgroundColor: card.style.backgroundColor || "",
+  };
+
+  try {
+    const bodyBefore = window.getComputedStyle(document.body, "::before");
+    let bgImage =
+      bodyBefore && bodyBefore.backgroundImage
+        ? bodyBefore.backgroundImage
+        : null;
+    const bgRepeat =
+      bodyBefore && bodyBefore.backgroundRepeat
+        ? bodyBefore.backgroundRepeat
+        : "repeat";
+    const bgPosition =
+      bodyBefore && bodyBefore.backgroundPosition
+        ? bodyBefore.backgroundPosition
+        : "center";
+    const bgSize =
+      bodyBefore && bodyBefore.backgroundSize ? bodyBefore.backgroundSize : "";
+    const bgAttachment =
+      bodyBefore && bodyBefore.backgroundAttachment
+        ? bodyBefore.backgroundAttachment
+        : "";
+
+    // フォールバック: body 自体に背景がある場合
+    if (!bgImage || bgImage === "none") {
+      const bodyStyle = window.getComputedStyle(document.body);
+      bgImage =
+        bodyStyle && bodyStyle.backgroundImage
+          ? bodyStyle.backgroundImage
+          : null;
+    }
+
+    if (bgImage && bgImage !== "none") {
+      card.style.backgroundImage = bgImage;
+      card.style.backgroundRepeat = bgRepeat;
+      card.style.backgroundPosition = bgPosition;
+      if (bgSize) card.style.backgroundSize = bgSize;
+      if (bgAttachment) card.style.backgroundAttachment = bgAttachment;
+      // 背景画像が透けて見えるように、カードの背景色は透明にする
+      card.style.backgroundColor = "transparent";
+    }
+  } catch (e) {
+    // 取得に失敗しても処理は続行
+    console.warn("背景画像の取得に失敗しました:", e);
   }
 
   try {
@@ -141,6 +204,18 @@ async function exportCardAsImage(
         card.style.maxWidth = originalMaxWidth;
         card.style.boxSizing = originalBoxSizing;
       }
+      // 背景設定を元に戻す
+      try {
+        card.style.background = originalBg.background;
+        card.style.backgroundImage = originalBg.backgroundImage;
+        card.style.backgroundRepeat = originalBg.backgroundRepeat;
+        card.style.backgroundPosition = originalBg.backgroundPosition;
+        card.style.backgroundSize = originalBg.backgroundSize;
+        card.style.backgroundAttachment = originalBg.backgroundAttachment;
+        card.style.backgroundColor = originalBg.backgroundColor;
+      } catch (e) {
+        // ignore
+      }
       if (exportBrandHeader) {
         exportBrandHeader.remove();
       }
@@ -165,6 +240,18 @@ async function exportCardAsImage(
       card.style.width = originalWidth;
       card.style.maxWidth = originalMaxWidth;
       card.style.boxSizing = originalBoxSizing;
+    }
+    // 背景設定を元に戻す
+    try {
+      card.style.background = originalBg.background;
+      card.style.backgroundImage = originalBg.backgroundImage;
+      card.style.backgroundRepeat = originalBg.backgroundRepeat;
+      card.style.backgroundPosition = originalBg.backgroundPosition;
+      card.style.backgroundSize = originalBg.backgroundSize;
+      card.style.backgroundAttachment = originalBg.backgroundAttachment;
+      card.style.backgroundColor = originalBg.backgroundColor;
+    } catch (e) {
+      // ignore
     }
     if (exportBrandHeader) {
       exportBrandHeader.remove();
