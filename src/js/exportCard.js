@@ -101,33 +101,20 @@ async function exportCardAsImage(
   console.debug("exportCard: inserted exportBrandHeader into", cardId);
 
   // ロゴ下に対戦日を追加しない（重複を避けるため）。
-  // matchCardSection の直前要素（ページ上に表示されている対戦日など）を探して一時的に非表示にする。
+  // エクスポート対象カードの外側にある「対戦日」表示を一時的に非表示にする。
   const hiddenExternalDateElements = [];
   try {
-    const section = card.closest('[id^="matchCardSection_"]');
-    if (section) {
-      let sib = section.previousElementSibling;
-      let checks = 0;
-      while (sib && checks < 5) {
-        if (/対戦日/.test(sib.textContent || "")) {
-          hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
-          sib.style.display = "none";
-        }
-        sib = sib.previousElementSibling;
-        checks += 1;
+    const host = card.closest(".card") || document.body;
+    const candidates = host.querySelectorAll("div, p, span");
+    candidates.forEach((el) => {
+      if (!el || card.contains(el)) return;
+      const text = (el.textContent || "").trim();
+      if (!text) return;
+      if (/^対戦日/.test(text) || text.includes("対戦日:")) {
+        hiddenExternalDateElements.push({ el, prev: el.style.display });
+        el.style.display = "none";
       }
-    } else {
-      let sib = card.previousElementSibling;
-      let checks = 0;
-      while (sib && checks < 5) {
-        if (/対戦日/.test(sib.textContent || "")) {
-          hiddenExternalDateElements.push({ el: sib, prev: sib.style.display });
-          sib.style.display = "none";
-        }
-        sib = sib.previousElementSibling;
-        checks += 1;
-      }
-    }
+    });
   } catch (e) {
     // ignore
   }
@@ -180,11 +167,22 @@ async function exportCardAsImage(
           : null;
     }
 
+    // フォールバック: CSS の背景が取得できない場合は既定の背景画像を使う
+    if (!bgImage || bgImage === "none") {
+      const fallbackUrl = new URL("./images/背景2.png", window.location.href)
+        .href;
+      bgImage = `url("${fallbackUrl}")`;
+    }
+
     if (bgImage && bgImage !== "none") {
       card.style.backgroundImage = bgImage;
       card.style.backgroundRepeat = bgRepeat;
       card.style.backgroundPosition = bgPosition;
-      if (bgSize) card.style.backgroundSize = bgSize;
+      if (bgSize) {
+        card.style.backgroundSize = bgSize;
+      } else {
+        card.style.backgroundSize = "auto";
+      }
       if (bgAttachment) card.style.backgroundAttachment = bgAttachment;
       // 背景画像が透けて見えるように、カードの背景色は透明にする
       card.style.backgroundColor = "transparent";
