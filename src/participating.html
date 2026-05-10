@@ -4,7 +4,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="./style.css" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script>(function () { var t = Date.now(); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = './style.css?t=' + t; document.head.appendChild(l); })();</script>
     <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
     <link rel="manifest" href="./manifest.json">
@@ -34,7 +37,7 @@
                 <button type="button" class="btn" id="teamSearchButton">検索</button>
                 <button type="button" class="btn" id="teamClearButton">クリア</button>
             </div>
-            <p id="teamStatusMessage" class="public-status-message">仮DATAを表示しています</p>
+
 
             <div class="public-table-wrap public-list-card is-hidden" id="teamListCard">
                 <table class="public-table public-team-table">
@@ -65,7 +68,7 @@
                 <button type="button" class="btn" id="memberSearchButton">検索</button>
                 <button type="button" class="btn" id="memberClearButton">クリア</button>
             </div>
-            <p id="memberStatusMessage" class="public-status-message">仮DATAを表示しています</p>
+
 
             <div class="public-table-wrap public-list-card is-hidden" id="memberListCard">
                 <table class="public-table public-member-table">
@@ -84,134 +87,116 @@
 
     <div id="footerSlot"></div>
 
-    <script src="./js/layout.js"></script>
-    <script src="./js/participating-teams-data.js"></script>
-    <script src="./js/participating-players-data.js"></script>
     <script>
-        const allTeams = Array.isArray(window.participatingTeams) ? window.participatingTeams : [];
-        const allPlayers = Array.isArray(window.participatingPlayers) ? window.participatingPlayers : [];
+        (function () {
+            var t = Date.now();
+            var scripts = ['./js/layout.js', './js/participating-teams-data.js', './js/participating-players-data.js'];
+            function load(i) {
+                if (i >= scripts.length) { if (window.__participatingInit) window.__participatingInit(); return; }
+                var s = document.createElement('script');
+                s.src = scripts[i] + '?t=' + t;
+                s.onload = function () { load(i + 1); };
+                s.onerror = function () { load(i + 1); };
+                document.head.appendChild(s);
+            }
+            load(0);
+        })();
+    </script>
 
-        function escapeHtml(value) {
-            return String(value ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/\"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-        }
+    <script>
+        window.__participatingInit = function () {
+            const allTeams = Array.isArray(window.participatingTeams) ? window.participatingTeams : [];
+            const allPlayers = Array.isArray(window.participatingPlayers) ? window.participatingPlayers : [];
 
-        function renderTeams(teams) {
-            const teamTableBody = document.getElementById("teamTableBody");
-            const noTeamsMessage = document.getElementById("noTeamsMessage");
-
-            if (teams.length === 0) {
-                teamTableBody.innerHTML = "";
-                noTeamsMessage.style.display = "block";
-                return;
+            function escapeHtml(value) {
+                return String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
             }
 
-            noTeamsMessage.style.display = "none";
-            teamTableBody.innerHTML = teams.map((team) => `
-                <tr>
-                    <td class="col-team-name">${escapeHtml(team.team_name)}</td>
-                    <td class="col-team-leader">${escapeHtml(team.leader_name || "(未設定)")}</td>
-                    <td class="col-team-subleader">${escapeHtml(team.subleader_name || "(未設定)")}</td>
-                </tr>
-            `).join("");
-        }
-
-        function renderPlayers(players) {
-            const playerTableBody = document.getElementById("memberTableBody");
-            const noMembersMessage = document.getElementById("noMembersMessage");
-
-            if (players.length === 0) {
-                playerTableBody.innerHTML = "";
-                noMembersMessage.style.display = "block";
-                return;
+            function renderTeams(teams) {
+                const teamTableBody = document.getElementById("teamTableBody");
+                const noTeamsMessage = document.getElementById("noTeamsMessage");
+                if (!teamTableBody) return;
+                if (teams.length === 0) { teamTableBody.innerHTML = ""; if (noTeamsMessage) noTeamsMessage.style.display = "block"; return; }
+                if (noTeamsMessage) noTeamsMessage.style.display = "none";
+                teamTableBody.innerHTML = teams.map((team) => `\n                <tr>\n                    <td class="col-team-name">${escapeHtml(team.team_name)}</td>\n                    <td class="col-team-leader">${escapeHtml(team.leader_name || "(未設定)")}</td>\n                    <td class="col-team-subleader">${escapeHtml(team.subleader_name || "(未設定)")}</td>\n                </tr>\n            `).join("");
             }
 
-            noMembersMessage.style.display = "none";
-            playerTableBody.innerHTML = players.map((player) => {
-                const teamNames = [player.team_name_1, player.team_name_2]
-                    .map((value) => String(value || "").trim())
-                    .filter(Boolean)
-                    .join(" / ") || "(未所属)";
+            function renderPlayers(players) {
+                const playerTableBody = document.getElementById("memberTableBody");
+                const noMembersMessage = document.getElementById("noMembersMessage");
+                if (!playerTableBody) return;
+                if (players.length === 0) { playerTableBody.innerHTML = ""; if (noMembersMessage) noMembersMessage.style.display = "block"; return; }
+                if (noMembersMessage) noMembersMessage.style.display = "none";
+                playerTableBody.innerHTML = players.map((player) => {
+                    const teamNames = [player.team_name_1, player.team_name_2]
+                        .map((value) => String(value || "").trim())
+                        .filter(Boolean)
+                        .join(" / ") || "(未所属)";
+                    return `\n                    <tr>\n                        <td class="col-player-name">${escapeHtml(player.player_name)}</td>\n                        <td class="col-player-teams">${escapeHtml(teamNames)}</td>\n                    </tr>\n                `;
+                }).join("");
+            }
 
-                return `
-                    <tr>
-                        <td class="col-player-name">${escapeHtml(player.player_name)}</td>
-                        <td class="col-player-teams">${escapeHtml(teamNames)}</td>
-                    </tr>
-                `;
-            }).join("");
-        }
+            function filterTeams() {
+                const el = document.getElementById("teamSearchInput");
+                const keyword = el ? el.value.trim().toLowerCase() : "";
+                if (!keyword) return allTeams;
+                return allTeams.filter((team) => {
+                    return [team.team_name, team.leader_name, team.subleader_name]
+                        .some((value) => String(value || "").toLowerCase().includes(keyword));
+                });
+            }
 
-        function filterTeams() {
-            const keyword = document.getElementById("teamSearchInput").value.trim().toLowerCase();
-            if (!keyword) return allTeams;
+            function filterPlayers() {
+                const el = document.getElementById("memberSearchInput");
+                const keyword = el ? el.value.trim().toLowerCase() : "";
+                return allPlayers.filter((player) => {
+                    if (!keyword) return true;
+                    return [player.player_name, player.team_name_1, player.team_name_2]
+                        .some((value) => String(value || "").toLowerCase().includes(keyword));
+                });
+            }
 
-            return allTeams.filter((team) => {
-                return [team.team_name, team.leader_name, team.subleader_name]
-                    .some((value) => String(value || "").toLowerCase().includes(keyword));
-            });
-        }
-
-        function filterPlayers() {
-            const keyword = document.getElementById("memberSearchInput").value.trim().toLowerCase();
-
-            return allPlayers.filter((player) => {
-                if (!keyword) return true;
-
-                return [player.player_name, player.team_name_1, player.team_name_2]
-                    .some((value) => String(value || "").toLowerCase().includes(keyword));
-            });
-        }
-
-        function showStaticData() {
-            const teamListCard = document.getElementById("teamListCard");
-            const memberListCard = document.getElementById("memberListCard");
-            const teamStatusMessage = document.getElementById("teamStatusMessage");
-            const memberStatusMessage = document.getElementById("memberStatusMessage");
-            const teamCount = document.getElementById("teamCount");
-            const playerCount = document.getElementById("playerCount");
-
-            teamStatusMessage.style.display = "none";
-            memberStatusMessage.style.display = "none";
-            teamListCard.classList.remove("is-hidden");
-            memberListCard.classList.remove("is-hidden");
-            // 固定の総数を表示（検索で変わらない）
-            teamCount.textContent = String(allTeams.length);
-            playerCount.textContent = String(allPlayers.length);
-            // 表示は検索結果に応じて更新
-            renderTeams(filterTeams());
-            renderPlayers(filterPlayers());
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            document.getElementById("teamSearchButton").addEventListener("click", () => renderTeams(filterTeams()));
-            document.getElementById("teamClearButton").addEventListener("click", () => {
-                document.getElementById("teamSearchInput").value = "";
+            function showStaticData() {
+                const teamListCard = document.getElementById("teamListCard");
+                const memberListCard = document.getElementById("memberListCard");
+                const teamStatusMessage = document.getElementById("teamStatusMessage");
+                const memberStatusMessage = document.getElementById("memberStatusMessage");
+                const teamCount = document.getElementById("teamCount");
+                const playerCount = document.getElementById("playerCount");
+                if (teamStatusMessage) teamStatusMessage.style.display = "none";
+                if (memberStatusMessage) memberStatusMessage.style.display = "none";
+                if (teamListCard) teamListCard.classList.remove("is-hidden");
+                if (memberListCard) memberListCard.classList.remove("is-hidden");
+                if (teamCount) teamCount.textContent = String(allTeams.length);
+                if (playerCount) playerCount.textContent = String(allPlayers.length);
                 renderTeams(filterTeams());
-            });
-            document.getElementById("teamSearchInput").addEventListener("keydown", (event) => {
-                if (event.key === "Enter") {
-                    renderTeams(filterTeams());
-                }
-            });
-
-            document.getElementById("memberSearchButton").addEventListener("click", () => renderPlayers(filterPlayers()));
-            document.getElementById("memberClearButton").addEventListener("click", () => {
-                document.getElementById("memberSearchInput").value = "";
                 renderPlayers(filterPlayers());
-            });
-            document.getElementById("memberSearchInput").addEventListener("keydown", (event) => {
-                if (event.key === "Enter") {
-                    renderPlayers(filterPlayers());
-                }
-            });
+            }
 
-            showStaticData();
-        });
+            function attachHandlers() {
+                const teamSearchButton = document.getElementById("teamSearchButton");
+                if (teamSearchButton) teamSearchButton.addEventListener("click", () => renderTeams(filterTeams()));
+                const teamClearButton = document.getElementById("teamClearButton");
+                if (teamClearButton) teamClearButton.addEventListener("click", () => { const el = document.getElementById("teamSearchInput"); if (el) el.value = ""; renderTeams(filterTeams()); });
+                const teamSearchInput = document.getElementById("teamSearchInput");
+                if (teamSearchInput) teamSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") renderTeams(filterTeams()); });
+                const memberSearchButton = document.getElementById("memberSearchButton");
+                if (memberSearchButton) memberSearchButton.addEventListener("click", () => renderPlayers(filterPlayers()));
+                const memberClearButton = document.getElementById("memberClearButton");
+                if (memberClearButton) memberClearButton.addEventListener("click", () => { const el = document.getElementById("memberSearchInput"); if (el) el.value = ""; renderPlayers(filterPlayers()); });
+                const memberSearchInput = document.getElementById("memberSearchInput");
+                if (memberSearchInput) memberSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") renderPlayers(filterPlayers()); });
+            }
+
+            function init() { attachHandlers(); showStaticData(); }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+        };
     </script>
 </body>
 

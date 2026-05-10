@@ -1,6 +1,6 @@
 window.participatingPlayers = [
   {
-    player_name: "粗茶",
+    player_name: "祖茶",
     team_name_1: "味噌ラーメン",
     team_name_2: "",
   },
@@ -40,7 +40,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "えなπ",
+    player_name: "えな@π隊",
     team_name_1: "味噌ラーメン",
     team_name_2: "",
   },
@@ -75,7 +75,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "シノ",
+    player_name: "しの@志天",
     team_name_1: "塩ラーメン",
     team_name_2: "",
   },
@@ -90,7 +90,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "KOU＠",
+    player_name: "KOU@",
     team_name_1: "醤油ラーメン",
     team_name_2: "",
   },
@@ -110,7 +110,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "Ke-dai",
+    player_name: "けーだい",
     team_name_1: "醤油ラーメン",
     team_name_2: "",
   },
@@ -140,7 +140,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "KY＠罠リペア愛好家",
+    player_name: "KY@狂禍",
     team_name_1: "醤油ラーメン",
     team_name_2: "",
   },
@@ -150,7 +150,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "くるるぎ",
+    player_name: "枢木",
     team_name_1: "醤油ラーメン",
     team_name_2: "",
   },
@@ -160,7 +160,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "Synon（シノン）",
+    player_name: "Synon7q7",
     team_name_1: "豚骨ラーメン",
     team_name_2: "",
   },
@@ -175,17 +175,17 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "しょうた＠大トロ",
+    player_name: "しょうた@大トロ",
     team_name_1: "豚骨ラーメン",
     team_name_2: "",
   },
   {
-    player_name: "サブリー",
+    player_name: "サブリー@白えび",
     team_name_1: "豚骨ラーメン",
     team_name_2: "",
   },
   {
-    player_name: "れお",
+    player_name: "Leeo",
     team_name_1: "豚骨ラーメン",
     team_name_2: "",
   },
@@ -200,7 +200,7 @@ window.participatingPlayers = [
     team_name_2: "",
   },
   {
-    player_name: "エラン",
+    player_name: "エラン@志天隊",
     team_name_1: "豚骨ラーメン",
     team_name_2: "",
   },
