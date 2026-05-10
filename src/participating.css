@@ -1,0 +1,195 @@
+/* Styles for participating teams & members (moved from style.css) */
+.public-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.public-stat-box {
+  flex: 1 1 180px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.public-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.public-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.public-search-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.public-search-input {
+  flex: 1 1 260px;
+}
+
+.public-list-card {
+  margin-top: 16px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.public-table-wrap {
+  overflow-x: auto;
+}
+
+.public-table {
+  border-collapse: collapse;
+  table-layout: auto;
+  width: 100%;
+}
+
+.public-team-table {
+  table-layout: fixed;
+  width: max-content;
+  min-width: 0;
+}
+
+.public-member-table {
+  min-width: 760px;
+}
+
+.public-team-table th,
+.public-member-table th {
+  padding: 8px;
+}
+
+.public-team-table tr,
+.public-member-table tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.public-team-table .col-team-id,
+.public-member-table .col-player-id {
+  text-align: center;
+  white-space: nowrap;
+  border-right: 2px solid #cbd5e1;
+  padding: 8px;
+}
+
+.public-team-table .col-team-name,
+.public-team-table .col-team-leader,
+.public-team-table .col-team-subleader,
+.public-member-table .col-player-name,
+.public-member-table .col-player-teams {
+  text-align: left;
+  padding: 8px;
+}
+
+.public-team-table .col-team-name,
+.public-team-table .col-team-leader,
+.public-member-table .col-player-name,
+.public-member-table .col-player-teams {
+  border-right: 2px dotted #d1d5db;
+}
+
+.public-team-table .col-team-id {
+  width: 120px;
+}
+
+.public-team-table .col-team-name {
+  width: 2ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-team-table .col-team-leader {
+  width: 2ch;
+}
+
+.public-team-table .col-team-subleader {
+  width: 2ch;
+}
+
+.public-member-table .col-player-id {
+  width: 170px;
+}
+
+.public-member-table .col-player-name {
+  width: 220px;
+}
+
+.public-member-table .col-player-teams {
+  width: 280px;
+}
+
+.public-member-table .col-player-status {
+  width: 160px;
+  text-align: center;
+  padding: 8px;
+}
+
+.public-empty-message {
+  text-align: center;
+  color: #6b7280;
+  display: none;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .public-list-card {
+    padding: 12px;
+  }
+
+  .public-stats {
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .public-stat-box {
+    flex: 1 1 100%;
+    padding: 10px 12px;
+  }
+
+  .public-stat-value {
+    font-size: 20px;
+  }
+
+  .public-search-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .public-search-input {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .public-search-row .btn {
+    width: 100%;
+  }
+
+  .public-table-wrap {
+    margin: 0 -4px;
+    padding: 0 4px 4px;
+  }
+
+  .public-member-table {
+    min-width: 560px;
+  }
+
+  .public-team-table th,
+  .public-member-table th,
+  .public-team-table td,
+  .public-member-table td {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+}

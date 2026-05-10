@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <script>(function () { var t = Date.now(); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = './style.css?t=' + t; document.head.appendChild(l); })();</script>
+    <script>(function () { var t = Date.now(); var files = ['./style.css', './participating.css']; files.forEach(function (f) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = './' + f + '?t=' + t; document.head.appendChild(l); }); })();</script>
     <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
     <link rel="manifest" href="./manifest.json">

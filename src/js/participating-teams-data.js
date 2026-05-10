@@ -17,4 +17,8 @@ window.participatingTeams = [
     team_name: "豚骨ラーメン",
     leader_name: "たらちゃん",
   },
+  {
+    team_name: "あいうえおかきくけこ",
+    leader_name: "あいうえおかきく",
+  },
 ];
