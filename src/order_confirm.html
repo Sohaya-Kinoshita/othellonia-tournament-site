@@ -73,6 +73,23 @@
         let allMatches = [];
         let currentMatchId = null;
         let isCurrentMatchConfirmed = false;
+        let playerMap = {}; // player_id -> player_name キャッシュ
+
+        function escapeHtml(s) {
+            return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+        }
+
+        async function ensurePlayerMap() {
+            if (Object.keys(playerMap).length > 0) return;
+            try {
+                const resp = await fetch('/api/players');
+                const data = await resp.json();
+                const list = data.players || [];
+                list.forEach(p => { playerMap[p.player_id] = p.player_name || p.player_id; });
+            } catch (e) {
+                console.error('Failed to load player list for name mapping', e);
+            }
+        }
 
         function formatDateTime(datetimeText) {
             if (!datetimeText) return "-";
@@ -239,7 +256,11 @@
                         teamAOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultA.submittedAt)}`;
                         const reserveA = (resultA.reservePlayers || []).slice(0, 2);
                         const reserveAText = reserveA.length > 0 ? reserveA.join(", ") : "未設定";
-                        teamAOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderA.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}<br><strong>リザーブ:</strong> ${reserveAText}`;
+                        await ensurePlayerMap();
+                        const nameForA = (id) => escapeHtml(playerMap[id] || id);
+                        const orderLinesA = playerOrderA.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${nameForA(id)}`).join("<br>");
+                        const reserveATextName = reserveA.length > 0 ? reserveA.map((id) => nameForA(id)).join(", ") : "未設定";
+                        teamAOrderDetails.innerHTML = `<strong>オーダー:</strong><br>${orderLinesA}<br><strong>リザーブ:</strong> ${reserveATextName}`;
                     } else {
                         teamAOrderStatus.style.backgroundColor = "#fff3e0";
                         teamAOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
@@ -255,7 +276,11 @@
                         teamBOrderStatus.innerHTML = `<strong style="color: #2e7d32;">✓ オーダー提出済み</strong><br>提出：${formatDateTime(resultB.submittedAt)}`;
                         const reserveB = (resultB.reservePlayers || []).slice(0, 2);
                         const reserveBText = reserveB.length > 0 ? reserveB.join(", ") : "未設定";
-                        teamBOrderDetails.innerHTML = `<strong>オーダー:</strong> ${playerOrderB.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${id}`).join(", ")}<br><strong>リザーブ:</strong> ${reserveBText}`;
+                        await ensurePlayerMap();
+                        const nameForB = (id) => escapeHtml(playerMap[id] || id);
+                        const orderLinesB = playerOrderB.slice(0, 5).map((id, idx) => `第${idx + 1}戦（${getBattleModeLabel(idx + 1)}）: ${nameForB(id)}`).join("<br>");
+                        const reserveBTextName = reserveB.length > 0 ? reserveB.map((id) => nameForB(id)).join(", ") : "未設定";
+                        teamBOrderDetails.innerHTML = `<strong>オーダー:</strong><br>${orderLinesB}<br><strong>リザーブ:</strong> ${reserveBTextName}`;
                     } else {
                         teamBOrderStatus.style.backgroundColor = "#fff3e0";
                         teamBOrderStatus.innerHTML = `<strong style="color: #f57f17;">✗ オーダー未提出</strong>`;
