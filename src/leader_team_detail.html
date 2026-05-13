@@ -37,8 +37,8 @@
                 <table id="memberTable" style="min-width: unset; width: 100%;">
                     <thead>
                         <tr>
-                            <th>プレイヤーID</th>
                             <th>プレイヤー名</th>
+                            <th>プレイヤーID</th>
                         </tr>
                     </thead>
                     <tbody id="memberTableBody">
@@ -635,8 +635,8 @@
                         const row = document.createElement("tr");
                         row.style.borderBottom = "1px solid #ddd";
                         row.innerHTML = `
-                            <td style="padding: 8px;">${member.player_id}</td>
                             <td style="padding: 8px;">${member.player_name}</td>
+                            <td style="padding: 8px;">${member.player_id}</td>
                         `;
                         memberTableBody.appendChild(row);
                     });
