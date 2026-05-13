@@ -57,6 +57,7 @@
             <div id="finishedMatchesSection" style="display: none;">
                 <div id="finishedMatchesList"></div>
             </div>
+            <div id="copyToast" class="message success toast-bottom hidden">クリップボードにコピーしました。</div>
         </div>
     </main>
 
@@ -210,6 +211,41 @@
             });
 
             render();
+        }
+
+        let copyToastTimer = null;
+
+        function showCopyToast() {
+            const copyToast = document.getElementById("copyToast");
+            if (!copyToast) return;
+            copyToast.classList.remove("hidden");
+            copyToast.classList.add("show");
+
+            if (copyToastTimer) {
+                clearTimeout(copyToastTimer);
+            }
+
+            copyToastTimer = setTimeout(() => {
+                copyToast.classList.remove("show");
+                setTimeout(() => {
+                    copyToast.classList.add("hidden");
+                }, 250);
+            }, 1800);
+        }
+
+        async function copyPlayerId(playerId) {
+            try {
+                await navigator.clipboard.writeText(playerId);
+                showCopyToast();
+            } catch (error) {
+                const textArea = document.createElement("textarea");
+                textArea.value = playerId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                showCopyToast();
+            }
         }
 
         function createOrderSelect(matchId, index, members, selectedPlayerId) {
@@ -636,7 +672,7 @@
                         row.style.borderBottom = "1px solid #ddd";
                         row.innerHTML = `
                             <td style="padding: 8px;">${member.player_name}</td>
-                            <td style="padding: 8px;">${member.player_id}</td>
+                            <td style="padding: 8px;"><a href="#" onclick="event.preventDefault(); copyPlayerId('${member.player_id}');" style="color: #2563eb; text-decoration: underline; cursor: pointer;" title="クリックしてコピー">${member.player_id}</a></td>
                         `;
                         memberTableBody.appendChild(row);
                     });
