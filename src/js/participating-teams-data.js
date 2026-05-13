@@ -2,7 +2,7 @@ window.participatingTeams = [
   {
     team_name: "味噌ラーメン",
     leader_name: "こーだゐ",
-    subleader_name: "愛瑠",
+    subleader_name: "JTA",
   },
   {
     team_name: "塩ラーメン",
@@ -11,14 +11,12 @@ window.participatingTeams = [
   },
   {
     team_name: "醤油ラーメン",
-    leader_name: "KOU＠",
+    leader_name: "しの@志天",
+    subleader_name: "LITO",
   },
   {
     team_name: "豚骨ラーメン",
     leader_name: "たらちゃん",
-  },
-  {
-    team_name: "あいうえおかきくけこ",
-    leader_name: "あいうえおかきく",
+    subleader_name: "愛瑠",
   },
 ];

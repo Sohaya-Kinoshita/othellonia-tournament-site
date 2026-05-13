@@ -103,18 +103,18 @@
 }
 
 .public-team-table .col-team-name {
-  width: 2ch;
+  width: 150px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .public-team-table .col-team-leader {
-  width: 2ch;
+  width: 120px;
 }
 
 .public-team-table .col-team-subleader {
-  width: 2ch;
+  width: 120px;
 }
 
 .public-member-table .col-player-id {
@@ -122,11 +122,11 @@
 }
 
 .public-member-table .col-player-name {
-  width: 220px;
+  width: 150px;
 }
 
 .public-member-table .col-player-teams {
-  width: 280px;
+  width: 380px;
 }
 
 .public-member-table .col-player-status {
