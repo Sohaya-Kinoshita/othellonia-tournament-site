@@ -70,6 +70,8 @@
         </div>
     </main>
 
+    <div id="copyToast" class="message success toast-bottom hidden">クリップボードにコピーしました。</div>
+
     <div id="footerSlot"></div>
 
     <script src="./js/layout.js"></script>
@@ -128,13 +130,39 @@
             return "-";
         }
 
+        let copyToastTimer = null;
+
+        function showCopyToast() {
+            const copyToast = document.getElementById("copyToast");
+            if (!copyToast) return;
+            copyToast.classList.remove("hidden");
+            copyToast.classList.add("show");
+
+            if (copyToastTimer) {
+                clearTimeout(copyToastTimer);
+            }
+
+            copyToastTimer = setTimeout(() => {
+                copyToast.classList.remove("show");
+                setTimeout(() => {
+                    copyToast.classList.add("hidden");
+                }, 250);
+            }, 1800);
+        }
+
         async function copyPlayerId(playerId) {
             try {
                 await navigator.clipboard.writeText(playerId);
-                alert(`プレイヤーIDをコピーしました: ${playerId}`);
+                showCopyToast();
             } catch (error) {
                 console.error("Copy player ID error:", error);
-                alert("コピーに失敗しました");
+                const textArea = document.createElement("textarea");
+                textArea.value = playerId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                showCopyToast();
             }
         }
 
