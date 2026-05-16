@@ -10,15 +10,13 @@ function getTomorrowJst4amIso() {
   const jstYear = jstNow.getFullYear();
   const jstMonth = String(jstNow.getMonth() + 1).padStart(2, "0");
   const jstDate = String(jstNow.getDate()).padStart(2, "0");
-  const today4 = new Date(`${jstYear}-${jstMonth}-${jstDate}T04:00:00+09:00`);
+  const today4 = `${jstYear}-${jstMonth}-${jstDate} 04:00:00`;
   // 翌日の4:00(JST)
-  const tomorrow4 = new Date(today4.getTime() + 24 * 60 * 60 * 1000);
-  // UTCに変換してYYYY-MM-DD HH:mm:ss形式で返す
-  const iso = new Date(tomorrow4.getTime() - 9 * 60 * 60 * 1000)
-    .toISOString()
-    .replace("T", " ")
-    .slice(0, 19);
-  return iso;
+  const nextDay = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
+  const nextYear = nextDay.getFullYear();
+  const nextMonth = String(nextDay.getMonth() + 1).padStart(2, "0");
+  const nextDate = String(nextDay.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDate} 04:00:00`;
 }
 
 export async function onRequest(context) {

@@ -17,16 +17,7 @@ function getJstDateRange() {
   const nextMonth = String(nextDay.getMonth() + 1).padStart(2, "0");
   const nextDate = String(nextDay.getDate()).padStart(2, "0");
   const tomorrow4 = `${nextYear}-${nextMonth}-${nextDate} 04:00:00`;
-  // UTCに変換
-  const today4utc = new Date(`${today4} GMT+0900`)
-    .toISOString()
-    .replace("T", " ")
-    .slice(0, 19);
-  const tomorrow4utc = new Date(`${tomorrow4} GMT+0900`)
-    .toISOString()
-    .replace("T", " ")
-    .slice(0, 19);
-  return { start: today4utc, end: tomorrow4utc };
+  return { start: today4, end: tomorrow4 };
 }
 
 export async function onRequest(context) {
