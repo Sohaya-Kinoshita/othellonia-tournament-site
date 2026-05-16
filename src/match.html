@@ -427,10 +427,6 @@
             const toggleBtnId = `toggleDetailBtn_${escapeHtml(match.match_id)}`;
             const games = cardData?.games || [];
 
-            if (games.length === 0) {
-                return "";
-            }
-
             const teamAWinCount = games.filter((game) => game.winner_team_id === match.team_a_id).length;
             const teamBWinCount = games.filter((game) => game.winner_team_id === match.team_b_id).length;
 

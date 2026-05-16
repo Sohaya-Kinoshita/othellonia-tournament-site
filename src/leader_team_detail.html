@@ -370,7 +370,7 @@
                         const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(matchId)}`);
                         const cardData = await cardResponse.json();
 
-                        if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                        if (cardResponse.ok) {
                             matchCardSection.style.display = "block";
                             matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
                             const saveBtn = document.createElement("button");
@@ -761,7 +761,7 @@
                                 try {
                                     const cardResponse = await fetch(`/api/match-card-detail?matchId=${encodeURIComponent(match.match_id)}`);
                                     const cardData = await cardResponse.json();
-                                    if (cardResponse.ok && cardData.games && cardData.games.length > 0) {
+                                    if (cardResponse.ok) {
                                         matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId, true);
                                         const saveBtn = document.createElement("button");
                                         saveBtn.textContent = "📷 画像として保存";

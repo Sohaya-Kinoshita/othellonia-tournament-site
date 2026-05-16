@@ -1,7 +1,7 @@
 // /api/match-card-upcoming - 今後の対戦カード一覧取得API
-// scheduled_atが「今（JST）以降」のマッチを全て返す
+// scheduled_atが「翌日4:00(JST)以降」のマッチを全て返す
 
-function getNextJst4amIso() {
+function getTomorrowJst4amIso() {
   // 現在時刻（UTC）を取得
   const now = new Date();
   // JSTはUTC+9
@@ -11,16 +11,10 @@ function getNextJst4amIso() {
   const jstMonth = String(jstNow.getMonth() + 1).padStart(2, "0");
   const jstDate = String(jstNow.getDate()).padStart(2, "0");
   const today4 = new Date(`${jstYear}-${jstMonth}-${jstDate}T04:00:00+09:00`);
-  let next4;
-  if (jstNow < today4) {
-    // まだ今日の4時前なら今日の4時
-    next4 = today4;
-  } else {
-    // 今日の4時を過ぎていたら翌日の4時
-    next4 = new Date(today4.getTime() + 24 * 60 * 60 * 1000);
-  }
+  // 翌日の4:00(JST)
+  const tomorrow4 = new Date(today4.getTime() + 24 * 60 * 60 * 1000);
   // UTCに変換してYYYY-MM-DD HH:mm:ss形式で返す
-  const iso = new Date(next4.getTime() - 9 * 60 * 60 * 1000)
+  const iso = new Date(tomorrow4.getTime() - 9 * 60 * 60 * 1000)
     .toISOString()
     .replace("T", " ")
     .slice(0, 19);
@@ -33,8 +27,8 @@ export async function onRequest(context) {
     await ensureOrdersConfirmedAtColumn(db);
     await ensureMatchesStartedAtColumn(db);
     await ensureMatchesStatusColumn(db);
-    const next4 = getNextJst4amIso();
-    // scheduled_atが「次のJST4:00以降」のマッチを取得
+    const next4 = getTomorrowJst4amIso();
+    // scheduled_atが「翌日JST4:00以降」のマッチを取得
     const matchesResult = await db
       .prepare(
         `
