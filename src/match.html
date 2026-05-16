@@ -63,57 +63,12 @@
     <script src="./js/layout.js"></script>
     <script src="./js/exportCard.js"></script>
     <script>
-        // 「対戦カードを更新」ボタンのリロード＆スクロール機能
+        // 「対戦カードを更新」ボタンのリロード機能
         document.addEventListener("click", function (e) {
             if (e.target && e.target.classList.contains("update-match-card-btn")) {
-                // 開いているカードのIDを取得
-                var openDetail = document.querySelector('.match-card-detail:not(.is-collapsed)');
-                var card = openDetail ? openDetail.closest('.match-card') : null;
-                var cardId = card ? card.id : null;
-                if (cardId) {
-                    localStorage.setItem('scrollToMatchCardId', cardId);
-                } else {
-                    localStorage.removeItem('scrollToMatchCardId');
-                }
                 // location.reload()の代わりにカードのみ再読み込み
-                loadMatchPage().then(() => {
-                    var cardId = localStorage.getItem('scrollToMatchCardId');
-                    if (cardId) {
-                        setTimeout(function () {
-                            var el = document.getElementById(cardId);
-                            if (el) {
-                                var detail = el.querySelector('.match-card-detail');
-                                if (detail) {
-                                    detail.classList.remove('is-collapsed');
-                                }
-                                var btn = el.querySelector('.match-detail-toggle-btn');
-                                if (btn) btn.textContent = '閉じる';
-                                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                            }
-                            localStorage.removeItem('scrollToMatchCardId');
-                        }, 100);
-                    }
-                });
+                loadMatchPage();
                 e.preventDefault();
-            }
-        });
-
-        window.addEventListener("DOMContentLoaded", function () {
-            var cardId = localStorage.getItem('scrollToMatchCardId');
-            if (cardId) {
-                setTimeout(function () {
-                    var el = document.getElementById(cardId);
-                    if (el) {
-                        var detail = el.querySelector('.match-card-detail');
-                        if (detail) {
-                            detail.classList.remove('is-collapsed');
-                        }
-                        var btn = el.querySelector('.match-detail-toggle-btn');
-                        if (btn) btn.textContent = '閉じる';
-                        el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }
-                    localStorage.removeItem('scrollToMatchCardId');
-                }, 100);
             }
         });
     </script>
@@ -310,7 +265,7 @@
                         ? "配信予定あり"
                         : "予定無し";
             const linkHtml = hasViewableUrl && (normalizedStatus !== "unavailable")
-                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "▷配信中！配信を見る" : "▷ミラティブアカウント"}</a>`
+                ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" class="player-link">${hasCustomLiveUrl ? "配信中！配信を見る" : "ミラティブアカウント"}</a>`
                 : "";
             const liveBadgeHtml = isLiveGame
                 ? `<div class="player-live-badges"><div class="player-live-badge">試合中！</div><div class="player-win-badge">${Number(liveWins || 0)}勝</div></div>`
