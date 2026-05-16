@@ -84,19 +84,16 @@ async function exportCardAsImage(
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
     <div class="export-brand">
-      <img src="${new URL("./images/Logo.jpg", window.location.href).href}" alt="Logo" class="export-brand-logo">
+      <div class="export-brand-mark">
+        <img src="${new URL("./images/Logo.jpg", window.location.href).href}" alt="ロゴ" class="export-brand-logo">
+      </div>
+      <img src="${new URL("./images/Logo_Title.jpg", window.location.href).href}" alt="隊抗戦" class="export-brand-title-img">
     </div>
   `;
-  // ロゴの大きさはエクスポート時のみ確実に適用するため、インラインスタイルで設定する
-  const headerImg = exportBrandHeader.querySelector(".export-brand-logo");
-  if (headerImg) {
-    headerImg.style.setProperty("height", "96px", "important");
-    headerImg.style.setProperty("max-height", "none", "important");
-    headerImg.style.setProperty("width", "auto", "important");
-    headerImg.style.display = "block";
-    headerImg.style.margin = "0 auto";
-    headerImg.setAttribute("loading", "eager");
-  }
+  const headerImages = exportBrandHeader.querySelectorAll("img");
+  headerImages.forEach((img) => {
+    img.setAttribute("loading", "eager");
+  });
   card.prepend(exportBrandHeader);
   console.debug("exportCard: inserted exportBrandHeader into", cardId);
 
@@ -135,6 +132,7 @@ async function exportCardAsImage(
     backgroundSize: card.style.backgroundSize || "",
     backgroundAttachment: card.style.backgroundAttachment || "",
     backgroundColor: card.style.backgroundColor || "",
+    computedBackgroundColor: window.getComputedStyle(card).backgroundColor,
   };
 
   try {
@@ -184,9 +182,9 @@ async function exportCardAsImage(
         card.style.backgroundSize = "auto";
       }
       if (bgAttachment) card.style.backgroundAttachment = bgAttachment;
-      // 背景画像が透けて見えるように、カードの背景色は透明にする
-      card.style.backgroundColor = "transparent";
     }
+    card.style.backgroundColor =
+      originalBg.computedBackgroundColor || "#ffffff";
   } catch (e) {
     // 取得に失敗しても処理は続行
     console.warn("背景画像の取得に失敗しました:", e);
@@ -194,34 +192,37 @@ async function exportCardAsImage(
 
   try {
     // 挿入した画像が読み込まれるのを待つ（読み込みが完了していないと小さくレンダリングされる）
-    const insertedImg = exportBrandHeader.querySelector(".export-brand-logo");
-    if (insertedImg) {
-      await new Promise((resolve) => {
-        if (insertedImg.complete && insertedImg.naturalWidth > 0)
-          return resolve();
-        const onLoad = () => {
-          insertedImg.removeEventListener("load", onLoad);
-          insertedImg.removeEventListener("error", onError);
-          resolve();
-        };
-        const onError = () => {
-          insertedImg.removeEventListener("load", onLoad);
-          insertedImg.removeEventListener("error", onError);
-          // タイムアウトで進める
-          resolve();
-        };
-        insertedImg.addEventListener("load", onLoad);
-        insertedImg.addEventListener("error", onError);
-        // フェイルセーフ: 2秒後に進める
-        setTimeout(resolve, 2000);
-      });
-    }
+    const insertedImages = exportBrandHeader.querySelectorAll("img");
+    await Promise.all(
+      Array.from(insertedImages).map(
+        (insertedImg) =>
+          new Promise((resolve) => {
+            if (insertedImg.complete && insertedImg.naturalWidth > 0)
+              return resolve();
+            const onLoad = () => {
+              insertedImg.removeEventListener("load", onLoad);
+              insertedImg.removeEventListener("error", onError);
+              resolve();
+            };
+            const onError = () => {
+              insertedImg.removeEventListener("load", onLoad);
+              insertedImg.removeEventListener("error", onError);
+              // タイムアウトで進める
+              resolve();
+            };
+            insertedImg.addEventListener("load", onLoad);
+            insertedImg.addEventListener("error", onError);
+            // フェイルセーフ: 2秒後に進める
+            setTimeout(resolve, 2000);
+          }),
+      ),
+    );
 
     console.debug("exportCard: calling html2canvas", {
       targetWidth: targetWidth || card.offsetWidth,
     });
     const canvas = await html2canvas(card, {
-      backgroundColor: null,
+      backgroundColor: originalBg.computedBackgroundColor || "#ffffff",
       scale: window.devicePixelRatio || 2,
       logging: false,
       useCORS: true,
