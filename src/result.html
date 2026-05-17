@@ -73,8 +73,14 @@
             return Number.isNaN(date.getTime()) ? null : date;
         }
 
-        function formatDateTime(datetimeText) {
-            const date = parseDateTime(datetimeText);
+        function formatDateTime(datetimeInput) {
+            let date = null;
+            // Date オブジェクトまたは文字列を受け入れる
+            if (datetimeInput instanceof Date) {
+                date = datetimeInput;
+            } else if (datetimeInput) {
+                date = parseDateTime(datetimeInput);
+            }
             if (!date) {
                 return "日時未設定";
             }
@@ -162,7 +168,7 @@
                     <div class="match-meta-section">
                         <div class="match-meta-title">対戦日</div>
                         <div class="match-meta-datetime-row">
-                            <span class="match-meta-datetime">${escapeHtml(formatDateTime(match.scheduled_at))}～</span>
+                            <span class="match-meta-datetime">${escapeHtml(formatDateTime(match._scheduledDate))}～</span>
                             <span class="match-status-pill status-finished">試合終了</span>
                         </div>
                     </div>
@@ -346,7 +352,7 @@
                         errorCard.className = "match-card result-match-card";
                         errorCard.innerHTML = `
                             <div class="match-datetime">
-                                <div>${escapeHtml(formatDateTime(match.scheduled_at))}～</div>
+                                <div>${escapeHtml(formatDateTime(match._scheduledDate))}～</div>
                             </div>
                             <p class="result-error-message">${escapeHtml(match.match_id)} の対戦結果取得に失敗しました</p>
                         `;
@@ -371,13 +377,19 @@
             const selectedTeam = teamSelect?.value || "";
 
             const filteredMatches = resultMatchesSource.filter((match) => {
+                // 日時未設定の場合、matchDateは空文字列になる
                 const matchDate = toJstDateInputValue(match._scheduledDate);
-                if (dateFrom && matchDate < dateFrom) {
-                    return false;
+
+                // 日時未設定の場合は日付フィルターを適用しない
+                if (matchDate !== "") {
+                    if (dateFrom && matchDate < dateFrom) {
+                        return false;
+                    }
+                    if (dateTo && matchDate > dateTo) {
+                        return false;
+                    }
                 }
-                if (dateTo && matchDate > dateTo) {
-                    return false;
-                }
+
                 if (selectedTeam && !(match.team_a_name === selectedTeam || match.team_b_name === selectedTeam)) {
                     return false;
                 }

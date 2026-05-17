@@ -112,8 +112,14 @@
             return Number.isNaN(date.getTime()) ? null : date;
         }
 
-        function formatDateTime(datetimeText) {
-            const date = parseDateTime(datetimeText);
+        function formatDateTime(datetimeInput) {
+            let date = null;
+            // Date オブジェクトまたは文字列を受け入れる
+            if (datetimeInput instanceof Date) {
+                date = datetimeInput;
+            } else if (datetimeInput) {
+                date = parseDateTime(datetimeInput);
+            }
             if (!date) return "-";
             return date.toLocaleString("ja-JP", {
                 year: "numeric",

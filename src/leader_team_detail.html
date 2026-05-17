@@ -76,9 +76,16 @@
                 .replace(/'/g, "&#39;");
         }
 
-        function formatDateTime(datetimeText) {
-            if (!datetimeText) return "-";
-            const s = String(datetimeText).trim();
+        function formatDateTime(datetimeInput) {
+            if (!datetimeInput) return "-";
+
+            // Date オブジェクトの場合はそのまま使用
+            if (datetimeInput instanceof Date) {
+                if (Number.isNaN(datetimeInput.getTime())) return "-";
+                return datetimeInput.toLocaleString("ja-JP", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+            }
+
+            const s = String(datetimeInput).trim();
             if (!s || /^0{4}[-\/]0{2}[-\/]0{2}/.test(s) || s.toLowerCase() === "null" || s.toLowerCase() === "undefined") return "-";
 
             let date = new Date(s);
