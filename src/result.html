@@ -68,8 +68,36 @@
             if (!datetimeText) {
                 return null;
             }
-            const normalized = String(datetimeText).replace(" ", "T");
-            const date = new Date(normalized);
+            let s = String(datetimeText).trim();
+            if (!s || s.toLowerCase() === "null" || s.toLowerCase() === "undefined") {
+                return null;
+            }
+
+            // 秒が重複している場合を修正 (HH:MM:SS:SS -> HH:MM:SS)
+            // スペースの前で秒が重複している場合に対応
+            s = s.replace(/(\d{2}):(\d{2}):(\d{2}):\d{1,2}(?=\s|$)/, "$1:$2:$3");
+
+            // スペースをTに置換
+            let normalized = s.replace(/\s+/, "T");
+
+            // ネイティブパースを試行
+            let date = new Date(normalized);
+
+            // フォールバック：手動パース
+            if (Number.isNaN(date.getTime())) {
+                // 秒の重複に対応した正規表現
+                const m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?::\d+)?/);
+                if (m) {
+                    const Y = Number(m[1]);
+                    const M = Number(m[2]);
+                    const D = Number(m[3]);
+                    const hh = Number(m[4]);
+                    const mm = Number(m[5]);
+                    const ss = Number(m[6] || 0);
+                    date = new Date(Y, M - 1, D, hh, mm, ss);
+                }
+            }
+
             return Number.isNaN(date.getTime()) ? null : date;
         }
 
