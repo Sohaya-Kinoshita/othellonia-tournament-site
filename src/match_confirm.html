@@ -218,30 +218,7 @@
             color: white;
         }
 
-        .forfeit-button {
-            width: auto;
-            padding: 5px 12px;
-            height: 35px;
-            border: 2px solid #ff9800;
-            background-color: white;
-            border-radius: 5px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .forfeit-button:hover {
-            border-color: #ff9800;
-            background-color: #fff3e0;
-        }
-
-        .forfeit-button.selected {
-            border-color: #ff9800;
-            background-color: #ff9800;
-            color: white;
-        }
+        /* 不戦勝ボタンは UI から撤廃しました */
 
         .bo3-score-separator {
             font-size: 16px;
@@ -876,19 +853,11 @@
                 const scoreB = Number(result.player_b_score || 0);
                 let scoreDisplay;
 
-                // 不戦勝フラグが立っている場合は明示的に不戦勝と表示
-                if (result.forfeit_winner) {
-                    scoreDisplay = '不戦勝';
+                // スコアはそのまま表示（2-0を不戦勝として扱わない）
+                if (scoreA > 0 || scoreB > 0) {
+                    scoreDisplay = `${scoreA} - ${scoreB}`;
                 } else {
-                    // サーバーによって不戦勝がスコアとして2-0で保存される場合があるため、そのケースも不戦勝として扱う
-                    if ((scoreA === 2 && scoreB === 0 && game.winner_team_id === match.team_a_id) ||
-                        (scoreB === 2 && scoreA === 0 && game.winner_team_id === match.team_b_id)) {
-                        scoreDisplay = '不戦勝';
-                    } else if (scoreA > 0 || scoreB > 0) {
-                        scoreDisplay = `${scoreA} - ${scoreB}`;
-                    } else {
-                        scoreDisplay = '未入力';
-                    }
+                    scoreDisplay = '未入力';
                 }
 
                 // 確定済み表示はconfirmedフラグがtrueの場合のみ
@@ -948,15 +917,13 @@
                     </div>
                     <div class="bo3-score-input">
                         <div class="bo3-score-buttons">
-                            <button class="bo3-score-button ${playerAScoreA === 0 && !result.forfeit_winner ? 'selected' : ''}" 
+                                <button class="bo3-score-button ${playerAScoreA === 0 ? 'selected' : ''}" 
                                     onclick="updateBO3Score('${game.game_id}', 'a', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
-                            <button class="bo3-score-button ${playerAScoreA === 1 && !result.forfeit_winner ? 'selected' : ''}" 
+                                <button class="bo3-score-button ${playerAScoreA === 1 ? 'selected' : ''}" 
                                     onclick="updateBO3Score('${game.game_id}', 'a', 1)" ${isGameLocked ? 'disabled' : ''}>1</button>
-                            <button class="bo3-score-button ${playerAScoreA === 2 && !result.forfeit_winner ? 'selected' : ''}" 
+                                <button class="bo3-score-button ${playerAScoreA === 2 ? 'selected' : ''}" 
                                     onclick="updateBO3Score('${game.game_id}', 'a', 2)" ${isGameLocked ? 'disabled' : ''}>2</button>
-                        </div>
-                        <button class="forfeit-button ${result.forfeit_winner === 'a' ? 'selected' : ''}" 
-                            onclick="setForfeitWinner('${game.game_id}', 'a')" ${isGameLocked ? 'disabled' : ''}>不戦勝</button>
+                            </div>
                     </div>
                 `;
                 gameBody.appendChild(rowA);
@@ -983,15 +950,13 @@
                     </div>
                     <div class="bo3-score-input">
                         <div class="bo3-score-buttons">
-                            <button class="bo3-score-button ${playerBScoreB === 0 && !result.forfeit_winner ? 'selected' : ''}" 
+                            <button class="bo3-score-button ${playerBScoreB === 0 ? 'selected' : ''}" 
                                 onclick="updateBO3Score('${game.game_id}', 'b', 0)" ${isGameLocked ? 'disabled' : ''}>0</button>
-                            <button class="bo3-score-button ${playerBScoreB === 1 && !result.forfeit_winner ? 'selected' : ''}" 
+                            <button class="bo3-score-button ${playerBScoreB === 1 ? 'selected' : ''}" 
                                 onclick="updateBO3Score('${game.game_id}', 'b', 1)" ${isGameLocked ? 'disabled' : ''}>1</button>
-                            <button class="bo3-score-button ${playerBScoreB === 2 && !result.forfeit_winner ? 'selected' : ''}" 
+                            <button class="bo3-score-button ${playerBScoreB === 2 ? 'selected' : ''}" 
                                 onclick="updateBO3Score('${game.game_id}', 'b', 2)" ${isGameLocked ? 'disabled' : ''}>2</button>
                         </div>
-                        <button class="forfeit-button ${result.forfeit_winner === 'b' ? 'selected' : ''}" 
-                            onclick="setForfeitWinner('${game.game_id}', 'b')" ${isGameLocked ? 'disabled' : ''}>不戦勝</button>
                     </div>
                 `;
                 gameBody.appendChild(rowB);
@@ -1093,39 +1058,7 @@
             updateScoreSummary();
         }
 
-        function setForfeitWinner(gameId, player) {
-            const game = currentMatchData.games.find(g => g.game_id === gameId);
-            if (game?.winner_player_id) {
-                return;
-            }
-
-            if (!gameResults[gameId]) {
-                gameResults[gameId] = {};
-            }
-
-            gameResults[gameId].forfeit_winner = player;
-
-            if (player === 'a') {
-                gameResults[gameId].player_a_score = 2;
-                gameResults[gameId].player_b_score = 0;
-                const game = currentMatchData.games.find(g => g.game_id === gameId);
-                if (game) {
-                    gameResults[gameId].winner_player_id = game.player_a_id;
-                    gameResults[gameId].winner_team_id = currentMatchData.match.team_a_id;
-                }
-            } else {
-                gameResults[gameId].player_a_score = 0;
-                gameResults[gameId].player_b_score = 2;
-                const game = currentMatchData.games.find(g => g.game_id === gameId);
-                if (game) {
-                    gameResults[gameId].winner_player_id = game.player_b_id;
-                    gameResults[gameId].winner_team_id = currentMatchData.match.team_b_id;
-                }
-            }
-
-            displayGameResults();
-            updateScoreSummary();
-        }
+        /* 不戦勝のUI操作は撤廃しました（setForfeitWinner を削除） */
 
         function updateScoreSummary() {
             const match = currentMatchData.match;
