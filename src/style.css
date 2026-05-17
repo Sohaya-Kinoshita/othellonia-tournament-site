@@ -1251,6 +1251,14 @@ th {
   margin: 0 auto;
 }
 
+.match-card.exporting .team-a {
+  background: #3498db;
+}
+
+.match-card.exporting .team-b {
+  background: #e74c3c;
+}
+
 .match-card.exporting .player-item {
   min-height: 0;
 }

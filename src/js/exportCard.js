@@ -84,9 +84,6 @@ async function exportCardAsImage(
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
     <div class="export-brand">
-      <div class="export-brand-mark">
-        <img src="${new URL("./images/Logo.jpg", window.location.href).href}" alt="ロゴ" class="export-brand-logo">
-      </div>
       <img src="${new URL("./images/Logo_Title.jpg", window.location.href).href}" alt="隊抗戦" class="export-brand-title-img">
     </div>
   `;
