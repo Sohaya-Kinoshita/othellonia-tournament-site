@@ -145,7 +145,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    location.href = './index.html';
+                    location.href = './player.html';
                 } else {
                     errorMessage.textContent = result.message || 'ログインに失敗しました';
                     errorMessage.style.display = 'block';
