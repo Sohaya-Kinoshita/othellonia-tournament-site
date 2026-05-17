@@ -348,12 +348,12 @@
                 if (a === "未定" && b === "未定") return 0;
                 if (a === "未定") return 1;
                 if (b === "未定") return -1;
-                return a.localeCompare(b);
+                return b.localeCompare(a);  // 降順（新しい順）
             });
             let renderedCount = 0;
 
             for (const dateKey of sortedDateKeys) {
-                const groupMatches = (groups.get(dateKey) || []).slice().sort((a, b) => a._scheduledDate - b._scheduledDate);
+                const groupMatches = (groups.get(dateKey) || []).slice().sort((a, b) => b._scheduledDate - a._scheduledDate);
                 const groupSection = document.createElement("section");
                 groupSection.className = "result-date-group";
                 groupSection.innerHTML = `
