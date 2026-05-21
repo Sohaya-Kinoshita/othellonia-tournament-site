@@ -2556,6 +2556,165 @@ a.btn:visited {
   }
 }
 
+/* 定型文作成ツール */
+.announcement-tool-card + .announcement-tool-card {
+  margin-top: 16px;
+}
+
+.announcement-tool-hero {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.announcement-tool-title {
+  margin: 0 0 8px;
+}
+
+.announcement-tool-description {
+  margin: 0;
+  color: var(--muted);
+}
+
+.announcement-tool-copy-status {
+  min-height: 1.5em;
+  margin-top: 12px;
+  color: #166534;
+  font-weight: 700;
+}
+
+.announcement-tool-copy-status:not(.is-visible) {
+  color: transparent;
+}
+
+.announcement-tool-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.announcement-tool-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.announcement-tool-setting-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.announcement-tool-setting input,
+.announcement-tool-setting select {
+  width: 100%;
+}
+
+.announcement-tool-time-setting {
+  grid-column: span 2;
+}
+
+.announcement-tool-time-selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.announcement-tool-time-select {
+  width: auto;
+  min-width: 96px;
+}
+
+.announcement-tool-time-separator {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.announcement-tool-url-setting {
+  grid-column: span 2;
+}
+
+.announcement-tool-table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.announcement-tool-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.announcement-tool-table th,
+.announcement-tool-table td {
+  vertical-align: top;
+  padding: 12px 10px;
+}
+
+.announcement-tool-table thead tr {
+  border-bottom: 2px solid var(--border);
+}
+
+.announcement-tool-column-timing {
+  width: 160px;
+}
+
+.announcement-tool-column-actions {
+  width: 120px;
+}
+
+.announcement-tool-cell-timing {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.announcement-tool-cell-template {
+  line-height: 1.8;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.announcement-tool-preview-line + .announcement-tool-preview-line {
+  margin-top: 2px;
+}
+
+.announcement-tool-variable {
+  color: #c1121f;
+  font-weight: 700;
+}
+
+.announcement-tool-cell-actions {
+  text-align: center;
+}
+
+.announcement-tool-copy-button {
+  min-width: 88px;
+}
+
+@media (max-width: 760px) {
+  .announcement-tool-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-tool-time-setting,
+  .announcement-tool-url-setting {
+    grid-column: auto;
+  }
+
+  .announcement-tool-hero {
+    flex-direction: column;
+  }
+
+  .announcement-tool-copy-all-button,
+  .announcement-tool-copy-button {
+    width: 100%;
+  }
+}
+
 /* Entry form image styling */
 .entry-form-image {
   display: block;
@@ -2595,6 +2754,11 @@ a.btn:visited {
   color: #666;
   text-align: left;
   line-height: 1.5;
+}
+
+.entry-update-red {
+  color: #c1121f;
+  font-weight: 700;
 }
 
 /* 小タイトル（サブタイトル） */
