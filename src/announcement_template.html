@@ -29,15 +29,31 @@
         </div>
 
         <div class="card announcement-tool-card">
+            <h2>定型文一覧</h2>
+            <div class="announcement-tool-table-wrap">
+                <table class="announcement-tool-table">
+                    <thead>
+                        <tr>
+                            <th class="announcement-tool-column-timing">タイミング</th>
+                            <th>定型文</th>
+                            <th class="announcement-tool-column-actions">コピー</th>
+                        </tr>
+                    </thead>
+                    <tbody id="announcementTemplateTableBodyTop"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card announcement-tool-card" id="announcementSettingsCard">
             <h2>変更項目</h2>
             <div class="announcement-tool-settings">
-                <div style="grid-column: span 2; display:flex;align-items:center;gap:8px;">
-                    <span id="teamLoadStatus" style="color:var(--muted);font-size:13px;">チーム読み込み状態: 未読み込み</span>
+                <div class="announcement-tool-status-row">
+                    <span id="teamLoadStatus" class="announcement-tool-status-text">チーム読み込み状態: 未読み込み</span>
                 </div>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Aチーム名</span>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <select id="teamASelect" class="announcement-tool-select" style="min-width:180px">
+                    <div class="announcement-tool-team-row">
+                        <select id="teamASelect" class="announcement-tool-select announcement-tool-team-select">
                             <option value="">-- 手動入力 --</option>
                         </select>
                         <input type="text" id="teamANameInput" value="Aチーム" />
@@ -45,8 +61,8 @@
                 </label>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Bチーム名</span>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <select id="teamBSelect" class="announcement-tool-select" style="min-width:180px">
+                    <div class="announcement-tool-team-row">
+                        <select id="teamBSelect" class="announcement-tool-select announcement-tool-team-select">
                             <option value="">-- 手動入力 --</option>
                         </select>
                         <input type="text" id="teamBNameInput" value="Bチーム" />
@@ -64,12 +80,43 @@
                     <span class="announcement-tool-setting-label">時刻</span>
                     <div class="announcement-tool-time-selects">
                         <select id="preparationHourSelect"
-                            class="announcement-tool-select announcement-tool-time-select"></select>
+                            class="announcement-tool-select announcement-tool-time-select" aria-label="準備時刻の時"></select>
                         <span class="announcement-tool-time-separator">時</span>
                         <select id="preparationMinuteSelect"
-                            class="announcement-tool-select announcement-tool-time-select"></select>
+                            class="announcement-tool-select announcement-tool-time-select" aria-label="準備時刻の分"></select>
                         <span class="announcement-tool-time-separator">分</span>
                     </div>
+                    <div class="announcement-tool-time-controls">
+                        <button type="button" id="subOneMinuteButton"
+                            class="btn announcement-tool-add-minute">-1分</button>
+                        <button type="button" id="addOneMinuteButton"
+                            class="btn announcement-tool-add-minute">+1分</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card announcement-tool-card">
+            <h2>定型文一覧（対戦）</h2>
+            <div class="announcement-tool-table-wrap">
+                <table class="announcement-tool-table">
+                    <thead>
+                        <tr>
+                            <th class="announcement-tool-column-timing">タイミング</th>
+                            <th>定型文</th>
+                            <th class="announcement-tool-column-actions">コピー</th>
+                        </tr>
+                    </thead>
+                    <tbody id="announcementTemplateTableBodyBeforeResult"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card announcement-tool-card" id="announcementResultCard">
+            <h2>結果項目</h2>
+            <div class="announcement-tool-settings">
+                <div class="announcement-tool-status-row">
+                    <span class="announcement-tool-status-text">1〜5戦目の結果に使う項目です</span>
                 </div>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Aチームの勝利数</span>
@@ -94,7 +141,7 @@
         </div>
 
         <div class="card announcement-tool-card">
-            <h2>定型文一覧</h2>
+            <h2>定型文一覧（続き）</h2>
             <div class="announcement-tool-table-wrap">
                 <table class="announcement-tool-table">
                     <thead>
@@ -104,7 +151,7 @@
                             <th class="announcement-tool-column-actions">コピー</th>
                         </tr>
                     </thead>
-                    <tbody id="announcementTemplateTableBody"></tbody>
+                    <tbody id="announcementTemplateTableBodyAfterResult"></tbody>
                 </table>
             </div>
         </div>
@@ -131,36 +178,9 @@
         };
 
         const announcementTemplateDefinitions = [
-            {
-                id: "oneHourBefore",
-                timingLabel: "1時間前",
-                buildPlainText: () => [
-                    "試合開始1時間前となりました。対戦開始時に対戦を開始できるよう、スムーズな大会進行にご協力をお願いします。",
-                ],
-                buildPreviewLines: () => [
-                    "試合開始1時間前となりました。対戦開始時に対戦を開始できるよう、スムーズな大会進行にご協力をお願いします。",
-                ],
-            },
-            {
-                id: "tenMinutesBefore",
-                timingLabel: "10分前",
-                buildPlainText: () => [
-                    "試合開始10分前となりました。",
-                ],
-                buildPreviewLines: () => [
-                    "試合開始10分前となりました。",
-                ],
-            },
-            {
-                id: "startTime",
-                timingLabel: "試合開始時",
-                buildPlainText: () => [
-                    "試合開始時刻となりました。",
-                ],
-                buildPreviewLines: () => [
-                    "試合開始時刻となりました。",
-                ],
-            },
+            { id: "oneHourBefore", timingLabel: "1時間前", buildPlainText: () => ["試合開始1時間前となりました。対戦開始時に対戦を開始できるよう、スムーズな大会進行にご協力をお願いします。"], buildPreviewLines: () => ["試合開始1時間前となりました。対戦開始時に対戦を開始できるよう、スムーズな大会進行にご協力をお願いします。"] },
+            { id: "tenMinutesBefore", timingLabel: "10分前", buildPlainText: () => ["試合開始10分前となりました。"], buildPreviewLines: () => ["試合開始10分前となりました。"] },
+            { id: "startTime", timingLabel: "試合開始時", buildPlainText: () => ["試合開始時刻となりました。"], buildPreviewLines: () => ["試合開始時刻となりました。"] },
             {
                 id: "preparationNotice",
                 timingLabel: "1〜5戦目の準備連絡",
@@ -178,23 +198,10 @@
             {
                 id: "startBattle",
                 timingLabel: "1〜5戦目の開始連絡",
-                buildPlainText: (state) => [
-                    `では、${state.role}は${state.battleNumber}戦目の対戦を開始してください。`,
-                ],
-                buildPreviewLines: (state) => [
-                    `では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。`,
-                ],
+                buildPlainText: (state) => [`では、${state.role}は${state.battleNumber}戦目の対戦を開始してください。`],
+                buildPreviewLines: (state) => [`では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。`],
             },
-            {
-                id: "confirmResults",
-                timingLabel: "対戦結果確認",
-                buildPlainText: () => [
-                    "対戦結果に相違がないため、対戦結果を確定します。",
-                ],
-                buildPreviewLines: () => [
-                    "対戦結果に相違がないため、対戦結果を確定します。",
-                ],
-            },
+            { id: "confirmResults", timingLabel: "対戦結果確認", buildPlainText: () => ["対戦結果に相違がないため、対戦結果を確定します。"], buildPreviewLines: () => ["対戦結果に相違がないため、対戦結果を確定します。"] },
             {
                 id: "finalizeResults",
                 timingLabel: "finの結果確定連絡",
@@ -211,18 +218,7 @@
                     highlightValue(state.resultUrl),
                 ],
             },
-            {
-                id: "closing",
-                timingLabel: "最終挨拶",
-                buildPlainText: () => [
-                    "それでは対戦結果を確定しました。",
-                    "両チーム対戦お疲れさまでした。",
-                ],
-                buildPreviewLines: () => [
-                    "それでは対戦結果を確定しました。",
-                    "両チーム対戦お疲れさまでした。",
-                ],
-            },
+            { id: "closing", timingLabel: "最終挨拶", buildPlainText: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"], buildPreviewLines: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"] },
         ];
 
         function escapeHtml(value) {
@@ -230,7 +226,7 @@
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
-                .replace(/\"/g, "&quot;")
+                .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
 
@@ -247,25 +243,30 @@
         }
 
         function updateWinnerTeamOptionLabels() {
-            const teamAName = document.getElementById("teamANameInput").value.trim() || "Aチーム";
-            const teamBName = document.getElementById("teamBNameInput").value.trim() || "Bチーム";
+            const teamAInput = document.getElementById("teamANameInput");
+            const teamBInput = document.getElementById("teamBNameInput");
             const winnerTeamSelect = document.getElementById("winnerTeamSelect");
+            if (!teamAInput || !teamBInput || !winnerTeamSelect || winnerTeamSelect.options.length < 2) return;
+            winnerTeamSelect.options[0].textContent = teamAInput.value.trim() || "Aチーム";
+            winnerTeamSelect.options[1].textContent = teamBInput.value.trim() || "Bチーム";
+        }
 
-            winnerTeamSelect.options[0].textContent = teamAName;
-            winnerTeamSelect.options[1].textContent = teamBName;
+        function getInputValue(id, fallback = "") {
+            const element = document.getElementById(id);
+            return element ? element.value : fallback;
         }
 
         function getCurrentAnnouncementState() {
             return {
-                teamAName: document.getElementById("teamANameInput").value.trim() || "Aチーム",
-                teamBName: document.getElementById("teamBNameInput").value.trim() || "Bチーム",
-                role: document.getElementById("roleSelect").value,
-                battleNumber: document.getElementById("battleNumberSelect").value,
-                preparationHour: document.getElementById("preparationHourSelect").value,
-                preparationMinute: document.getElementById("preparationMinuteSelect").value,
-                teamAWins: document.getElementById("teamAWinsSelect").value,
-                teamBWins: document.getElementById("teamBWinsSelect").value,
-                winnerTeam: document.getElementById("winnerTeamSelect").value,
+                teamAName: getInputValue("teamANameInput", announcementTemplateState.teamAName).trim() || "Aチーム",
+                teamBName: getInputValue("teamBNameInput", announcementTemplateState.teamBName).trim() || "Bチーム",
+                role: getInputValue("roleSelect", announcementTemplateState.role),
+                battleNumber: getInputValue("battleNumberSelect", announcementTemplateState.battleNumber),
+                preparationHour: getInputValue("preparationHourSelect", announcementTemplateState.preparationHour),
+                preparationMinute: getInputValue("preparationMinuteSelect", announcementTemplateState.preparationMinute),
+                teamAWins: getInputValue("teamAWinsSelect", announcementTemplateState.teamAWins),
+                teamBWins: getInputValue("teamBWinsSelect", announcementTemplateState.teamBWins),
+                winnerTeam: getInputValue("winnerTeamSelect", announcementTemplateState.winnerTeam),
                 resultUrl: RESULT_URL,
             };
         }
@@ -275,27 +276,128 @@
         }
 
         function buildPreviewHtmlFromTemplate(definition, state) {
-            return definition.buildPreviewLines(state)
-                .map((line) => `<div class="announcement-tool-preview-line">${line}</div>`)
-                .join("");
+            return definition.buildPreviewLines(state).map((line) => `<div class="announcement-tool-preview-line">${line}</div>`).join("");
+        }
+
+        function populateSelectOptions(selectElement, values, formatLabel) {
+            if (!selectElement) return;
+            selectElement.innerHTML = values.map((value) => {
+                const label = formatLabel ? formatLabel(value) : value;
+                return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+            }).join("");
+        }
+
+        async function loadTeamsFromApi() {
+            const statusEl = document.getElementById("teamLoadStatus");
+            if (statusEl) statusEl.textContent = "チーム読み込み状態: 読み込み中...";
+            const paths = ["/api/teams", "./api/teams", "api/teams"];
+            let lastError = null;
+
+            for (const path of paths) {
+                try {
+                    const response = await fetch(path, { cache: "no-cache", credentials: "same-origin" });
+                    if (!response.ok) {
+                        lastError = `HTTP ${response.status} from ${path}`;
+                        continue;
+                    }
+
+                    const json = await response.json();
+                    let teams = [];
+                    if (Array.isArray(json)) teams = json;
+                    else if (Array.isArray(json.teams)) teams = json.teams;
+                    else if (Array.isArray(json.results)) teams = json.results;
+                    else if (json && typeof json === "object") {
+                        teams = Object.values(json).filter((item) => item && (item.team_id || item.teamId || item.team_name || item.teamName));
+                    }
+
+                    const mapped = (Array.isArray(teams) ? teams : []).map((team) => ({
+                        id: String(team.team_id || team.teamId || team.id || ""),
+                        name: String(team.team_name || team.teamName || team.name || ""),
+                    })).filter((team) => team.id || team.name);
+
+                    if (statusEl) statusEl.textContent = `チーム読み込み状態: ${mapped.length} 件取得`;
+                    return mapped;
+                } catch (error) {
+                    lastError = error && error.message ? error.message : String(error);
+                }
+            }
+
+            if (statusEl) statusEl.textContent = lastError ? `チーム読み込み状態: 取得失敗 (${lastError})` : "チーム読み込み状態: 取得失敗";
+            return [];
+        }
+
+        function populateTeamSelects(teams) {
+            const aSelect = document.getElementById("teamASelect");
+            const bSelect = document.getElementById("teamBSelect");
+            const makeOptions = (items) => ["<option value=\"\">-- 手動入力 --</option>"].concat(items.map((team) => `<option value="${escapeHtml(team.id)}" data-name="${escapeHtml(team.name)}">${escapeHtml(team.name)}</option>`)).join("");
+            if (aSelect) aSelect.innerHTML = makeOptions(teams);
+            if (bSelect) bSelect.innerHTML = makeOptions(teams);
+        }
+
+        function syncOptionalControls(state) {
+            const teamAWinsSelect = document.getElementById("teamAWinsSelect");
+            const teamBWinsSelect = document.getElementById("teamBWinsSelect");
+            const winnerTeamSelect = document.getElementById("winnerTeamSelect");
+            const resultUrlDisplay = document.getElementById("resultUrlDisplay");
+
+            if (teamAWinsSelect && teamAWinsSelect.options.length === 0) populateSelectOptions(teamAWinsSelect, ["0", "1", "2", "3", "4", "5"]);
+            if (teamBWinsSelect && teamBWinsSelect.options.length === 0) populateSelectOptions(teamBWinsSelect, ["0", "1", "2", "3", "4", "5"]);
+
+            if (teamAWinsSelect) teamAWinsSelect.value = state.teamAWins || announcementTemplateState.teamAWins;
+            if (teamBWinsSelect) teamBWinsSelect.value = state.teamBWins || announcementTemplateState.teamBWins;
+            if (winnerTeamSelect) winnerTeamSelect.value = state.winnerTeam || announcementTemplateState.winnerTeam;
+            if (resultUrlDisplay) resultUrlDisplay.textContent = state.resultUrl || RESULT_URL;
+
+            updateWinnerTeamOptionLabels();
         }
 
         function renderAnnouncementTemplateTable() {
-            const tableBody = document.getElementById("announcementTemplateTableBody");
-            const currentState = getCurrentAnnouncementState();
+            const topBody = document.getElementById("announcementTemplateTableBodyTop");
+            const beforeResultBody = document.getElementById("announcementTemplateTableBodyBeforeResult");
+            const afterResultBody = document.getElementById("announcementTemplateTableBodyAfterResult");
+            const state = getCurrentAnnouncementState();
+            const topIds = ["oneHourBefore", "tenMinutesBefore", "startTime"];
+            const topParts = [];
+            const beforeResultParts = [];
+            const afterResultParts = [];
 
-            tableBody.innerHTML = announcementTemplateDefinitions.map((definition) => {
-                const previewHtml = buildPreviewHtmlFromTemplate(definition, currentState);
-                return `
+            for (const id of topIds) {
+                const definition = announcementTemplateDefinitions.find((item) => item.id === id);
+                if (!definition) continue;
+                topParts.push(`
                     <tr>
                         <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
-                        <td class="announcement-tool-cell-template">${previewHtml}</td>
-                        <td class="announcement-tool-cell-actions">
-                            <button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button>
-                        </td>
+                        <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
+                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
                     </tr>
-                `;
-            }).join("");
+                `);
+            }
+
+            for (const definition of announcementTemplateDefinitions.slice(3, 5)) {
+                beforeResultParts.push(`
+                    <tr>
+                        <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
+                        <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
+                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
+                    </tr>
+                `);
+            }
+
+            for (const definition of announcementTemplateDefinitions.slice(5)) {
+                afterResultParts.push(`
+                    <tr>
+                        <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
+                        <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
+                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
+                    </tr>
+                `);
+            }
+
+            if (topBody) topBody.innerHTML = topParts.join("");
+            if (beforeResultBody) beforeResultBody.innerHTML = beforeResultParts.join("");
+            if (afterResultBody) afterResultBody.innerHTML = afterResultParts.join("");
+
+            syncOptionalControls(state);
         }
 
         async function copyTextToClipboard(text) {
@@ -323,10 +425,7 @@
             copyToast.textContent = message;
             copyToast.classList.add("is-visible");
 
-            if (copyStatusTimerId) {
-                window.clearTimeout(copyStatusTimerId);
-            }
-
+            if (copyStatusTimerId) window.clearTimeout(copyStatusTimerId);
             copyStatusTimerId = window.setTimeout(() => {
                 copyToast.textContent = "";
                 copyToast.classList.remove("is-visible");
@@ -336,10 +435,7 @@
         async function copyTemplateById(templateId) {
             const currentState = getCurrentAnnouncementState();
             const templateDefinition = announcementTemplateDefinitions.find((definition) => definition.id === templateId);
-
-            if (!templateDefinition) {
-                return;
-            }
+            if (!templateDefinition) return;
 
             await copyTextToClipboard(buildPlainTextFromTemplate(templateDefinition, currentState));
             showCopyStatus("コピーしました");
@@ -347,71 +443,9 @@
 
         async function copyAllTemplates() {
             const currentState = getCurrentAnnouncementState();
-            const allTemplateText = announcementTemplateDefinitions
-                .map((definition) => buildPlainTextFromTemplate(definition, currentState))
-                .join("\n\n");
-
+            const allTemplateText = announcementTemplateDefinitions.map((definition) => buildPlainTextFromTemplate(definition, currentState)).join("\n\n");
             await copyTextToClipboard(allTemplateText);
             showCopyStatus("全文をコピーしました");
-        }
-
-        function populateSelectOptions(selectElement, values, formatLabel) {
-            selectElement.innerHTML = values.map((value) => {
-                const label = formatLabel ? formatLabel(value) : value;
-                return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
-            }).join("");
-        }
-
-        async function loadTeamsFromApi() {
-            const statusEl = document.getElementById('teamLoadStatus');
-            if (statusEl) statusEl.textContent = 'チーム読み込み状態: 読み込み中...';
-            let lastError = null;
-            const tryPaths = ['/api/teams', './api/teams', 'api/teams'];
-            for (const path of tryPaths) {
-                try {
-                    const res = await fetch(path, { cache: 'no-cache', credentials: 'same-origin' });
-                    if (!res.ok) {
-                        lastError = `HTTP ${res.status} from ${path}`;
-                        console.warn('teams API returned', res.status, 'for', path);
-                        continue;
-                    }
-                    const json = await res.json();
-                    // Normalize possible shapes
-                    let teams = [];
-                    if (Array.isArray(json)) teams = json;
-                    else if (Array.isArray(json.teams)) teams = json.teams;
-                    else if (json.teams && Array.isArray(json.teams.results)) teams = json.teams.results;
-                    else if (Array.isArray(json.results)) teams = json.results;
-                    else if (json.results && Array.isArray(json.results.results)) teams = json.results.results;
-
-                    // Fallback: if object with numeric keys
-                    if (!Array.isArray(teams) && typeof json === 'object') {
-                        teams = Object.values(json).filter(v => v && (v.team_id || v.teamId || v.team_name || v.teamName));
-                    }
-
-                    if (!Array.isArray(teams)) teams = [];
-
-                    const mapped = teams.map(t => ({ id: String(t.team_id || t.teamId || t.id || ''), name: String(t.team_name || t.teamName || t.name || '') }));
-                    if (statusEl) statusEl.textContent = `チーム読み込み状態: ${mapped.length} 件取得`;
-                    return mapped;
-                } catch (e) {
-                    console.error('loadTeamsFromApi try error for', path, e);
-                    lastError = e && e.message ? e.message : String(e);
-                    // try next path
-                }
-            }
-            if (statusEl) {
-                statusEl.textContent = lastError ? `チーム読み込み状態: 取得失敗 (${lastError})` : 'チーム読み込み状態: 取得失敗';
-            }
-            return [];
-        }
-
-        function populateTeamSelects(teams) {
-            const a = document.getElementById('teamASelect');
-            const b = document.getElementById('teamBSelect');
-            const makeOptions = (items) => ['<option value="">-- 手動入力 --</option>'].concat(items.map(t => `<option value="${escapeHtml(t.id)}" data-name="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`)).join('');
-            a.innerHTML = makeOptions(teams);
-            b.innerHTML = makeOptions(teams);
         }
 
         function initializeAnnouncementTemplateTool() {
@@ -419,106 +453,136 @@
             const battleNumberSelect = document.getElementById("battleNumberSelect");
             const preparationHourSelect = document.getElementById("preparationHourSelect");
             const preparationMinuteSelect = document.getElementById("preparationMinuteSelect");
-            const teamAWinsSelect = document.getElementById("teamAWinsSelect");
-            const teamBWinsSelect = document.getElementById("teamBWinsSelect");
-            const winnerTeamSelect = document.getElementById("winnerTeamSelect");
+            const teamANameInput = document.getElementById("teamANameInput");
+            const teamBNameInput = document.getElementById("teamBNameInput");
 
             populateSelectOptions(roleSelect, ["先鋒", "次鋒", "中堅", "副将", "大将"]);
             populateSelectOptions(battleNumberSelect, ["1", "2", "3", "4", "5"], (value) => `${value}戦目`);
             populateSelectOptions(preparationHourSelect, Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0")));
             populateSelectOptions(preparationMinuteSelect, Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0")));
 
-            populateSelectOptions(teamAWinsSelect, ["0", "1", "2", "3", "4", "5"]);
-            populateSelectOptions(teamBWinsSelect, ["0", "1", "2", "3", "4", "5"]);
+            if (teamANameInput) teamANameInput.value = announcementTemplateState.teamAName;
+            if (teamBNameInput) teamBNameInput.value = announcementTemplateState.teamBName;
+            if (roleSelect) roleSelect.value = announcementTemplateState.role;
+            if (battleNumberSelect) battleNumberSelect.value = announcementTemplateState.battleNumber;
 
-            document.getElementById("teamANameInput").value = announcementTemplateState.teamAName;
-            document.getElementById("teamBNameInput").value = announcementTemplateState.teamBName;
-            roleSelect.value = announcementTemplateState.role;
-            battleNumberSelect.value = announcementTemplateState.battleNumber;
-            preparationHourSelect.value = announcementTemplateState.preparationHour;
-            preparationMinuteSelect.value = announcementTemplateState.preparationMinute;
+            // Set time selects to current time
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, "0");
+            const mm = String(now.getMinutes()).padStart(2, "0");
+            if (preparationHourSelect) preparationHourSelect.value = hh;
+            if (preparationMinuteSelect) preparationMinuteSelect.value = mm;
+            // keep state in sync
+            announcementTemplateState.preparationHour = hh;
+            announcementTemplateState.preparationMinute = mm;
 
-            teamAWinsSelect.value = announcementTemplateState.teamAWins;
-            teamBWinsSelect.value = announcementTemplateState.teamBWins;
-            winnerTeamSelect.value = announcementTemplateState.winnerTeam;
-            const resultUrlInputEl = document.getElementById("resultUrlInput");
-            if (resultUrlInputEl) {
-                resultUrlInputEl.value = announcementTemplateState.resultUrl;
-            } else {
-                const resultUrlDisplayEl = document.getElementById("resultUrlDisplay");
-                if (resultUrlDisplayEl) resultUrlDisplayEl.textContent = announcementTemplateState.resultUrl;
+            // +1 minute button handler
+            const addOneMinuteButton = document.getElementById("addOneMinuteButton");
+            if (addOneMinuteButton) {
+                addOneMinuteButton.addEventListener("click", () => {
+                    if (!preparationHourSelect || !preparationMinuteSelect) return;
+                    let hhNum = parseInt(preparationHourSelect.value, 10) || 0;
+                    let mmNum = parseInt(preparationMinuteSelect.value, 10) || 0;
+                    mmNum += 1;
+                    if (mmNum >= 60) {
+                        mmNum = 0;
+                        hhNum = (hhNum + 1) % 24;
+                    }
+                    const hhStr = String(hhNum).padStart(2, "0");
+                    const mmStr = String(mmNum).padStart(2, "0");
+                    preparationHourSelect.value = hhStr;
+                    preparationMinuteSelect.value = mmStr;
+                    announcementTemplateState.preparationHour = hhStr;
+                    announcementTemplateState.preparationMinute = mmStr;
+                    renderAnnouncementTemplateTable();
+                });
             }
+            const subOneMinuteButton = document.getElementById("subOneMinuteButton");
+            if (subOneMinuteButton) {
+                subOneMinuteButton.addEventListener("click", () => {
+                    if (!preparationHourSelect || !preparationMinuteSelect) return;
+                    let hhNum = parseInt(preparationHourSelect.value, 10) || 0;
+                    let mmNum = parseInt(preparationMinuteSelect.value, 10) || 0;
+                    mmNum -= 1;
+                    if (mmNum < 0) {
+                        mmNum = 59;
+                        hhNum = (hhNum + 23) % 24;
+                    }
+                    const hhStr = String(hhNum).padStart(2, "0");
+                    const mmStr = String(mmNum).padStart(2, "0");
+                    preparationHourSelect.value = hhStr;
+                    preparationMinuteSelect.value = mmStr;
+                    announcementTemplateState.preparationHour = hhStr;
+                    announcementTemplateState.preparationMinute = mmStr;
+                    renderAnnouncementTemplateTable();
+                });
+            }
+
             updateWinnerTeamOptionLabels();
 
-            // Load teams from API and populate selects
             loadTeamsFromApi().then((teams) => {
                 populateTeamSelects(teams);
 
-                const teamASelect = document.getElementById('teamASelect');
-                const teamBSelect = document.getElementById('teamBSelect');
+                const teamASelect = document.getElementById("teamASelect");
+                const teamBSelect = document.getElementById("teamBSelect");
 
-                teamASelect.addEventListener('change', () => {
-                    const opt = teamASelect.selectedOptions[0];
-                    const name = opt?.dataset?.name || '';
-                    if (name) {
-                        document.getElementById('teamANameInput').value = name;
-                        updateWinnerTeamOptionLabels();
-                        renderAnnouncementTemplateTable();
-                    }
-                });
+                if (teamASelect) {
+                    teamASelect.addEventListener("change", () => {
+                        const option = teamASelect.selectedOptions[0];
+                        const name = option?.dataset?.name || "";
+                        if (name && teamANameInput) {
+                            teamANameInput.value = name;
+                            updateWinnerTeamOptionLabels();
+                            renderAnnouncementTemplateTable();
+                        }
+                    });
+                }
 
-                teamBSelect.addEventListener('change', () => {
-                    const opt = teamBSelect.selectedOptions[0];
-                    const name = opt?.dataset?.name || '';
-                    if (name) {
-                        document.getElementById('teamBNameInput').value = name;
-                        updateWinnerTeamOptionLabels();
-                        renderAnnouncementTemplateTable();
-                    }
-                });
+                if (teamBSelect) {
+                    teamBSelect.addEventListener("change", () => {
+                        const option = teamBSelect.selectedOptions[0];
+                        const name = option?.dataset?.name || "";
+                        if (name && teamBNameInput) {
+                            teamBNameInput.value = name;
+                            updateWinnerTeamOptionLabels();
+                            renderAnnouncementTemplateTable();
+                        }
+                    });
+                }
             }).catch(() => {
                 // ignore
             });
 
-            const inputs = [
-                "teamASelect",
-                "teamBSelect",
-                "teamANameInput",
-                "teamBNameInput",
-                "roleSelect",
-                "battleNumberSelect",
-                "preparationHourSelect",
-                "preparationMinuteSelect",
-                "teamAWinsSelect",
-                "teamBWinsSelect",
-                "winnerTeamSelect",
-            ];
-
+            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect", "teamBWinsSelect", "winnerTeamSelect"];
             for (const inputId of inputs) {
-                document.getElementById(inputId).addEventListener("input", renderAnnouncementTemplateTable);
-                document.getElementById(inputId).addEventListener("change", renderAnnouncementTemplateTable);
+                const element = document.getElementById(inputId);
+                if (!element) continue;
+                element.addEventListener("input", renderAnnouncementTemplateTable);
+                element.addEventListener("change", renderAnnouncementTemplateTable);
             }
 
-            document.getElementById("teamANameInput").addEventListener("input", updateWinnerTeamOptionLabels);
-            document.getElementById("teamBNameInput").addEventListener("input", updateWinnerTeamOptionLabels);
+            if (teamANameInput) teamANameInput.addEventListener("input", updateWinnerTeamOptionLabels);
+            if (teamBNameInput) teamBNameInput.addEventListener("input", updateWinnerTeamOptionLabels);
 
-
-
-            document.getElementById("announcementTemplateTableBody").addEventListener("click", (event) => {
+            const topBodyEl = document.getElementById("announcementTemplateTableBodyTop");
+            const beforeResultBodyEl = document.getElementById("announcementTemplateTableBodyBeforeResult");
+            const afterResultBodyEl = document.getElementById("announcementTemplateTableBodyAfterResult");
+            const tableClickHandler = (event) => {
                 const copyButton = event.target.closest("button[data-template-id]");
-                if (!copyButton) {
-                    return;
-                }
-                copyTemplateById(copyButton.dataset.templateId).catch(() => {
-                    showCopyStatus("コピーに失敗しました");
-                });
-            });
+                if (!copyButton) return;
+                copyTemplateById(copyButton.dataset.templateId).catch(() => showCopyStatus("コピーに失敗しました"));
+            };
 
-            document.getElementById("copyAllButton").addEventListener("click", () => {
-                copyAllTemplates().catch(() => {
-                    showCopyStatus("コピーに失敗しました");
+            if (topBodyEl) topBodyEl.addEventListener("click", tableClickHandler);
+            if (beforeResultBodyEl) beforeResultBodyEl.addEventListener("click", tableClickHandler);
+            if (afterResultBodyEl) afterResultBodyEl.addEventListener("click", tableClickHandler);
+
+            const copyAllButton = document.getElementById("copyAllButton");
+            if (copyAllButton) {
+                copyAllButton.addEventListener("click", () => {
+                    copyAllTemplates().catch(() => showCopyStatus("コピーに失敗しました"));
                 });
-            });
+            }
 
             renderAnnouncementTemplateTable();
         }
