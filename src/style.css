@@ -2715,6 +2715,43 @@ a.btn:visited {
   }
 }
 
+/* 下部コピー通知（トースト） */
+.announcement-copy-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  z-index: 1200;
+  min-width: 160px;
+  text-align: center;
+}
+
+.announcement-copy-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+@media (max-width: 420px) {
+  .announcement-copy-toast {
+    left: 8px;
+    right: 8px;
+    transform: none;
+    bottom: 12px;
+  }
+}
+
 /* Entry form image styling */
 .entry-form-image {
   display: block;

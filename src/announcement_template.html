@@ -33,11 +33,21 @@
             <div class="announcement-tool-settings">
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Aチーム名</span>
-                    <input type="text" id="teamANameInput" value="Aチーム" />
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="teamASelect" class="announcement-tool-select" style="min-width:180px">
+                            <option value="">-- 手動入力 --</option>
+                        </select>
+                        <input type="text" id="teamANameInput" value="Aチーム" />
+                    </div>
                 </label>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Bチーム名</span>
-                    <input type="text" id="teamBNameInput" value="Bチーム" />
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="teamBSelect" class="announcement-tool-select" style="min-width:180px">
+                            <option value="">-- 手動入力 --</option>
+                        </select>
+                        <input type="text" id="teamBNameInput" value="Bチーム" />
+                    </div>
                 </label>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">役職</span>
@@ -75,7 +85,7 @@
                 </label>
                 <label class="announcement-tool-setting announcement-tool-url-setting">
                     <span class="announcement-tool-setting-label">結果表示URL</span>
-                    <input type="text" id="resultUrlInput" value="https://example.com/result" />
+                    <span id="resultUrlDisplay">https://taikousen.com/result</span>
                 </label>
             </div>
         </div>
@@ -98,9 +108,12 @@
     </main>
 
     <div id="footerSlot"></div>
+    <div id="copyToast" class="announcement-copy-toast" aria-live="polite"></div>
 
     <script src="./js/layout.js"></script>
     <script>
+        const RESULT_URL = "https://taikousen.com/result";
+
         const announcementTemplateState = {
             teamAName: "Aチーム",
             teamBName: "Bチーム",
@@ -111,7 +124,7 @@
             teamAWins: "0",
             teamBWins: "0",
             winnerTeam: "teamA",
-            resultUrl: "https://example.com/result",
+            resultUrl: RESULT_URL,
         };
 
         const announcementTemplateDefinitions = [
@@ -250,7 +263,7 @@
                 teamAWins: document.getElementById("teamAWinsSelect").value,
                 teamBWins: document.getElementById("teamBWinsSelect").value,
                 winnerTeam: document.getElementById("winnerTeamSelect").value,
-                resultUrl: document.getElementById("resultUrlInput").value.trim(),
+                resultUrl: RESULT_URL,
             };
         }
 
@@ -302,17 +315,18 @@
         let copyStatusTimerId = null;
 
         function showCopyStatus(message) {
-            const copyStatus = document.getElementById("copyStatus");
-            copyStatus.textContent = message;
-            copyStatus.classList.add("is-visible");
+            const copyToast = document.getElementById("copyToast");
+            if (!copyToast) return;
+            copyToast.textContent = message;
+            copyToast.classList.add("is-visible");
 
             if (copyStatusTimerId) {
                 window.clearTimeout(copyStatusTimerId);
             }
 
             copyStatusTimerId = window.setTimeout(() => {
-                copyStatus.textContent = "";
-                copyStatus.classList.remove("is-visible");
+                copyToast.textContent = "";
+                copyToast.classList.remove("is-visible");
             }, 2000);
         }
 
@@ -345,6 +359,31 @@
             }).join("");
         }
 
+        async function loadTeamsFromApi() {
+            try {
+                const res = await fetch('/api/teams');
+                if (!res.ok) return [];
+                const json = await res.json();
+                let teams = json.teams || [];
+                // D1 driver sometimes returns { results: [...] }
+                if (!Array.isArray(teams) && json.teams && json.teams.results) teams = json.teams.results;
+                if (!Array.isArray(teams) && json.results) teams = json.results;
+                if (!Array.isArray(teams)) teams = [];
+                return teams.map(t => ({ id: t.team_id || t.teamId || '', name: t.team_name || t.teamName || t.teamName || '' }));
+            } catch (e) {
+                console.error('loadTeamsFromApi error', e);
+                return [];
+            }
+        }
+
+        function populateTeamSelects(teams) {
+            const a = document.getElementById('teamASelect');
+            const b = document.getElementById('teamBSelect');
+            const makeOptions = (items) => ['<option value="">-- 手動入力 --</option>'].concat(items.map(t => `<option value="${escapeHtml(t.id)}" data-name="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`)).join('');
+            a.innerHTML = makeOptions(teams);
+            b.innerHTML = makeOptions(teams);
+        }
+
         function initializeAnnouncementTemplateTool() {
             const roleSelect = document.getElementById("roleSelect");
             const battleNumberSelect = document.getElementById("battleNumberSelect");
@@ -373,7 +412,39 @@
             document.getElementById("resultUrlInput").value = announcementTemplateState.resultUrl;
             updateWinnerTeamOptionLabels();
 
+            // Load teams from API and populate selects
+            loadTeamsFromApi().then((teams) => {
+                populateTeamSelects(teams);
+
+                const teamASelect = document.getElementById('teamASelect');
+                const teamBSelect = document.getElementById('teamBSelect');
+
+                teamASelect.addEventListener('change', () => {
+                    const opt = teamASelect.selectedOptions[0];
+                    const name = opt?.dataset?.name || '';
+                    if (name) {
+                        document.getElementById('teamANameInput').value = name;
+                        updateWinnerTeamOptionLabels();
+                        renderAnnouncementTemplateTable();
+                    }
+                });
+
+                teamBSelect.addEventListener('change', () => {
+                    const opt = teamBSelect.selectedOptions[0];
+                    const name = opt?.dataset?.name || '';
+                    if (name) {
+                        document.getElementById('teamBNameInput').value = name;
+                        updateWinnerTeamOptionLabels();
+                        renderAnnouncementTemplateTable();
+                    }
+                });
+            }).catch(() => {
+                // ignore
+            });
+
             const inputs = [
+                "teamASelect",
+                "teamBSelect",
                 "teamANameInput",
                 "teamBNameInput",
                 "roleSelect",
@@ -383,7 +454,6 @@
                 "teamAWinsSelect",
                 "teamBWinsSelect",
                 "winnerTeamSelect",
-                "resultUrlInput",
             ];
 
             for (const inputId of inputs) {
