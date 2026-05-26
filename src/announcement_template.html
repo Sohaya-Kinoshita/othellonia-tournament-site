@@ -423,15 +423,34 @@
         let copyStatusTimerId = null;
 
         function showCopyStatus(message) {
-            const copyToast = document.getElementById("copyToast");
-            if (!copyToast) return;
+            let copyToast = document.getElementById("copyToast");
+            const copyStatus = document.getElementById("copyStatus");
+
+            if (!copyToast) {
+                copyToast = document.createElement("div");
+                copyToast.id = "copyToast";
+                copyToast.className = "announcement-copy-toast";
+                copyToast.setAttribute("aria-live", "polite");
+                document.body.appendChild(copyToast);
+            }
+
             copyToast.textContent = message;
             copyToast.classList.add("is-visible");
+
+            if (copyStatus) {
+                copyStatus.textContent = message;
+                copyStatus.classList.add("is-visible");
+            }
 
             if (copyStatusTimerId) window.clearTimeout(copyStatusTimerId);
             copyStatusTimerId = window.setTimeout(() => {
                 copyToast.textContent = "";
                 copyToast.classList.remove("is-visible");
+
+                if (copyStatus) {
+                    copyStatus.textContent = "";
+                    copyStatus.classList.remove("is-visible");
+                }
             }, 2000);
         }
 

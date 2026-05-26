@@ -3137,3 +3137,34 @@ a.btn:visited {
   flex-basis: auto !important;
   margin-top: 0 !important;
 }
+
+
+body > .announcement-copy-toast {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 20px !important;
+  display: block !important;
+  transform: translateX(-50%) translateY(12px) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: 9999 !important;
+}
+
+body > .announcement-copy-toast.is-visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+@media (max-width: 420px) {
+  body > .announcement-copy-toast {
+    left: 8px !important;
+    right: 8px !important;
+    transform: translateY(12px) !important;
+  }
+
+  body > .announcement-copy-toast.is-visible {
+    transform: translateY(0) !important;
+  }
+}
