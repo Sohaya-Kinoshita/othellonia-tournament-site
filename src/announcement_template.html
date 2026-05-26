@@ -31,6 +31,9 @@
         <div class="card announcement-tool-card">
             <h2>変更項目</h2>
             <div class="announcement-tool-settings">
+                <div style="grid-column: span 2; display:flex;align-items:center;gap:8px;">
+                    <span id="teamLoadStatus" style="color:var(--muted);font-size:13px;">チーム読み込み状態: 未読み込み</span>
+                </div>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Aチーム名</span>
                     <div style="display:flex;gap:8px;align-items:center;">
@@ -360,18 +363,37 @@
         }
 
         async function loadTeamsFromApi() {
+            const statusEl = document.getElementById('teamLoadStatus');
+            if (statusEl) statusEl.textContent = 'チーム読み込み状態: 読み込み中...';
             try {
                 const res = await fetch('/api/teams');
-                if (!res.ok) return [];
+                if (!res.ok) {
+                    console.warn('teams API returned', res.status);
+                    if (statusEl) statusEl.textContent = `チーム読み込み状態: 取得失敗 (${res.status})`;
+                    return [];
+                }
                 const json = await res.json();
-                let teams = json.teams || [];
-                // D1 driver sometimes returns { results: [...] }
-                if (!Array.isArray(teams) && json.teams && json.teams.results) teams = json.teams.results;
-                if (!Array.isArray(teams) && json.results) teams = json.results;
+                // Normalize possible shapes
+                let teams = [];
+                if (Array.isArray(json)) teams = json;
+                else if (Array.isArray(json.teams)) teams = json.teams;
+                else if (json.teams && Array.isArray(json.teams.results)) teams = json.teams.results;
+                else if (Array.isArray(json.results)) teams = json.results;
+                else if (json.results && Array.isArray(json.results.results)) teams = json.results.results;
+
+                // Fallback: if object with numeric keys
+                if (!Array.isArray(teams) && typeof json === 'object') {
+                    teams = Object.values(json).filter(v => v && (v.team_id || v.teamId || v.team_name || v.teamName));
+                }
+
                 if (!Array.isArray(teams)) teams = [];
-                return teams.map(t => ({ id: t.team_id || t.teamId || '', name: t.team_name || t.teamName || t.teamName || '' }));
+
+                const mapped = teams.map(t => ({ id: String(t.team_id || t.teamId || t.id || ''), name: String(t.team_name || t.teamName || t.name || '') }));
+                if (statusEl) statusEl.textContent = `チーム読み込み状態: ${mapped.length} 件取得`;
+                return mapped;
             } catch (e) {
                 console.error('loadTeamsFromApi error', e);
+                if (statusEl) statusEl.textContent = 'チーム読み込み状態: エラー';
                 return [];
             }
         }
@@ -397,6 +419,7 @@
             populateSelectOptions(battleNumberSelect, ["1", "2", "3", "4", "5"], (value) => `${value}戦目`);
             populateSelectOptions(preparationHourSelect, Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0")));
             populateSelectOptions(preparationMinuteSelect, Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0")));
+
             populateSelectOptions(teamAWinsSelect, ["0", "1", "2", "3", "4", "5"]);
             populateSelectOptions(teamBWinsSelect, ["0", "1", "2", "3", "4", "5"]);
 
@@ -406,6 +429,7 @@
             battleNumberSelect.value = announcementTemplateState.battleNumber;
             preparationHourSelect.value = announcementTemplateState.preparationHour;
             preparationMinuteSelect.value = announcementTemplateState.preparationMinute;
+
             teamAWinsSelect.value = announcementTemplateState.teamAWins;
             teamBWinsSelect.value = announcementTemplateState.teamBWins;
             winnerTeamSelect.value = announcementTemplateState.winnerTeam;
@@ -463,6 +487,8 @@
 
             document.getElementById("teamANameInput").addEventListener("input", updateWinnerTeamOptionLabels);
             document.getElementById("teamBNameInput").addEventListener("input", updateWinnerTeamOptionLabels);
+
+
 
             document.getElementById("announcementTemplateTableBody").addEventListener("click", (event) => {
                 const copyButton = event.target.closest("button[data-template-id]");

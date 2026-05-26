@@ -800,6 +800,55 @@ th {
   font-weight: 700;
 }
 
+/* Announcement tool: layout and time-select tweaks */
+.announcement-tool-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.announcement-tool-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.announcement-tool-setting-label {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.announcement-tool-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  min-height: 40px;
+}
+
+.announcement-tool-time-setting {
+  grid-column: span 2;
+}
+
+.announcement-tool-time-selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.announcement-tool-time-select {
+  width: auto; /* allow multiple selects side-by-side */
+  min-width: 84px;
+}
+
+.announcement-tool-time-separator {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .menu-item:hover {
   background: rgba(0, 0, 0, 0.04);
 }
