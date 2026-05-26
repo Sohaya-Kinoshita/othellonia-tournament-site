@@ -36,7 +36,6 @@
                         <tr>
                             <th class="announcement-tool-column-timing">タイミング</th>
                             <th>定型文</th>
-                            <th class="announcement-tool-column-actions">コピー</th>
                         </tr>
                     </thead>
                     <tbody id="announcementTemplateTableBodyTop"></tbody>
@@ -68,11 +67,11 @@
                         <input type="text" id="teamBNameInput" value="Bチーム" />
                     </div>
                 </label>
-                <label class="announcement-tool-setting">
+                <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">役職</span>
                     <select id="roleSelect" class="announcement-tool-select"></select>
                 </label>
-                <label class="announcement-tool-setting">
+                <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">対戦番号 / n戦目</span>
                     <select id="battleNumberSelect" class="announcement-tool-select"></select>
                 </label>
@@ -104,7 +103,6 @@
                         <tr>
                             <th class="announcement-tool-column-timing">タイミング</th>
                             <th>定型文</th>
-                            <th class="announcement-tool-column-actions">コピー</th>
                         </tr>
                     </thead>
                     <tbody id="announcementTemplateTableBodyBeforeResult"></tbody>
@@ -148,7 +146,6 @@
                         <tr>
                             <th class="announcement-tool-column-timing">タイミング</th>
                             <th>定型文</th>
-                            <th class="announcement-tool-column-actions">コピー</th>
                         </tr>
                     </thead>
                     <tbody id="announcementTemplateTableBodyAfterResult"></tbody>
@@ -366,9 +363,11 @@
                 if (!definition) continue;
                 topParts.push(`
                     <tr>
-                        <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
+                        <td class="announcement-tool-cell-timing">
+                            <div class="announcement-tool-timing-label">${escapeHtml(definition.timingLabel)}</div>
+                            <div><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></div>
+                        </td>
                         <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
-                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
                     </tr>
                 `);
             }
@@ -376,9 +375,11 @@
             for (const definition of announcementTemplateDefinitions.slice(3, 5)) {
                 beforeResultParts.push(`
                     <tr>
-                        <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
+                        <td class="announcement-tool-cell-timing">
+                            <div class="announcement-tool-timing-label">${escapeHtml(definition.timingLabel)}</div>
+                            <div><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></div>
+                        </td>
                         <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
-                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
                     </tr>
                 `);
             }
@@ -386,9 +387,11 @@
             for (const definition of announcementTemplateDefinitions.slice(5)) {
                 afterResultParts.push(`
                     <tr>
-                        <td class="announcement-tool-cell-timing">${escapeHtml(definition.timingLabel)}</td>
+                        <td class="announcement-tool-cell-timing">
+                            <div class="announcement-tool-timing-label">${escapeHtml(definition.timingLabel)}</div>
+                            <div><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></div>
+                        </td>
                         <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
-                        <td class="announcement-tool-cell-actions"><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></td>
                     </tr>
                 `);
             }

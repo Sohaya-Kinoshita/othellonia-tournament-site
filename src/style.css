@@ -814,6 +814,36 @@ th {
   gap: 6px;
 }
 
+/* Inline variant: label and control on same row */
+.announcement-tool-setting-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Make the time setting show label + selects on one row */
+.announcement-tool-time-setting {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Ensure selects don't force a new line when using inline layout */
+.announcement-tool-setting-inline .announcement-tool-select,
+.announcement-tool-time-setting .announcement-tool-select {
+  width: auto !important;
+  min-width: 56px;
+  max-width: 160px;
+  flex: 0 0 auto;
+}
+
+.announcement-tool-setting-inline .announcement-tool-setting-label,
+.announcement-tool-time-setting .announcement-tool-setting-label {
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+
 .announcement-tool-setting-label {
   font-weight: 700;
   color: var(--muted);
@@ -851,6 +881,11 @@ th {
 
 .announcement-tool-time-controls {
   margin-top: 8px;
+  /* force the controls to occupy the full row under the selects */
+  flex-basis: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
 .announcement-tool-add-minute {
@@ -2755,14 +2790,14 @@ a.btn:visited {
 
 .announcement-tool-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 0; /* allow table to shrink to container */
   border-collapse: collapse;
 }
 
 .announcement-tool-table th,
 .announcement-tool-table td {
   vertical-align: top;
-  padding: 12px 10px;
+  padding: 8px 6px;
 }
 
 .announcement-tool-table thead tr {
@@ -2770,7 +2805,7 @@ a.btn:visited {
 }
 
 .announcement-tool-column-timing {
-  width: 160px;
+  width: 120px;
 }
 
 .announcement-tool-column-actions {
@@ -2780,6 +2815,7 @@ a.btn:visited {
 .announcement-tool-cell-timing {
   font-weight: 700;
   white-space: nowrap;
+  width: auto;
 }
 
 .announcement-tool-cell-template {
@@ -2803,6 +2839,29 @@ a.btn:visited {
 
 .announcement-tool-copy-button {
   min-width: 88px;
+}
+
+.announcement-tool-cell-timing {
+  vertical-align: top;
+  width: 140px;
+}
+
+.announcement-tool-timing-label {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.announcement-tool-cell-timing .announcement-tool-copy-button {
+  min-width: 64px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* プレビュー行（定型文）の文字サイズを小さくしてコンパクトに表示 */
+.announcement-tool-preview-line {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
 }
 
 @media (max-width: 760px) {
@@ -2834,6 +2893,94 @@ a.btn:visited {
   .announcement-tool-copy-button {
     width: 100%;
   }
+}
+
+/* Very small screens: squeeze time selects so Hour and Minute fit on one line */
+@media (max-width: 420px) {
+  .announcement-tool-time-setting {
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .announcement-tool-time-setting .announcement-tool-setting-label {
+    margin-right: 6px !important;
+    flex: 0 0 auto !important;
+  }
+
+  .announcement-tool-time-selects .announcement-tool-select {
+    min-width: 34px !important;
+    max-width: 56px !important;
+    padding: 4px 6px !important;
+    font-size: 12px !important;
+    flex: 0 0 auto !important;
+  }
+
+  .announcement-tool-setting-inline .announcement-tool-select {
+    min-width: 48px !important;
+  }
+
+  .announcement-tool-time-separator {
+    margin: 0 4px !important;
+  }
+
+  .announcement-tool-time-controls {
+    margin-top: 6px !important;
+    justify-content: center !important;
+  }
+}
+
+/* Small-screen override: keep inline settings on one line by preventing selects from forcing full width */
+@media (max-width: 760px) {
+  .announcement-tool-setting-inline,
+  .announcement-tool-time-setting {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .announcement-tool-setting-inline .announcement-tool-select,
+  .announcement-tool-time-setting .announcement-tool-select {
+    width: auto !important;
+    min-width: 48px !important;
+    max-width: 160px !important;
+    flex: 0 0 auto !important;
+  }
+
+  .announcement-tool-setting-inline .announcement-tool-setting-label,
+  .announcement-tool-time-setting .announcement-tool-setting-label {
+    white-space: nowrap !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Ensure label and selects sit on the same row and align left */
+.announcement-tool-time-setting,
+.announcement-tool-setting-inline {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+.announcement-tool-time-setting > .announcement-tool-setting-label,
+.announcement-tool-setting-inline > .announcement-tool-setting-label {
+  margin-right: 8px !important;
+  text-align: left !important;
+}
+
+.announcement-tool-time-selects {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+}
+
+/* keep the +/- buttons on their own row */
+.announcement-tool-time-controls {
+  display: flex !important;
+  flex-basis: 100% !important;
+  justify-content: center !important;
+  margin-top: 8px !important;
 }
 
 /* 下部コピー通知（トースト） */
@@ -2958,4 +3105,35 @@ a.btn:visited {
     left: 3px;
     top: 0.06em;
   }
+}
+
+
+.announcement-tool-time-setting {
+  display: grid !important;
+  grid-template-columns: auto auto;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  column-gap: 8px !important;
+  row-gap: 8px !important;
+}
+
+.announcement-tool-time-setting > .announcement-tool-setting-label {
+  grid-column: 1;
+  margin: 0 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+.announcement-tool-time-selects {
+  grid-column: 2;
+  overflow: visible !important;
+}
+
+.announcement-tool-time-controls {
+  grid-column: 1 / -1;
+  display: flex !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  flex-basis: auto !important;
+  margin-top: 0 !important;
 }
