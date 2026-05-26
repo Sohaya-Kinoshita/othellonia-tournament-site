@@ -365,37 +365,45 @@
         async function loadTeamsFromApi() {
             const statusEl = document.getElementById('teamLoadStatus');
             if (statusEl) statusEl.textContent = 'チーム読み込み状態: 読み込み中...';
-            try {
-                const res = await fetch('/api/teams');
-                if (!res.ok) {
-                    console.warn('teams API returned', res.status);
-                    if (statusEl) statusEl.textContent = `チーム読み込み状態: 取得失敗 (${res.status})`;
-                    return [];
+            let lastError = null;
+            const tryPaths = ['/api/teams', './api/teams', 'api/teams'];
+            for (const path of tryPaths) {
+                try {
+                    const res = await fetch(path, { cache: 'no-cache', credentials: 'same-origin' });
+                    if (!res.ok) {
+                        lastError = `HTTP ${res.status} from ${path}`;
+                        console.warn('teams API returned', res.status, 'for', path);
+                        continue;
+                    }
+                    const json = await res.json();
+                    // Normalize possible shapes
+                    let teams = [];
+                    if (Array.isArray(json)) teams = json;
+                    else if (Array.isArray(json.teams)) teams = json.teams;
+                    else if (json.teams && Array.isArray(json.teams.results)) teams = json.teams.results;
+                    else if (Array.isArray(json.results)) teams = json.results;
+                    else if (json.results && Array.isArray(json.results.results)) teams = json.results.results;
+
+                    // Fallback: if object with numeric keys
+                    if (!Array.isArray(teams) && typeof json === 'object') {
+                        teams = Object.values(json).filter(v => v && (v.team_id || v.teamId || v.team_name || v.teamName));
+                    }
+
+                    if (!Array.isArray(teams)) teams = [];
+
+                    const mapped = teams.map(t => ({ id: String(t.team_id || t.teamId || t.id || ''), name: String(t.team_name || t.teamName || t.name || '') }));
+                    if (statusEl) statusEl.textContent = `チーム読み込み状態: ${mapped.length} 件取得`;
+                    return mapped;
+                } catch (e) {
+                    console.error('loadTeamsFromApi try error for', path, e);
+                    lastError = e && e.message ? e.message : String(e);
+                    // try next path
                 }
-                const json = await res.json();
-                // Normalize possible shapes
-                let teams = [];
-                if (Array.isArray(json)) teams = json;
-                else if (Array.isArray(json.teams)) teams = json.teams;
-                else if (json.teams && Array.isArray(json.teams.results)) teams = json.teams.results;
-                else if (Array.isArray(json.results)) teams = json.results;
-                else if (json.results && Array.isArray(json.results.results)) teams = json.results.results;
-
-                // Fallback: if object with numeric keys
-                if (!Array.isArray(teams) && typeof json === 'object') {
-                    teams = Object.values(json).filter(v => v && (v.team_id || v.teamId || v.team_name || v.teamName));
-                }
-
-                if (!Array.isArray(teams)) teams = [];
-
-                const mapped = teams.map(t => ({ id: String(t.team_id || t.teamId || t.id || ''), name: String(t.team_name || t.teamName || t.name || '') }));
-                if (statusEl) statusEl.textContent = `チーム読み込み状態: ${mapped.length} 件取得`;
-                return mapped;
-            } catch (e) {
-                console.error('loadTeamsFromApi error', e);
-                if (statusEl) statusEl.textContent = 'チーム読み込み状態: エラー';
-                return [];
             }
+            if (statusEl) {
+                statusEl.textContent = lastError ? `チーム読み込み状態: 取得失敗 (${lastError})` : 'チーム読み込み状態: 取得失敗';
+            }
+            return [];
         }
 
         function populateTeamSelects(teams) {
@@ -433,7 +441,13 @@
             teamAWinsSelect.value = announcementTemplateState.teamAWins;
             teamBWinsSelect.value = announcementTemplateState.teamBWins;
             winnerTeamSelect.value = announcementTemplateState.winnerTeam;
-            document.getElementById("resultUrlInput").value = announcementTemplateState.resultUrl;
+            const resultUrlInputEl = document.getElementById("resultUrlInput");
+            if (resultUrlInputEl) {
+                resultUrlInputEl.value = announcementTemplateState.resultUrl;
+            } else {
+                const resultUrlDisplayEl = document.getElementById("resultUrlDisplay");
+                if (resultUrlDisplayEl) resultUrlDisplayEl.textContent = announcementTemplateState.resultUrl;
+            }
             updateWinnerTeamOptionLabels();
 
             // Load teams from API and populate selects
