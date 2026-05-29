@@ -870,6 +870,9 @@ th {
   flex-wrap: nowrap;
 }
 
+/* Inline status text placed next to time selects */
+/* (removed) previously used for inline status next to selects; no longer needed */
+
 .announcement-tool-time-select {
   width: auto; /* allow multiple selects side-by-side */
   min-width: 56px;
@@ -2701,6 +2704,37 @@ a.btn:visited {
   gap: 8px;
 }
 
+/* allow children to shrink properly inside flex containers */
+.announcement-tool-status-row {
+  min-width: 0;
+}
+
+/* When status row is used inside the time-setting flex container,
+   force it to occupy the full width so the text doesn't get squeezed
+   into a narrow column and wrap awkwardly. */
+.announcement-tool-time-setting .announcement-tool-status-row {
+  flex-basis: 100%;
+  align-items: flex-start;
+}
+
+.announcement-tool-time-setting .announcement-tool-status-text {
+  white-space: normal;
+  max-width: 100%;
+}
+
+/* Ellipsis truncation for status text when space is constrained */
+.announcement-tool-status-ellipsis {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* let the ellipsis element shrink inside flex row */
+.announcement-tool-status-ellipsis {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .announcement-tool-status-text {
   color: var(--muted);
   font-size: 13px;
@@ -3107,7 +3141,6 @@ a.btn:visited {
   }
 }
 
-
 .announcement-tool-time-setting {
   display: grid !important;
   grid-template-columns: auto auto;
@@ -3137,7 +3170,6 @@ a.btn:visited {
   flex-basis: auto !important;
   margin-top: 0 !important;
 }
-
 
 body > .announcement-copy-toast {
   position: fixed !important;

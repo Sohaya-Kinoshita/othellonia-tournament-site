@@ -20,12 +20,10 @@
             <div class="announcement-tool-hero">
                 <div>
                     <h1 class="announcement-tool-title">大会運営用 定型文作成ツール</h1>
-                    <p class="announcement-tool-description">上の設定を変更すると、下の定型文が即時更新されます。各行の右側から個別コピー、上のボタンから全文コピーができます。
+                    <p class="announcement-tool-description">上の設定を変更すると、下の定型文が即時更新されます。各行の右側から個別コピーができます。
                     </p>
                 </div>
-                <button type="button" class="btn announcement-tool-copy-all-button" id="copyAllButton">全文コピー</button>
             </div>
-            <div class="announcement-tool-copy-status" id="copyStatus" aria-live="polite"></div>
         </div>
 
         <div class="card announcement-tool-card">
@@ -46,27 +44,6 @@
         <div class="card announcement-tool-card" id="announcementSettingsCard">
             <h2>変更項目</h2>
             <div class="announcement-tool-settings">
-                <div class="announcement-tool-status-row">
-                    <span id="teamLoadStatus" class="announcement-tool-status-text">チーム読み込み状態: 未読み込み</span>
-                </div>
-                <label class="announcement-tool-setting">
-                    <span class="announcement-tool-setting-label">Aチーム名</span>
-                    <div class="announcement-tool-team-row">
-                        <select id="teamASelect" class="announcement-tool-select announcement-tool-team-select">
-                            <option value="">-- 手動入力 --</option>
-                        </select>
-                        <input type="text" id="teamANameInput" value="Aチーム" />
-                    </div>
-                </label>
-                <label class="announcement-tool-setting">
-                    <span class="announcement-tool-setting-label">Bチーム名</span>
-                    <div class="announcement-tool-team-row">
-                        <select id="teamBSelect" class="announcement-tool-select announcement-tool-team-select">
-                            <option value="">-- 手動入力 --</option>
-                        </select>
-                        <input type="text" id="teamBNameInput" value="Bチーム" />
-                    </div>
-                </label>
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">役職</span>
                     <select id="roleSelect" class="announcement-tool-select"></select>
@@ -85,11 +62,19 @@
                             class="announcement-tool-select announcement-tool-time-select" aria-label="準備時刻の分"></select>
                         <span class="announcement-tool-time-separator">分</span>
                     </div>
+                    <div class="announcement-tool-status-row">
+                        <span
+                            class="announcement-tool-status-text announcement-tool-status-ellipsis">選手交代時の待機時間は5分、各対戦の準備時間は3分です。</span>
+                    </div>
                     <div class="announcement-tool-time-controls">
                         <button type="button" id="subOneMinuteButton"
                             class="btn announcement-tool-add-minute">-1分</button>
                         <button type="button" id="addOneMinuteButton"
                             class="btn announcement-tool-add-minute">+1分</button>
+                        <button type="button" id="addThreeMinutesButton"
+                            class="btn announcement-tool-add-minute">+3分</button>
+                        <button type="button" id="addFiveMinutesButton"
+                            class="btn announcement-tool-add-minute">+5分</button>
                     </div>
                 </div>
             </div>
@@ -116,14 +101,34 @@
                 <div class="announcement-tool-status-row">
                     <span class="announcement-tool-status-text">1〜5戦目の結果に使う項目です</span>
                 </div>
+                <div class="announcement-tool-status-row">
+                    <span id="teamLoadStatus" class="announcement-tool-status-text">チーム読み込み状態: 未読み込み</span>
+                </div>
+                <label class="announcement-tool-setting">
+                    <span class="announcement-tool-setting-label">Aチーム名</span>
+                    <div class="announcement-tool-team-row">
+                        <select id="teamASelect" class="announcement-tool-select announcement-tool-team-select">
+                            <option value="">-- 手動入力 --</option>
+                        </select>
+                        <input type="text" id="teamANameInput" value="Aチーム" />
+                    </div>
+                </label>
+                <label class="announcement-tool-setting">
+                    <span class="announcement-tool-setting-label">Bチーム名</span>
+                    <div class="announcement-tool-team-row">
+                        <select id="teamBSelect" class="announcement-tool-select announcement-tool-team-select">
+                            <option value="">-- 手動入力 --</option>
+                        </select>
+                        <input type="text" id="teamBNameInput" value="Bチーム" />
+                    </div>
+                </label>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">Aチームの勝利数</span>
                     <select id="teamAWinsSelect" class="announcement-tool-select"></select>
                 </label>
-                <label class="announcement-tool-setting">
-                    <span class="announcement-tool-setting-label">Bチームの勝利数</span>
-                    <select id="teamBWinsSelect" class="announcement-tool-select"></select>
-                </label>
+                <div class="announcement-tool-status-row">
+                    <span id="teamBWinsDisplay" class="announcement-tool-status-text">Bチームの勝利数: 5 - Aチームの勝利数</span>
+                </div>
                 <label class="announcement-tool-setting">
                     <span class="announcement-tool-setting-label">勝利チーム</span>
                     <select id="winnerTeamSelect" class="announcement-tool-select">
@@ -156,7 +161,6 @@
 
     <div id="footerSlot"></div>
     <div id="copyToast" class="announcement-copy-toast" aria-live="polite"></div>
-
     <script src="./js/layout.js"></script>
     <script>
         const RESULT_URL = "https://taikousen.com/result";
@@ -183,12 +187,12 @@
                 timingLabel: "1〜5戦目の準備連絡",
                 buildPlainText: (state) => [
                     `両チームの${state.role}は準備をしてください。`,
-                    `完了したら、こちらに「${state.role}準備完了しました。」と送ってください。`,
+                    `完了したら、こちらに「\`${state.role}準備完了しました。\`」と送ってください。`,
                     `なお、${formatAnnouncementTime(state)}までに準備が完了しない場合、不戦敗となります。`,
                 ],
                 buildPreviewLines: (state) => [
                     `両チームの${highlightValue(state.role)}は準備をしてください。`,
-                    `完了したら、こちらに「${highlightValue(`${state.role}準備完了しました。`)}」と送ってください。`,
+                    `完了したら、こちらに「\`${highlightValue(`${state.role}準備完了しました。`)}\`」と送ってください。`,
                     `なお、${highlightValue(formatAnnouncementTime(state))}までに準備が完了しない場合、不戦敗となります。`,
                 ],
             },
@@ -196,12 +200,12 @@
                 id: "startBattle",
                 timingLabel: "1〜5戦目の開始連絡",
                 buildPlainText: (state) => [`では、${state.role}は${state.battleNumber}戦目の対戦を開始してください。`],
-                buildPreviewLines: (state) => [`では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。`],
+                buildPreviewLines: (state) => [`では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。対戦終了後、対戦結果と、使用したデッキの属性を報告してください。`],
             },
             { id: "confirmResults", timingLabel: "対戦結果確認", buildPlainText: () => ["対戦結果に相違がないため、対戦結果を確定します。"], buildPreviewLines: () => ["対戦結果に相違がないため、対戦結果を確定します。"] },
             {
                 id: "finalizeResults",
-                timingLabel: "finの結果確定連絡",
+                timingLabel: "最終結果確定連絡",
                 buildPlainText: (state) => [
                     `${state.teamAName}${state.teamAWins}勝、${state.teamBName}${state.teamBWins}勝で、${getWinningTeamName(state)}の勝利となりました。`,
                     "WEBサイトで対戦結果を表示しています。",
@@ -254,6 +258,9 @@
         }
 
         function getCurrentAnnouncementState() {
+            const teamAWinsValue = getInputValue("teamAWinsSelect", announcementTemplateState.teamAWins);
+            const teamAWinsNumber = Number.parseInt(teamAWinsValue, 10);
+            const derivedTeamBWins = Number.isFinite(teamAWinsNumber) ? Math.max(0, 5 - teamAWinsNumber) : Number.parseInt(announcementTemplateState.teamBWins, 10) || 0;
             return {
                 teamAName: getInputValue("teamANameInput", announcementTemplateState.teamAName).trim() || "Aチーム",
                 teamBName: getInputValue("teamBNameInput", announcementTemplateState.teamBName).trim() || "Bチーム",
@@ -261,8 +268,8 @@
                 battleNumber: getInputValue("battleNumberSelect", announcementTemplateState.battleNumber),
                 preparationHour: getInputValue("preparationHourSelect", announcementTemplateState.preparationHour),
                 preparationMinute: getInputValue("preparationMinuteSelect", announcementTemplateState.preparationMinute),
-                teamAWins: getInputValue("teamAWinsSelect", announcementTemplateState.teamAWins),
-                teamBWins: getInputValue("teamBWinsSelect", announcementTemplateState.teamBWins),
+                teamAWins: teamAWinsValue,
+                teamBWins: String(derivedTeamBWins),
                 winnerTeam: getInputValue("winnerTeamSelect", announcementTemplateState.winnerTeam),
                 resultUrl: RESULT_URL,
             };
@@ -333,17 +340,16 @@
 
         function syncOptionalControls(state) {
             const teamAWinsSelect = document.getElementById("teamAWinsSelect");
-            const teamBWinsSelect = document.getElementById("teamBWinsSelect");
             const winnerTeamSelect = document.getElementById("winnerTeamSelect");
             const resultUrlDisplay = document.getElementById("resultUrlDisplay");
+            const teamBWinsDisplay = document.getElementById("teamBWinsDisplay");
 
             if (teamAWinsSelect && teamAWinsSelect.options.length === 0) populateSelectOptions(teamAWinsSelect, ["0", "1", "2", "3", "4", "5"]);
-            if (teamBWinsSelect && teamBWinsSelect.options.length === 0) populateSelectOptions(teamBWinsSelect, ["0", "1", "2", "3", "4", "5"]);
 
             if (teamAWinsSelect) teamAWinsSelect.value = state.teamAWins || announcementTemplateState.teamAWins;
-            if (teamBWinsSelect) teamBWinsSelect.value = state.teamBWins || announcementTemplateState.teamBWins;
             if (winnerTeamSelect) winnerTeamSelect.value = state.winnerTeam || announcementTemplateState.winnerTeam;
             if (resultUrlDisplay) resultUrlDisplay.textContent = state.resultUrl || RESULT_URL;
+            if (teamBWinsDisplay) teamBWinsDisplay.textContent = `Bチームの勝利数: 5 - Aチームの勝利数 = ${state.teamBWins || "0"}`;
 
             updateWinnerTeamOptionLabels();
         }
@@ -354,6 +360,8 @@
             const afterResultBody = document.getElementById("announcementTemplateTableBodyAfterResult");
             const state = getCurrentAnnouncementState();
             const topIds = ["oneHourBefore", "tenMinutesBefore", "startTime"];
+            const beforeResultIds = ["preparationNotice", "startBattle", "confirmResults"];
+            const afterResultIds = ["finalizeResults", "closing"];
             const topParts = [];
             const beforeResultParts = [];
             const afterResultParts = [];
@@ -372,7 +380,9 @@
                 `);
             }
 
-            for (const definition of announcementTemplateDefinitions.slice(3, 5)) {
+            for (const id of beforeResultIds) {
+                const definition = announcementTemplateDefinitions.find((item) => item.id === id);
+                if (!definition) continue;
                 beforeResultParts.push(`
                     <tr>
                         <td class="announcement-tool-cell-timing">
@@ -384,7 +394,9 @@
                 `);
             }
 
-            for (const definition of announcementTemplateDefinitions.slice(5)) {
+            for (const id of afterResultIds) {
+                const definition = announcementTemplateDefinitions.find((item) => item.id === id);
+                if (!definition) continue;
                 afterResultParts.push(`
                     <tr>
                         <td class="announcement-tool-cell-timing">
@@ -419,12 +431,10 @@
             document.execCommand("copy");
             document.body.removeChild(temporaryTextarea);
         }
-
         let copyStatusTimerId = null;
 
         function showCopyStatus(message) {
             let copyToast = document.getElementById("copyToast");
-            const copyStatus = document.getElementById("copyStatus");
 
             if (!copyToast) {
                 copyToast = document.createElement("div");
@@ -437,20 +447,10 @@
             copyToast.textContent = message;
             copyToast.classList.add("is-visible");
 
-            if (copyStatus) {
-                copyStatus.textContent = message;
-                copyStatus.classList.add("is-visible");
-            }
-
             if (copyStatusTimerId) window.clearTimeout(copyStatusTimerId);
             copyStatusTimerId = window.setTimeout(() => {
                 copyToast.textContent = "";
                 copyToast.classList.remove("is-visible");
-
-                if (copyStatus) {
-                    copyStatus.textContent = "";
-                    copyStatus.classList.remove("is-visible");
-                }
             }, 2000);
         }
 
@@ -463,13 +463,6 @@
             showCopyStatus("コピーしました");
         }
 
-        async function copyAllTemplates() {
-            const currentState = getCurrentAnnouncementState();
-            const allTemplateText = announcementTemplateDefinitions.map((definition) => buildPlainTextFromTemplate(definition, currentState)).join("\n\n");
-            await copyTextToClipboard(allTemplateText);
-            showCopyStatus("全文をコピーしました");
-        }
-
         function initializeAnnouncementTemplateTool() {
             const roleSelect = document.getElementById("roleSelect");
             const battleNumberSelect = document.getElementById("battleNumberSelect");
@@ -479,7 +472,7 @@
             const teamBNameInput = document.getElementById("teamBNameInput");
 
             populateSelectOptions(roleSelect, ["先鋒", "次鋒", "中堅", "副将", "大将"]);
-            populateSelectOptions(battleNumberSelect, ["1", "2", "3", "4", "5"], (value) => `${value}戦目`);
+            populateSelectOptions(battleNumberSelect, ["1", "2", "3"], (value) => `${value}戦目`);
             populateSelectOptions(preparationHourSelect, Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0")));
             populateSelectOptions(preparationMinuteSelect, Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0")));
 
@@ -509,6 +502,46 @@
                     if (mmNum >= 60) {
                         mmNum = 0;
                         hhNum = (hhNum + 1) % 24;
+                    }
+                    const hhStr = String(hhNum).padStart(2, "0");
+                    const mmStr = String(mmNum).padStart(2, "0");
+                    preparationHourSelect.value = hhStr;
+                    preparationMinuteSelect.value = mmStr;
+                    announcementTemplateState.preparationHour = hhStr;
+                    announcementTemplateState.preparationMinute = mmStr;
+                    renderAnnouncementTemplateTable();
+                });
+            }
+            const addThreeMinutesButton = document.getElementById("addThreeMinutesButton");
+            if (addThreeMinutesButton) {
+                addThreeMinutesButton.addEventListener("click", () => {
+                    if (!preparationHourSelect || !preparationMinuteSelect) return;
+                    let hhNum = parseInt(preparationHourSelect.value, 10) || 0;
+                    let mmNum = parseInt(preparationMinuteSelect.value, 10) || 0;
+                    mmNum += 3;
+                    if (mmNum >= 60) {
+                        hhNum = (hhNum + Math.floor(mmNum / 60)) % 24;
+                        mmNum = mmNum % 60;
+                    }
+                    const hhStr = String(hhNum).padStart(2, "0");
+                    const mmStr = String(mmNum).padStart(2, "0");
+                    preparationHourSelect.value = hhStr;
+                    preparationMinuteSelect.value = mmStr;
+                    announcementTemplateState.preparationHour = hhStr;
+                    announcementTemplateState.preparationMinute = mmStr;
+                    renderAnnouncementTemplateTable();
+                });
+            }
+            const addFiveMinutesButton = document.getElementById("addFiveMinutesButton");
+            if (addFiveMinutesButton) {
+                addFiveMinutesButton.addEventListener("click", () => {
+                    if (!preparationHourSelect || !preparationMinuteSelect) return;
+                    let hhNum = parseInt(preparationHourSelect.value, 10) || 0;
+                    let mmNum = parseInt(preparationMinuteSelect.value, 10) || 0;
+                    mmNum += 5;
+                    if (mmNum >= 60) {
+                        hhNum = (hhNum + Math.floor(mmNum / 60)) % 24;
+                        mmNum = mmNum % 60;
                     }
                     const hhStr = String(hhNum).padStart(2, "0");
                     const mmStr = String(mmNum).padStart(2, "0");
@@ -575,7 +608,7 @@
                 // ignore
             });
 
-            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect", "teamBWinsSelect", "winnerTeamSelect"];
+            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect", "winnerTeamSelect"];
             for (const inputId of inputs) {
                 const element = document.getElementById(inputId);
                 if (!element) continue;
@@ -592,19 +625,14 @@
             const tableClickHandler = (event) => {
                 const copyButton = event.target.closest("button[data-template-id]");
                 if (!copyButton) return;
-                copyTemplateById(copyButton.dataset.templateId).catch(() => showCopyStatus("コピーに失敗しました"));
+                copyTemplateById(copyButton.dataset.templateId).catch(() => {
+                    // ignore
+                });
             };
 
             if (topBodyEl) topBodyEl.addEventListener("click", tableClickHandler);
             if (beforeResultBodyEl) beforeResultBodyEl.addEventListener("click", tableClickHandler);
             if (afterResultBodyEl) afterResultBodyEl.addEventListener("click", tableClickHandler);
-
-            const copyAllButton = document.getElementById("copyAllButton");
-            if (copyAllButton) {
-                copyAllButton.addEventListener("click", () => {
-                    copyAllTemplates().catch(() => showCopyStatus("コピーに失敗しました"));
-                });
-            }
 
             renderAnnouncementTemplateTable();
         }
