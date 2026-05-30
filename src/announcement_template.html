@@ -46,11 +46,18 @@
             <div class="announcement-tool-settings">
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">役職</span>
-                    <select id="roleSelect" class="announcement-tool-select"></select>
+                    <div class="announcement-tool-inline-controls">
+                        <select id="roleSelect" class="announcement-tool-select"></select>
+                        <button type="button" id="nextRoleButton" class="btn announcement-tool-add-minute">次</button>
+                    </div>
                 </label>
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">対戦番号 / n戦目</span>
-                    <select id="battleNumberSelect" class="announcement-tool-select"></select>
+                    <div class="announcement-tool-inline-controls">
+                        <select id="battleNumberSelect" class="announcement-tool-select"></select>
+                        <button type="button" id="nextBattleNumberButton"
+                            class="btn announcement-tool-add-minute">次</button>
+                    </div>
                 </label>
                 <div class="announcement-tool-setting announcement-tool-time-setting">
                     <span class="announcement-tool-setting-label">時刻</span>
@@ -69,6 +76,7 @@
                     <div class="announcement-tool-time-controls">
                         <button type="button" id="subOneMinuteButton"
                             class="btn announcement-tool-add-minute">-1分</button>
+                        <button type="button" id="nowTimeButton" class="btn announcement-tool-add-minute">今</button>
                         <button type="button" id="addOneMinuteButton"
                             class="btn announcement-tool-add-minute">+1分</button>
                         <button type="button" id="addThreeMinutesButton"
@@ -186,12 +194,12 @@
                 id: "preparationNotice",
                 timingLabel: "1〜5戦目の準備連絡",
                 buildPlainText: (state) => [
-                    `両チームの${state.battleNumber}戦目の準備をしてください。`,
+                    `両チームの${state.role}は、${state.battleNumber}戦目の準備をしてください。`,
                     `完了したら、こちらに「\`準備完了しました。\`」と送ってください。`,
                     `なお、${formatAnnouncementTime(state)}までに準備が完了しない場合、不戦敗となります。`,
                 ],
                 buildPreviewLines: (state) => [
-                    `両チームの${highlightValue(`${state.battleNumber}戦目`)}の準備をしてください。`,
+                    `両チームの${highlightValue(state.role)}は、${highlightValue(`${state.battleNumber}戦目`)}の準備をしてください。`,
                     `完了したら、こちらに「\`${highlightValue("準備完了しました。")}\`」と送ってください。`,
                     `なお、${highlightValue(formatAnnouncementTime(state))}までに準備が完了しない場合、不戦敗となります。`,
                 ],
@@ -273,6 +281,40 @@
                 winnerTeam: getInputValue("winnerTeamSelect", announcementTemplateState.winnerTeam),
                 resultUrl: RESULT_URL,
             };
+        }
+
+        function setPreparationTimeToNow(preparationHourSelect, preparationMinuteSelect) {
+            if (!preparationHourSelect || !preparationMinuteSelect) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, "0");
+            const mm = String(now.getMinutes()).padStart(2, "0");
+            preparationHourSelect.value = hh;
+            preparationMinuteSelect.value = mm;
+            announcementTemplateState.preparationHour = hh;
+            announcementTemplateState.preparationMinute = mm;
+            renderAnnouncementTemplateTable();
+        }
+
+        function advanceBattleNumber(battleNumberSelect) {
+            if (!battleNumberSelect) return;
+            const currentValue = Number.parseInt(battleNumberSelect.value || announcementTemplateState.battleNumber, 10);
+            const nextValue = Number.isFinite(currentValue) && currentValue >= 1 && currentValue < 3 ? currentValue + 1 : 1;
+            battleNumberSelect.value = String(nextValue);
+            announcementTemplateState.battleNumber = String(nextValue);
+            renderAnnouncementTemplateTable();
+        }
+
+        function advanceRole(roleSelect, battleNumberSelect) {
+            if (!roleSelect || roleSelect.options.length === 0) return;
+            const currentIndex = Math.max(0, roleSelect.selectedIndex);
+            const nextIndex = (currentIndex + 1) % roleSelect.options.length;
+            roleSelect.selectedIndex = nextIndex;
+            announcementTemplateState.role = roleSelect.value;
+            if (battleNumberSelect) {
+                battleNumberSelect.value = "1";
+                announcementTemplateState.battleNumber = "1";
+            }
+            renderAnnouncementTemplateTable();
         }
 
         function buildPlainTextFromTemplate(definition, state) {
@@ -481,17 +523,30 @@
             if (roleSelect) roleSelect.value = announcementTemplateState.role;
             if (battleNumberSelect) battleNumberSelect.value = announcementTemplateState.battleNumber;
 
+            const nextRoleButton = document.getElementById("nextRoleButton");
+            if (nextRoleButton) {
+                nextRoleButton.addEventListener("click", () => {
+                    advanceRole(roleSelect, battleNumberSelect);
+                });
+            }
+
+            const nextBattleNumberButton = document.getElementById("nextBattleNumberButton");
+            if (nextBattleNumberButton) {
+                nextBattleNumberButton.addEventListener("click", () => {
+                    advanceBattleNumber(battleNumberSelect);
+                });
+            }
+
             // Set time selects to current time
-            const now = new Date();
-            const hh = String(now.getHours()).padStart(2, "0");
-            const mm = String(now.getMinutes()).padStart(2, "0");
-            if (preparationHourSelect) preparationHourSelect.value = hh;
-            if (preparationMinuteSelect) preparationMinuteSelect.value = mm;
-            // keep state in sync
-            announcementTemplateState.preparationHour = hh;
-            announcementTemplateState.preparationMinute = mm;
+            setPreparationTimeToNow(preparationHourSelect, preparationMinuteSelect);
 
             // +1 minute button handler
+            const nowTimeButton = document.getElementById("nowTimeButton");
+            if (nowTimeButton) {
+                nowTimeButton.addEventListener("click", () => {
+                    setPreparationTimeToNow(preparationHourSelect, preparationMinuteSelect);
+                });
+            }
             const addOneMinuteButton = document.getElementById("addOneMinuteButton");
             if (addOneMinuteButton) {
                 addOneMinuteButton.addEventListener("click", () => {

@@ -2746,6 +2746,20 @@ a.btn:visited {
   align-items: center;
 }
 
+.announcement-tool-inline-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.announcement-tool-inline-controls .announcement-tool-select {
+  flex: 1 1 auto;
+}
+
+.announcement-tool-inline-controls .btn {
+  flex: 0 0 auto;
+}
+
 .announcement-tool-team-select {
   min-width: 180px;
 }
