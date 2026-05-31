@@ -87,9 +87,6 @@ async function exportCardAsImage(
       border: teamAElement.style.border,
       borderColor: teamAElement.style.borderColor,
     });
-    teamAElement.style.background = "#eaf4ff";
-    teamAElement.style.backgroundColor = "#eaf4ff";
-    teamAElement.style.border = "2px solid #3498db";
   }
   if (teamBElement) {
     exportTeamElements.push({
@@ -99,9 +96,6 @@ async function exportCardAsImage(
       border: teamBElement.style.border,
       borderColor: teamBElement.style.borderColor,
     });
-    teamBElement.style.background = "#fff1ef";
-    teamBElement.style.backgroundColor = "#fff1ef";
-    teamBElement.style.border = "2px solid #e74c3c";
   }
   // 事前にカード本文内に「対戦日」が含まれているか確認しておく（重複防止）
   const cardTextBefore = card.textContent || "";
