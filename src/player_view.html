@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
+    <meta name="theme-color" content="#2563eb">
+    <title>プレイヤー情報</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤー情報</h1>
+            <hr>
+            <p id="statusMessage">読み込み中...</p>
+            <a href="./leader.html" class="btn">リーダーページに戻る</a>
+        </div>
+
+        <div class="card hidden" id="playerViewCard">
+            <h2 id="playerTitle"></h2>
+            <hr>
+            <div id="playerInfo"></div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        function escapeHtml(value) {
+            return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+        }
+
+        function formatPlayerHtml(player) {
+            const mirrativLink = player.mirrativ_url ? `<a href="${escapeHtml(player.mirrativ_url)}" target="_blank" rel="noopener noreferrer">配信プロフィールへ</a>` : "-";
+            const teams = player.team_names || "";
+            return `
+                <div style="margin-bottom:8px;"><strong>プレイヤーID:</strong> ${escapeHtml(player.player_id || "-")}</div>
+                <div style="margin-bottom:8px;"><strong>プレイヤー名:</strong> ${escapeHtml(player.player_name || "-")}</div>
+                <div style="margin-bottom:8px;"><strong>チーム:</strong> ${escapeHtml(teams || "-")}</div>
+                <div style="margin-bottom:8px;"><strong>ミラティブ:</strong> ${mirrativLink}</div>
+            `;
+        }
+
+        async function loadPlayerView() {
+            const status = document.getElementById('statusMessage');
+            const card = document.getElementById('playerViewCard');
+            const title = document.getElementById('playerTitle');
+            const info = document.getElementById('playerInfo');
+
+            const params = new URLSearchParams(window.location.search);
+            const playerId = params.get('playerId');
+            if (!playerId) {
+                status.textContent = 'プレイヤーIDが指定されていません。';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/players');
+                const result = await res.json();
+                if (!res.ok || !result.success) {
+                    status.textContent = result.message || 'プレイヤー情報の取得に失敗しました。';
+                    return;
+                }
+
+                const players = result.players || [];
+                const player = players.find(p => String(p.player_id) === String(playerId));
+
+                if (!player) {
+                    status.textContent = '指定されたプレイヤーが見つかりません。';
+                    return;
+                }
+
+                status.style.display = 'none';
+                title.textContent = `${player.player_name || player.player_id}`;
+                info.innerHTML = formatPlayerHtml(player);
+                card.classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                status.textContent = 'プレイヤー情報の取得に失敗しました。';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPlayerView);
+    </script>
+</body>
+
+</html>

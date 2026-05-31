@@ -678,7 +678,7 @@
                         const row = document.createElement("tr");
                         row.style.borderBottom = "1px solid #ddd";
                         row.innerHTML = `
-                            <td style="padding: 8px;">${member.player_name}</td>
+                            <td style="padding: 8px;"><a href="./player_view.html?playerId=${encodeURIComponent(member.player_id)}" style="color: #2563eb; text-decoration: underline;">${member.player_name}</a></td>
                             <td style="padding: 8px;"><a href="#" onclick="event.preventDefault(); copyPlayerId('${member.player_id}');" style="color: #2563eb; text-decoration: underline; cursor: pointer;" title="クリックしてコピー">${member.player_id}</a></td>
                         `;
                         memberTableBody.appendChild(row);
