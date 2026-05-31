@@ -260,13 +260,25 @@ async function exportCardAsImage(
     });
     console.debug("exportCard: html2canvas finished");
 
-    const url = canvas.toDataURL("image/png");
+    if (!canvas.width || !canvas.height) {
+      throw new Error("描画結果が空です");
+    }
+
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((result) => resolve(result), "image/png");
+    });
+    if (!blob) {
+      throw new Error("画像データの生成に失敗しました");
+    }
+
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     // 保存完了メッセージをボタン下に表示
     let completeMsg = button.parentNode.querySelector(".save-complete-msg");
