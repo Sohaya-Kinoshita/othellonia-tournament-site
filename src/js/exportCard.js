@@ -34,6 +34,11 @@ async function exportCardAsImage(
   button.textContent = "生成中...";
   button.disabled = true;
 
+  const restoreButtonState = () => {
+    button.textContent = originalText;
+    button.disabled = false;
+  };
+
   // リンクとボタンを非表示（高さは保持）
 
   const links = card.querySelectorAll(".player-link");
@@ -252,85 +257,40 @@ async function exportCardAsImage(
     });
     console.debug("exportCard: html2canvas finished");
 
-    canvas.toBlob(function (blob) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      // 保存完了メッセージをボタン下に表示
-      let completeMsg = button.parentNode.querySelector(".save-complete-msg");
-      if (!completeMsg) {
-        completeMsg = document.createElement("div");
-        completeMsg.className = "save-complete-msg";
-        completeMsg.style.cssText =
-          "color: #166534; font-weight: bold; margin-top: 8px; font-size: 15px;";
-        button.parentNode.insertBefore(completeMsg, button.nextSibling);
-      }
-      completeMsg.textContent = "保存完了！";
-      setTimeout(() => {
-        if (completeMsg) completeMsg.textContent = "";
-      }, 3000);
-
-      // リンクとボタンを再表示
-      links.forEach((link) => link.classList.remove("hide-for-export"));
-      // display:noneを元に戻す
-      hiddenElements.forEach(({ el, prev }) => {
-        el.style.display = prev;
-      });
-      // 外部の対戦日要素を復元
-      try {
-        hiddenExternalDateElements.forEach(({ el, prev }) => {
-          el.style.display = prev;
-        });
-      } catch (e) {
-        // ignore
-      }
-      card.classList.remove("exporting");
-      if (targetWidth) {
-        card.style.width = originalWidth;
-        card.style.maxWidth = originalMaxWidth;
-        card.style.boxSizing = originalBoxSizing;
-      }
-      // 背景設定を元に戻す
-      try {
-        card.style.background = originalBg.background;
-        card.style.backgroundImage = originalBg.backgroundImage;
-        card.style.backgroundRepeat = originalBg.backgroundRepeat;
-        card.style.backgroundPosition = originalBg.backgroundPosition;
-        card.style.backgroundSize = originalBg.backgroundSize;
-        card.style.backgroundAttachment = originalBg.backgroundAttachment;
-        card.style.backgroundColor = originalBg.backgroundColor;
-      } catch (e) {
-        // ignore
-      }
-      if (exportBrandHeader) {
-        exportBrandHeader.remove();
-      }
-      if (exportMetaElement) {
-        exportMetaElement.remove();
-      }
-      exportTeamElements.forEach(
-        ({ el, background, backgroundColor, border, borderColor }) => {
-          el.style.background = background;
-          el.style.backgroundColor = backgroundColor;
-          el.style.border = border;
-          el.style.borderColor = borderColor;
-        },
-      );
-
-      button.textContent = originalText;
-      button.disabled = false;
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((result) => resolve(result));
     });
+    const useObjectUrl = Boolean(blob);
+    const url = useObjectUrl
+      ? URL.createObjectURL(blob)
+      : canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (useObjectUrl) {
+      URL.revokeObjectURL(url);
+    }
+
+    // 保存完了メッセージをボタン下に表示
+    let completeMsg = button.parentNode.querySelector(".save-complete-msg");
+    if (!completeMsg) {
+      completeMsg = document.createElement("div");
+      completeMsg.className = "save-complete-msg";
+      completeMsg.style.cssText =
+        "color: #166534; font-weight: bold; margin-top: 8px; font-size: 15px;";
+      button.parentNode.insertBefore(completeMsg, button.nextSibling);
+    }
+    completeMsg.textContent = "保存完了！";
+    setTimeout(() => {
+      if (completeMsg) completeMsg.textContent = "";
+    }, 3000);
   } catch (error) {
     console.error("画像生成エラー:", error);
     alert("画像の生成に失敗しました");
-
-    // エラー時もリンクとボタンを再表示
+  } finally {
     links.forEach((link) => link.classList.remove("hide-for-export"));
     hiddenElements.forEach(({ el, prev }) => {
       el.style.display = prev;
@@ -348,7 +308,6 @@ async function exportCardAsImage(
       card.style.maxWidth = originalMaxWidth;
       card.style.boxSizing = originalBoxSizing;
     }
-    // 背景設定を元に戻す
     try {
       card.style.background = originalBg.background;
       card.style.backgroundImage = originalBg.backgroundImage;
@@ -375,7 +334,6 @@ async function exportCardAsImage(
       },
     );
 
-    button.textContent = originalText;
-    button.disabled = false;
+    restoreButtonState();
   }
 }
