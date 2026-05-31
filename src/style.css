@@ -1362,11 +1362,13 @@ th {
 }
 
 .match-card.exporting .team-a {
-  background: #3498db;
+  background: rgba(52, 152, 219, 0.1);
+  border: 2px solid #3498db;
 }
 
 .match-card.exporting .team-b {
-  background: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  border: 2px solid #e74c3c;
 }
 
 .match-card.exporting .player-item {
