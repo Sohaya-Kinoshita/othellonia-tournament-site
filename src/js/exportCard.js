@@ -16,6 +16,15 @@ async function exportCardAsImage(
   button,
   optionsOrWidth = null,
 ) {
+  const cacheBust = `v=${encodeURIComponent(new Date().toISOString().slice(0, 10))}`;
+  const withCacheBust = (assetPath) => {
+    const assetUrl = new URL(assetPath, window.location.href);
+    assetUrl.search = assetUrl.search
+      ? `${assetUrl.search}&${cacheBust}`
+      : `?${cacheBust}`;
+    return assetUrl.href;
+  };
+
   const card = document.getElementById(cardId);
   if (!card) {
     console.error(`カードが見つかりません: ${cardId}`);
@@ -113,7 +122,7 @@ async function exportCardAsImage(
   exportBrandHeader.className = "export-brand-header";
   exportBrandHeader.innerHTML = `
     <div class="export-brand">
-      <img src="${new URL("./images/Logo_Title.jpg", window.location.href).href}" alt="隊抗戦" class="export-brand-title-img">
+      <img src="${withCacheBust("./images/Logo_Title.jpg")}" alt="隊抗戦" class="export-brand-title-img">
     </div>
   `;
   const headerImages = exportBrandHeader.querySelectorAll("img");
@@ -193,8 +202,7 @@ async function exportCardAsImage(
 
     // フォールバック: CSS の背景が取得できない場合は既定の背景画像を使う
     if (!bgImage || bgImage === "none") {
-      const fallbackUrl = new URL("./images/背景2.png", window.location.href)
-        .href;
+      const fallbackUrl = withCacheBust("./images/背景2.png");
       bgImage = `url("${fallbackUrl}")`;
     }
 
@@ -272,24 +280,36 @@ async function exportCardAsImage(
     }
 
     const suggestedFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
+    let savedWithPicker = false;
     if (window.showSaveFilePicker) {
-      const fileHandle = await window.showSaveFilePicker({
-        suggestedName: suggestedFileName,
-        types: [
-          {
-            description: "PNG画像",
-            accept: { "image/png": [".png"] },
-          },
-        ],
-      });
-      const writable = await fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-    } else {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: suggestedFileName,
+          types: [
+            {
+              description: "PNG画像",
+              accept: { "image/png": [".png"] },
+            },
+          ],
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        savedWithPicker = true;
+      } catch (pickerError) {
+        console.warn(
+          "save picker failed, falling back to download:",
+          pickerError,
+        );
+      }
+    }
+
+    if (!savedWithPicker) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = suggestedFileName;
+      a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
