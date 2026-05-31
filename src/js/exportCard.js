@@ -68,7 +68,10 @@ async function exportCardAsImage(
   links.forEach((link) => link.classList.add("hide-for-export"));
 
   // エクスポート用のスタイルを適用
-  card.classList.add("exporting");
+  const exportTarget = card.classList.contains("match-card")
+    ? card
+    : card.querySelector(".match-card") || card;
+  exportTarget.classList.add("exporting");
 
   // 幅を一時的に変更
   const originalWidth = card.style.width;
@@ -257,22 +260,13 @@ async function exportCardAsImage(
     });
     console.debug("exportCard: html2canvas finished");
 
-    const blob = await new Promise((resolve) => {
-      canvas.toBlob((result) => resolve(result));
-    });
-    const useObjectUrl = Boolean(blob);
-    const url = useObjectUrl
-      ? URL.createObjectURL(blob)
-      : canvas.toDataURL("image/png");
+    const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    if (useObjectUrl) {
-      URL.revokeObjectURL(url);
-    }
 
     // 保存完了メッセージをボタン下に表示
     let completeMsg = button.parentNode.querySelector(".save-complete-msg");
@@ -302,7 +296,7 @@ async function exportCardAsImage(
     } catch (e) {
       // ignore
     }
-    card.classList.remove("exporting");
+    exportTarget.classList.remove("exporting");
     if (targetWidth) {
       card.style.width = originalWidth;
       card.style.maxWidth = originalMaxWidth;
