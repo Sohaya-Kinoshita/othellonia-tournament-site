@@ -245,6 +245,10 @@ async function exportCardAsImage(
     console.debug("exportCard: calling html2canvas", {
       targetWidth: targetWidth || card.offsetWidth,
     });
+    // ensure style/layout changes are applied before rendering
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
     const canvas = await html2canvas(card, {
       backgroundColor: originalBg.computedBackgroundColor || "#ffffff",
       scale: window.devicePixelRatio || 2,
