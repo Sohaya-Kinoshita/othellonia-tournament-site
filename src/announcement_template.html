@@ -130,24 +130,15 @@
                         <input type="text" id="teamBNameInput" value="Bチーム" />
                     </div>
                 </label>
-                <label class="announcement-tool-setting">
+                <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">Aチームの勝利数</span>
-                    <select id="teamAWinsSelect" class="announcement-tool-select"></select>
+                    <select id="teamAWinsSelect"
+                        class="announcement-tool-select announcement-tool-wins-select"></select>
                 </label>
                 <div class="announcement-tool-status-row">
                     <span id="teamBWinsDisplay" class="announcement-tool-status-text">Bチームの勝利数: 5 - Aチームの勝利数</span>
                 </div>
-                <label class="announcement-tool-setting">
-                    <span class="announcement-tool-setting-label">勝利チーム</span>
-                    <select id="winnerTeamSelect" class="announcement-tool-select">
-                        <option value="teamA">Aチーム</option>
-                        <option value="teamB">Bチーム</option>
-                    </select>
-                </label>
-                <label class="announcement-tool-setting announcement-tool-url-setting">
-                    <span class="announcement-tool-setting-label">結果表示URL</span>
-                    <span id="resultUrlDisplay">https://taikousen.com/result</span>
-                </label>
+                <!-- 勝利チームの手動選択は廃止: 勝利は勝利数で自動判定します -->
             </div>
         </div>
 
@@ -171,7 +162,6 @@
     <div id="copyToast" class="announcement-copy-toast" aria-live="polite"></div>
     <script src="./js/layout.js"></script>
     <script>
-        const RESULT_URL = "https://taikousen.com/result";
 
         const announcementTemplateState = {
             teamAName: "Aチーム",
@@ -183,7 +173,6 @@
             teamAWins: "0",
             teamBWins: "0",
             winnerTeam: "teamA",
-            resultUrl: RESULT_URL,
         };
 
         const announcementTemplateDefinitions = [
@@ -218,13 +207,11 @@
                     `${state.teamAName}${state.teamAWins}勝、${state.teamBName}${state.teamBWins}勝で、${getWinningTeamName(state)}の勝利となりました。`,
                     "WEBサイトで対戦結果を表示しています。",
                     "ご確認の上、相違が無ければ対戦結果を確定します。",
-                    state.resultUrl,
                 ],
                 buildPreviewLines: (state) => [
                     `${highlightValue(state.teamAName)}${highlightValue(state.teamAWins)}勝、${highlightValue(state.teamBName)}${highlightValue(state.teamBWins)}勝で、${highlightValue(getWinningTeamName(state))}の勝利となりました。`,
                     "WEBサイトで対戦結果を表示しています。",
                     "ご確認の上、相違が無ければ対戦結果を確定します。",
-                    highlightValue(state.resultUrl),
                 ],
             },
             { id: "closing", timingLabel: "最終挨拶", buildPlainText: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"], buildPreviewLines: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"] },
@@ -248,17 +235,19 @@
         }
 
         function getWinningTeamName(state) {
+            // teamAWins / teamBWins may be strings; parse to integers for comparison.
+            const aWins = Number.parseInt(state.teamAWins, 10) || 0;
+            const bWins = Number.parseInt(state.teamBWins, 10) || 0;
+
+            if (aWins > bWins) return state.teamAName;
+            if (bWins > aWins) return state.teamBName;
+
+            // If tied, fall back to explicit selection (`winnerTeam`) if provided,
+            // otherwise default to A team name.
             return state.winnerTeam === "teamB" ? state.teamBName : state.teamAName;
         }
 
-        function updateWinnerTeamOptionLabels() {
-            const teamAInput = document.getElementById("teamANameInput");
-            const teamBInput = document.getElementById("teamBNameInput");
-            const winnerTeamSelect = document.getElementById("winnerTeamSelect");
-            if (!teamAInput || !teamBInput || !winnerTeamSelect || winnerTeamSelect.options.length < 2) return;
-            winnerTeamSelect.options[0].textContent = teamAInput.value.trim() || "Aチーム";
-            winnerTeamSelect.options[1].textContent = teamBInput.value.trim() || "Bチーム";
-        }
+        // 勝利チームのオプション同期は不要になったため削除
 
         function getInputValue(id, fallback = "") {
             const element = document.getElementById(id);
@@ -278,8 +267,8 @@
                 preparationMinute: getInputValue("preparationMinuteSelect", announcementTemplateState.preparationMinute),
                 teamAWins: teamAWinsValue,
                 teamBWins: String(derivedTeamBWins),
-                winnerTeam: getInputValue("winnerTeamSelect", announcementTemplateState.winnerTeam),
-                resultUrl: RESULT_URL,
+                // tie-breaker fallback from state (no manual select input)
+                winnerTeam: announcementTemplateState.winnerTeam,
             };
         }
 
@@ -382,18 +371,14 @@
 
         function syncOptionalControls(state) {
             const teamAWinsSelect = document.getElementById("teamAWinsSelect");
-            const winnerTeamSelect = document.getElementById("winnerTeamSelect");
-            const resultUrlDisplay = document.getElementById("resultUrlDisplay");
             const teamBWinsDisplay = document.getElementById("teamBWinsDisplay");
 
             if (teamAWinsSelect && teamAWinsSelect.options.length === 0) populateSelectOptions(teamAWinsSelect, ["0", "1", "2", "3", "4", "5"]);
 
             if (teamAWinsSelect) teamAWinsSelect.value = state.teamAWins || announcementTemplateState.teamAWins;
-            if (winnerTeamSelect) winnerTeamSelect.value = state.winnerTeam || announcementTemplateState.winnerTeam;
-            if (resultUrlDisplay) resultUrlDisplay.textContent = state.resultUrl || RESULT_URL;
-            if (teamBWinsDisplay) teamBWinsDisplay.textContent = `Bチームの勝利数: 5 - Aチームの勝利数 = ${state.teamBWins || "0"}`;
+            if (teamBWinsDisplay) teamBWinsDisplay.textContent = `Bチームの勝利数: = ${state.teamBWins || "0"}`;
 
-            updateWinnerTeamOptionLabels();
+            // 勝利チーム選択は廃止のためオプション同期不要
         }
 
         function renderAnnouncementTemplateTable() {
@@ -628,7 +613,7 @@
                 });
             }
 
-            updateWinnerTeamOptionLabels();
+            // 勝利チーム同期は不要のため呼び出し削除
 
             loadTeamsFromApi().then((teams) => {
                 populateTeamSelects(teams);
@@ -642,7 +627,6 @@
                         const name = option?.dataset?.name || "";
                         if (name && teamANameInput) {
                             teamANameInput.value = name;
-                            updateWinnerTeamOptionLabels();
                             renderAnnouncementTemplateTable();
                         }
                     });
@@ -654,7 +638,6 @@
                         const name = option?.dataset?.name || "";
                         if (name && teamBNameInput) {
                             teamBNameInput.value = name;
-                            updateWinnerTeamOptionLabels();
                             renderAnnouncementTemplateTable();
                         }
                     });
@@ -663,7 +646,7 @@
                 // ignore
             });
 
-            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect", "winnerTeamSelect"];
+            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect"];
             for (const inputId of inputs) {
                 const element = document.getElementById(inputId);
                 if (!element) continue;
@@ -671,8 +654,7 @@
                 element.addEventListener("change", renderAnnouncementTemplateTable);
             }
 
-            if (teamANameInput) teamANameInput.addEventListener("input", updateWinnerTeamOptionLabels);
-            if (teamBNameInput) teamBNameInput.addEventListener("input", updateWinnerTeamOptionLabels);
+            // 名前入力時の勝利チームオプション同期は不要
 
             const topBodyEl = document.getElementById("announcementTemplateTableBodyTop");
             const beforeResultBodyEl = document.getElementById("announcementTemplateTableBodyBeforeResult");

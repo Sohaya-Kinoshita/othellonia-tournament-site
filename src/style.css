@@ -882,6 +882,15 @@ th {
   box-sizing: border-box;
 }
 
+.announcement-tool-setting .announcement-tool-wins-select {
+  width: auto;
+  min-width: 72px;
+  max-width: 120px;
+  padding: 6px 8px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
 .announcement-tool-time-controls {
   margin-top: 8px;
   /* force the controls to occupy the full row under the selects */
