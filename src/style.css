@@ -1362,12 +1362,12 @@ th {
 }
 
 .match-card.exporting .team-a {
-  background: rgba(52, 152, 219, 0.1);
+  background: #eaf4ff;
   border: 2px solid #3498db;
 }
 
 .match-card.exporting .team-b {
-  background: rgba(231, 76, 60, 0.1);
+  background: #fff1ef;
   border: 2px solid #e74c3c;
 }
 
