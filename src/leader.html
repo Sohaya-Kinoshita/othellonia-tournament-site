@@ -28,7 +28,10 @@
             <hr>
             <div style="display:flex; gap:8px; align-items:center;">
                 <input id="playerIdInput" type="text" placeholder="プレイヤーIDを入力（12文字）" style="flex:1; padding:8px;" />
-                <button id="openPlayerBtn" class="btn">表示</button>
+                <div style="display:flex; gap:8px;">
+                    <button id="openPlayerBtn" class="btn">公開ページで表示</button>
+                    <button id="openPlayerAsPlayerBtn" class="btn">プレイヤーページで表示</button>
+                </div>
             </div>
             <p style="font-size:0.9em; color:#666; margin-top:8px;">※ プレイヤーIDを入力して「表示」を押すと個人ページが別タブで開きます。</p>
         </div>
@@ -130,11 +133,24 @@
             window.open(`./player_view.html?playerId=${encodeURIComponent(id)}`, '_blank');
         }
 
+        function openPlayerAsPlayer() {
+            const input = document.getElementById('playerIdInput');
+            if (!input) return;
+            const id = input.value.trim();
+            if (!id) {
+                alert('プレイヤーIDを入力してください。');
+                return;
+            }
+            window.open(`./player.html?playerId=${encodeURIComponent(id)}`, '_blank');
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             checkLeaderStatus();
             const btn = document.getElementById('openPlayerBtn');
+            const btn2 = document.getElementById('openPlayerAsPlayerBtn');
             const input = document.getElementById('playerIdInput');
             if (btn) btn.addEventListener('click', openPlayerView);
+            if (btn2) btn2.addEventListener('click', openPlayerAsPlayer);
             if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') openPlayerView(); });
         });
     </script>
