@@ -82,6 +82,27 @@ async function exportCardAsImage(
     : card.querySelector(".match-card") || card;
   exportTarget.classList.add("exporting");
 
+  const captureTarget = exportTarget;
+  const getCaptureSize = () => {
+    const rect = captureTarget.getBoundingClientRect();
+    const width =
+      targetWidth ||
+      Math.max(
+        rect.width,
+        captureTarget.scrollWidth,
+        captureTarget.offsetWidth,
+      );
+    const height = Math.max(
+      rect.height,
+      captureTarget.scrollHeight,
+      captureTarget.offsetHeight,
+    );
+    return {
+      width: Math.max(1, Math.round(width)),
+      height: Math.max(1, Math.round(height)),
+    };
+  };
+
   // 幅を一時的に変更
   const originalWidth = card.style.width;
   const originalMaxWidth = card.style.maxWidth;
@@ -253,30 +274,59 @@ async function exportCardAsImage(
     );
 
     console.debug("exportCard: calling html2canvas", {
-      targetWidth: targetWidth || card.offsetWidth,
+      targetWidth: targetWidth || captureTarget.offsetWidth,
     });
     // ensure style/layout changes are applied before rendering
     await new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(resolve)),
     );
-    const canvas = await html2canvas(card, {
-      backgroundColor: originalBg.computedBackgroundColor || "#ffffff",
-      scale: window.devicePixelRatio || 2,
-      logging: false,
-      useCORS: true,
-      width: targetWidth || card.offsetWidth,
-    });
+
+    const renderCanvas = async (useSimple) => {
+      if (useSimple) {
+        if (exportBrandHeader) {
+          exportBrandHeader.style.display = "none";
+        }
+        card.style.backgroundImage = "none";
+        card.style.backgroundColor = "#ffffff";
+      }
+      const { width, height } = getCaptureSize();
+      return html2canvas(captureTarget, {
+        backgroundColor: originalBg.computedBackgroundColor || "#ffffff",
+        scale: window.devicePixelRatio || 2,
+        logging: false,
+        useCORS: true,
+        width,
+        height,
+      });
+    };
+
+    let canvas = null;
+    try {
+      canvas = await renderCanvas(false);
+    } catch (renderError) {
+      console.warn(
+        "exportCard: render retry with simplified settings",
+        renderError,
+      );
+      canvas = await renderCanvas(true);
+    }
     console.debug("exportCard: html2canvas finished");
 
     if (!canvas.width || !canvas.height) {
       throw new Error("描画結果が空です");
     }
 
-    const blob = await new Promise((resolve) => {
+    let blob = await new Promise((resolve) => {
       canvas.toBlob((result) => resolve(result), "image/png");
     });
     if (!blob) {
-      throw new Error("画像データの生成に失敗しました");
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        const response = await fetch(dataUrl);
+        blob = await response.blob();
+      } catch (dataUrlError) {
+        throw new Error("画像データの生成に失敗しました");
+      }
     }
 
     const suggestedFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
