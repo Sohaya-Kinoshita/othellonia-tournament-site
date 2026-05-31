@@ -23,12 +23,23 @@
             <a href="./index.html" class="btn">トップページに戻る</a>
         </div>
 
+        <div class="card hidden" id="playerLookupCard">
+            <h2>プレイヤーを表示</h2>
+            <hr>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input id="playerIdInput" type="text" placeholder="プレイヤーIDを入力（12文字）" style="flex:1; padding:8px;" />
+                <button id="openPlayerBtn" class="btn">表示</button>
+            </div>
+            <p style="font-size:0.9em; color:#666; margin-top:8px;">※ プレイヤーIDを入力して「表示」を押すと個人ページが別タブで開きます。</p>
+        </div>
+
         <div class="card hidden" id="leaderMenuCard">
             <h2>リーダーメニュー</h2>
             <hr>
             <p id="playerName" style="font-weight: bold; margin-bottom: 16px;"></p>
             <div id="teamsList"></div>
         </div>
+
     </main>
 
     <div id="footerSlot"></div>
@@ -41,6 +52,7 @@
 
             const statusMessage = document.getElementById("statusMessage");
             const leaderMenuCard = document.getElementById("leaderMenuCard");
+            const playerLookupCard = document.getElementById("playerLookupCard");
             const playerNameDiv = document.getElementById("playerName");
             const teamsList = document.getElementById("teamsList");
 
@@ -99,6 +111,7 @@
                 });
 
                 leaderMenuCard.classList.remove("hidden");
+                if (playerLookupCard) playerLookupCard.classList.remove("hidden");
             } catch (error) {
                 console.error("Error:", error);
                 statusMessage.textContent =
@@ -106,8 +119,23 @@
             }
         }
 
+        function openPlayerView() {
+            const input = document.getElementById('playerIdInput');
+            if (!input) return;
+            const id = input.value.trim();
+            if (!id) {
+                alert('プレイヤーIDを入力してください。');
+                return;
+            }
+            window.open(`./player_view.html?playerId=${encodeURIComponent(id)}`, '_blank');
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             checkLeaderStatus();
+            const btn = document.getElementById('openPlayerBtn');
+            const input = document.getElementById('playerIdInput');
+            if (btn) btn.addEventListener('click', openPlayerView);
+            if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') openPlayerView(); });
         });
     </script>
 </body>
