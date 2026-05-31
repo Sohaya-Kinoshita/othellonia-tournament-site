@@ -271,14 +271,30 @@ async function exportCardAsImage(
       throw new Error("画像データの生成に失敗しました");
     }
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    const suggestedFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
+    if (window.showSaveFilePicker) {
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: suggestedFileName,
+        types: [
+          {
+            description: "PNG画像",
+            accept: { "image/png": [".png"] },
+          },
+        ],
+      });
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = suggestedFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
 
     // 保存完了メッセージをボタン下に表示
     let completeMsg = button.parentNode.querySelector(".save-complete-msg");
