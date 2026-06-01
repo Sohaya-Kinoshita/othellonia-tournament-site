@@ -43,15 +43,6 @@ async function assertAdmin(context) {
   return null;
 }
 
-function normalizeTeamIds(value) {
-  const rawValues = Array.isArray(value) ? value : [];
-  return [
-    ...new Set(
-      rawValues.map((teamId) => String(teamId || "").trim()).filter(Boolean),
-    ),
-  ].slice(0, 2);
-}
-
 async function rollbackIfNeeded(db) {
   try {
     await db.exec("ROLLBACK");
@@ -95,7 +86,6 @@ export async function onRequest(context) {
       const playerId = String(rawEntry.playerId || "").trim();
       const playerName = String(rawEntry.playerName || "").trim();
       const rawMirrativUrl = String(rawEntry.mirrativUrl || "").trim();
-      const teamIds = normalizeTeamIds(rawEntry.teamIds);
       const rowLabel = rawEntry.rowNumber
         ? `行 ${rawEntry.rowNumber}`
         : playerId || playerName || "未指定";
@@ -148,24 +138,6 @@ export async function onRequest(context) {
         continue;
       }
 
-      if (teamIds.length > 2) {
-        results.failed.push({
-          rowNumber: rawEntry.rowNumber ?? null,
-          rowLabel,
-          reason: "参加チームは最大2件までです",
-        });
-        continue;
-      }
-
-      if (teamIds.some((teamId) => teamId.length !== 3)) {
-        results.failed.push({
-          rowNumber: rawEntry.rowNumber ?? null,
-          rowLabel,
-          reason: "チームIDは3文字で入力してください",
-        });
-        continue;
-      }
-
       const existingPlayer = await db
         .prepare("SELECT player_id FROM players WHERE player_id = ?")
         .bind(playerId)
@@ -180,53 +152,18 @@ export async function onRequest(context) {
         continue;
       }
 
-      const teamChecks = [];
-      for (const teamId of teamIds) {
-        const team = await db
-          .prepare("SELECT team_id FROM teams WHERE team_id = ?")
-          .bind(teamId)
-          .first();
-        teamChecks.push({ teamId, exists: Boolean(team) });
-      }
-
-      const missingTeam = teamChecks.find((check) => !check.exists);
-      if (missingTeam) {
-        results.failed.push({
-          rowNumber: rawEntry.rowNumber ?? null,
-          rowLabel,
-          reason: `チームが見つかりません: ${missingTeam.teamId}`,
-        });
-        continue;
-      }
-
       try {
-        await db.exec("BEGIN");
-
         await db
           .prepare(
             "INSERT INTO players (player_id, player_name, mirrativ_id) VALUES (?, ?, ?)",
           )
           .bind(playerId, playerName, normalizedMirrativId)
           .run();
-
-        for (const teamId of teamIds) {
-          await db
-            .prepare(
-              "INSERT INTO team_members (team_id, player_id) VALUES (?, ?)",
-            )
-            .bind(teamId, playerId)
-            .run();
-        }
-
-        await db.exec("COMMIT");
         results.added.push({
           rowNumber: rawEntry.rowNumber ?? null,
           playerId,
-          teamIds,
         });
       } catch (error) {
-        await rollbackIfNeeded(db);
-
         const errorMessage = String(error?.message || "");
         if (
           errorMessage.includes("SQLITE_CONSTRAINT_PRIMARYKEY") ||
@@ -241,7 +178,7 @@ export async function onRequest(context) {
           results.failed.push({
             rowNumber: rawEntry.rowNumber ?? null,
             rowLabel,
-            reason: "チーム登録に失敗しました",
+            reason: "プレイヤー登録に失敗しました",
           });
         } else {
           results.failed.push({
