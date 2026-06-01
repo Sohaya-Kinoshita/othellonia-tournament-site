@@ -186,8 +186,17 @@
                 const keyword = el ? el.value.trim().toLowerCase() : "";
                 if (!keyword) return allTeams;
                 return allTeams.filter((team) => {
-                    return [team.team_name, team.leader_name, team.subleader_name]
+                    // match against team fields
+                    const basicMatch = [team.team_name, team.leader_name, team.subleader_name]
                         .some((value) => String(value || "").toLowerCase().includes(keyword));
+                    if (basicMatch) return true;
+
+                    // also match against member names belonging to this team
+                    return allPlayers.some((p) => {
+                        const belongs = (p.team_name_1 === team.team_name) || (p.team_name_2 === team.team_name);
+                        if (!belongs) return false;
+                        return String(p.player_name || "").toLowerCase().includes(keyword);
+                    });
                 });
             }
 
