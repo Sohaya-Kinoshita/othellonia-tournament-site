@@ -2471,6 +2471,135 @@ a.btn:visited {
   display: none !important;
 }
 
+.bulk-import-intro {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.bulk-import-help {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bulk-import-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bulk-import-input {
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.bulk-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bulk-import-summary {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+
+.bulk-import-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.bulk-import-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.bulk-import-table th,
+.bulk-import-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.bulk-import-table th {
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+}
+
+.bulk-import-col-narrow {
+  width: 56px;
+}
+
+.bulk-import-col-status {
+  width: 120px;
+}
+
+.bulk-import-empty-cell {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+}
+
+.bulk-import-row-added {
+  background: #f0fdf4;
+}
+
+.bulk-import-row-skipped {
+  background: #fefce8;
+}
+
+.bulk-import-row-failed {
+  background: #fef2f2;
+}
+
+.bulk-import-status {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bulk-import-error-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.bulk-import-link-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.player-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.player-form-inline-input {
+  margin-bottom: 0;
+}
+
+.player-form-inline-button {
+  margin: 0;
+  white-space: nowrap;
+}
+
 .match-list-search-row {
   margin-bottom: 16px;
   display: flex;

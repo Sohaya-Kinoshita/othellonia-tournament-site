@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
+    <link rel="manifest" href="./manifest.json">
+    <title>プレイヤーを一括作成</title>
+</head>
+
+<body>
+    <div id="headerSlot"></div>
+
+    <main class="container">
+        <div class="card">
+            <h1>プレイヤーを一括作成</h1>
+            <hr>
+            <p class="bulk-import-intro">1行ごとに1件のデータを貼り付けて、プレイヤー作成と最大2チームまでの紐付けをまとめて実行します。</p>
+            <p class="bulk-import-help">入力列は「プレイヤーネーム / プレイヤーID / Mirrativ URL / 参加チーム1 /
+                参加チーム2」の順で、タブ区切りまたはカンマ区切りを想定しています。</p>
+            <div class="bulk-import-link-row">
+                <a href="./admin.html" class="btn">管理者ページに戻る</a>
+                <a href="./player_admin.html" class="btn">単体作成に戻る</a>
+            </div>
+            <hr>
+            <p id="adminMessage">確認中...</p>
+        </div>
+
+        <div class="card hidden" id="bulkCard">
+            <div class="form-group">
+                <label for="bulkInput">一括登録データ</label>
+                <textarea id="bulkInput" class="bulk-import-input" rows="14"
+                    placeholder="プレイヤーネーム\tプレイヤーID\tMirrativ URL\t参加チーム1\t参加チーム2\nLabi\t459194330352\thttps://www.mirrativ.com/user/152497069\t101\t102"></textarea>
+                <p class="bulk-import-note">空行は無視されます。列が足りない場合は左から順に読み取ります。</p>
+            </div>
+
+            <div class="bulk-import-actions">
+                <button type="button" class="btn" id="pasteButton">貼り付け</button>
+                <button type="button" class="btn" id="previewButton">内容を解析</button>
+                <button type="button" class="btn" id="submitButton">一括登録</button>
+            </div>
+
+            <div id="message" class="message hidden"></div>
+            <div id="summary" class="bulk-import-summary hidden"></div>
+
+            <div class="bulk-import-table-wrap">
+                <table class="bulk-import-table">
+                    <thead>
+                        <tr>
+                            <th class="bulk-import-col-narrow">#</th>
+                            <th>プレイヤーネーム</th>
+                            <th>プレイヤーID</th>
+                            <th>Mirrativ URL</th>
+                            <th>参加チーム1</th>
+                            <th>参加チーム2</th>
+                            <th class="bulk-import-col-status">状態</th>
+                            <th>エラー</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="footerSlot"></div>
+
+    <script src="./js/layout.js"></script>
+    <script>
+        let parsedEntries = [];
+
+        function setMessage(text, type) {
+            const messageDiv = document.getElementById("message");
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.classList.remove("hidden");
+        }
+
+        function clearMessage() {
+            const messageDiv = document.getElementById("message");
+            messageDiv.textContent = "";
+            messageDiv.className = "message hidden";
+        }
+
+        function splitRow(line) {
+            if (line.includes("\t")) {
+                return line.split("\t");
+            }
+            if (line.includes("|")) {
+                return line.split("|");
+            }
+            if (line.includes(",")) {
+                return line.split(",");
+            }
+            return null;
+        }
+
+        function trimCell(value) {
+            return String(value || "").trim();
+        }
+
+        function normalizeHeader(value) {
+            return trimCell(value)
+                .replace(/\s+/g, "")
+                .replace(/[()（）]/g, "")
+                .toLowerCase();
+        }
+
+        function isHeaderRow(cells) {
+            const tokens = cells.map(normalizeHeader);
+            return tokens.some((token) => token.includes("player") || token.includes("プレイヤー"));
+        }
+
+        function findHeaderIndex(headers, candidates) {
+            const normalizedHeaders = headers.map(normalizeHeader);
+            for (const candidate of candidates) {
+                const normalizedCandidate = normalizeHeader(candidate);
+                const exactIndex = normalizedHeaders.indexOf(normalizedCandidate);
+                if (exactIndex >= 0) {
+                    return exactIndex;
+                }
+            }
+
+            for (let index = 0; index < normalizedHeaders.length; index += 1) {
+                if (candidates.some((candidate) => normalizedHeaders[index].includes(normalizeHeader(candidate)))) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        function buildEntry(rowNumber, sourceCells, headerMap) {
+            const cells = sourceCells.map(trimCell);
+
+            if (headerMap) {
+                return {
+                    rowNumber,
+                    playerName: cells[headerMap.playerName] || "",
+                    playerId: cells[headerMap.playerId] || "",
+                    mirrativUrl: cells[headerMap.mirrativUrl] || "",
+                    teamIds: [cells[headerMap.teamId1] || "", cells[headerMap.teamId2] || ""].filter(Boolean),
+                    rawLine: sourceCells.join("\t"),
+                };
+            }
+
+            return {
+                rowNumber,
+                playerName: cells[0] || "",
+                playerId: cells[1] || "",
+                mirrativUrl: cells[2] || "",
+                teamIds: [cells[3] || "", cells[4] || ""].filter(Boolean),
+                rawLine: sourceCells.join("\t"),
+            };
+        }
+
+        function parseFallbackLine(line, rowNumber) {
+            const idMatch = line.match(/\b\d{12}\b/);
+            if (!idMatch) {
+                return {
+                    rowNumber,
+                    playerName: line,
+                    playerId: "",
+                    mirrativUrl: "",
+                    teamIds: [],
+                    rawLine: line,
+                };
+            }
+
+            const playerId = idMatch[0];
+            const playerName = line.slice(0, idMatch.index).trim();
+            const tail = line.slice(idMatch.index + playerId.length).trim();
+            const urlMatch = tail.match(/https?:\/\/\S+/);
+            const mirrativUrl = urlMatch ? urlMatch[0].replace(/[)\],.]+$/, "") : "";
+
+            return {
+                rowNumber,
+                playerName,
+                playerId,
+                mirrativUrl,
+                teamIds: [],
+                rawLine: line,
+            };
+        }
+
+        function parseBulkInput(rawText) {
+            const lines = String(rawText || "")
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean);
+
+            if (lines.length === 0) {
+                return [];
+            }
+
+            const firstCells = splitRow(lines[0]);
+            const headerMap = firstCells && isHeaderRow(firstCells)
+                ? {
+                    playerName: findHeaderIndex(firstCells, ["プレイヤーネーム", "プレイヤー名", "player_name", "player name"]),
+                    playerId: findHeaderIndex(firstCells, ["プレイヤーID", "player_id", "player id"]),
+                    mirrativUrl: findHeaderIndex(firstCells, ["MirrativアカウントのURL", "Mirrativ URL", "mirrativ_url", "mirrativ url"]),
+                    teamId1: findHeaderIndex(firstCells, ["参加チーム1", "team1", "team_a", "team a"]),
+                    teamId2: findHeaderIndex(firstCells, ["参加チーム2", "team2", "team_b", "team b"]),
+                }
+                : null;
+
+            const startIndex = headerMap ? 1 : 0;
+            const entries = [];
+
+            for (let index = startIndex; index < lines.length; index += 1) {
+                const rowNumber = index + 1;
+                const line = lines[index];
+                const cells = splitRow(line);
+
+                if (cells && cells.length > 1) {
+                    entries.push(buildEntry(rowNumber, cells, headerMap));
+                    continue;
+                }
+
+                entries.push(parseFallbackLine(line, rowNumber));
+            }
+
+            return entries;
+        }
+
+        function validateEntry(entry) {
+            const errors = [];
+
+            if (!entry.playerName) {
+                errors.push("プレイヤーネームが必要です");
+            } else if (entry.playerName.length > 8) {
+                errors.push("プレイヤーネームは8文字以内です");
+            }
+
+            if (!/^\d{12}$/.test(entry.playerId || "")) {
+                errors.push("プレイヤーIDは半角数字12桁です");
+            }
+
+            const teamIds = (entry.teamIds || []).map(trimCell).filter(Boolean);
+            const uniqueTeamIds = [...new Set(teamIds)];
+
+            if (uniqueTeamIds.length > 2) {
+                errors.push("参加チームは最大2件です");
+            }
+
+            uniqueTeamIds.forEach((teamId) => {
+                if (teamId.length !== 3) {
+                    errors.push(`チームIDは3文字です: ${teamId}`);
+                }
+            });
+
+            return {
+                ...entry,
+                teamIds: uniqueTeamIds,
+                errors,
+                status: errors.length > 0 ? "要確認" : "OK",
+            };
+        }
+
+        function renderPreview(entries) {
+            const previewBody = document.getElementById("previewBody");
+            previewBody.innerHTML = "";
+
+            if (entries.length === 0) {
+                previewBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="bulk-import-empty-cell">解析結果がここに表示されます</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            previewBody.innerHTML = entries
+                .map((entry) => {
+                    const rowClass = entry.errors.length > 0 ? "bulk-import-row-failed" : "bulk-import-row-added";
+                    const teamId1 = entry.teamIds[0] || "";
+                    const teamId2 = entry.teamIds[1] || "";
+                    const errorHtml = entry.errors.length > 0
+                        ? `<ul class="bulk-import-error-list">${entry.errors.map((error) => `<li>${error}</li>`).join("")}</ul>`
+                        : "-";
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td>${entry.rowNumber}</td>
+                            <td>${entry.playerName || "-"}</td>
+                            <td>${entry.playerId || "-"}</td>
+                            <td>${entry.mirrativUrl ? `<a href="${entry.mirrativUrl}" target="_blank" rel="noopener noreferrer">${entry.mirrativUrl}</a>` : "-"}</td>
+                            <td>${teamId1 || "-"}</td>
+                            <td>${teamId2 || "-"}</td>
+                            <td class="bulk-import-status">${entry.status}</td>
+                            <td>${errorHtml}</td>
+                        </tr>
+                    `;
+                })
+                .join("");
+        }
+
+        function updateSummary(entries) {
+            const summary = document.getElementById("summary");
+            const invalidCount = entries.filter((entry) => entry.errors.length > 0).length;
+            summary.textContent = `解析件数: ${entries.length}件 / 要確認: ${invalidCount}件 / OK: ${entries.length - invalidCount}件`;
+            summary.classList.remove("hidden");
+        }
+
+        function parseAndPreview() {
+            clearMessage();
+            const rawText = document.getElementById("bulkInput").value;
+            parsedEntries = parseBulkInput(rawText).map(validateEntry);
+            renderPreview(parsedEntries);
+            updateSummary(parsedEntries);
+            return parsedEntries;
+        }
+
+        async function checkAdmin() {
+            const response = await fetch("/api/me");
+            const result = await response.json();
+
+            const adminMessage = document.getElementById("adminMessage");
+            const bulkCard = document.getElementById("bulkCard");
+
+            if (!result.isLoggedIn) {
+                location.href = "./admin_login.html";
+                return;
+            }
+
+            if (result.type !== "admin") {
+                adminMessage.textContent = "あなたにはこのページの閲覧権限がありません。";
+                return;
+            }
+
+            adminMessage.style.display = "none";
+            bulkCard.classList.remove("hidden");
+        }
+
+        async function submitBulkEntries() {
+            const entries = parseAndPreview();
+
+            if (entries.length === 0) {
+                setMessage("登録データを入力してください", "error");
+                return;
+            }
+
+            const invalidEntry = entries.find((entry) => entry.errors.length > 0);
+            if (invalidEntry) {
+                setMessage(`${invalidEntry.rowNumber}行目に確認が必要な項目があります`, "error");
+                return;
+            }
+
+            try {
+                const payload = entries.map((entry) => ({
+                    rowNumber: entry.rowNumber,
+                    playerName: entry.playerName,
+                    playerId: entry.playerId,
+                    mirrativUrl: entry.mirrativUrl,
+                    teamIds: entry.teamIds,
+                }));
+
+                const response = await fetch("/api/player-bulk", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ entries: payload }),
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    setMessage(result.message || "一括登録に失敗しました", "error");
+                    return;
+                }
+
+                setMessage(result.message || "一括登録が完了しました", "success");
+                if (result.summary) {
+                    document.getElementById("summary").textContent = `追加: ${result.summary.added}件 / スキップ: ${result.summary.skipped}件 / 失敗: ${result.summary.failed}件`;
+                    document.getElementById("summary").classList.remove("hidden");
+                }
+
+                if (result.results) {
+                    const addedByRow = new Map((result.results.added || []).map((item) => [item.rowNumber, item]));
+                    const skippedByRow = new Map((result.results.skipped || []).map((item) => [item.rowNumber, item]));
+                    const failedByRow = new Map((result.results.failed || []).map((item) => [item.rowNumber, item]));
+
+                    const merged = entries.map((entry) => {
+                        if (addedByRow.has(entry.rowNumber)) {
+                            return {
+                                ...entry,
+                                status: "追加",
+                                errors: [],
+                            };
+                        }
+
+                        if (skippedByRow.has(entry.rowNumber)) {
+                            return {
+                                ...entry,
+                                status: "スキップ",
+                                errors: [skippedByRow.get(entry.rowNumber).reason || "既に存在します"],
+                            };
+                        }
+
+                        if (failedByRow.has(entry.rowNumber)) {
+                            return {
+                                ...entry,
+                                status: "失敗",
+                                errors: [failedByRow.get(entry.rowNumber).reason || "エラーが発生しました"],
+                            };
+                        }
+
+                        return entry;
+                    });
+
+                    renderPreview(merged);
+                }
+            } catch (error) {
+                setMessage("通信エラーが発生しました", "error");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await checkAdmin();
+
+            document.getElementById("pasteButton").addEventListener("click", async () => {
+                try {
+                    document.getElementById("bulkInput").value = (await navigator.clipboard.readText()).trim();
+                    parsedEntries = [];
+                    clearMessage();
+                } catch (error) {
+                    setMessage("クリップボードの貼り付けに失敗しました", "error");
+                }
+            });
+
+            document.getElementById("previewButton").addEventListener("click", () => {
+                parseAndPreview();
+            });
+
+            document.getElementById("submitButton").addEventListener("click", submitBulkEntries);
+
+            document.getElementById("bulkInput").addEventListener("paste", () => {
+                setTimeout(() => {
+                    parsedEntries = [];
+                }, 0);
+            });
+        });
+    </script>
+</body>
+
+</html>

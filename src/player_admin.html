@@ -8,7 +8,6 @@
     <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
     <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#2563eb">
     <title>新しいプレイヤーを作成</title>
 </head>
 
@@ -21,6 +20,7 @@
             <hr>
             <p id="adminMessage">確認中...</p>
             <a href="./admin.html" class="btn">管理者ページに戻る</a>
+            <a href="./player_bulk_admin.html" class="btn">プレイヤーを一括作成</a>
         </div>
 
         <div class="card hidden" id="playerCard">
@@ -28,33 +28,33 @@
             <form id="playerForm">
                 <div class="form-group">
                     <label for="playerId">プレイヤーID（12文字）</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="player-form-row">
                         <input type="text" id="playerId" name="playerId" maxlength="12" minlength="12" required
-                            placeholder="例: 010100000001" style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pastePlayerIdButton"
-                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                            placeholder="例: 010100000001" class="player-form-inline-input">
+                        <button type="button" class="btn player-form-inline-button"
+                            id="pastePlayerIdButton">貼り付け</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="playerName">プレイヤー名（10文字以下）</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="player-form-row">
                         <input type="text" id="playerName" name="playerName" maxlength="10" required placeholder="例: 太郎"
-                            style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pastePlayerNameButton"
-                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                            class="player-form-inline-input">
+                        <button type="button" class="btn player-form-inline-button"
+                            id="pastePlayerNameButton">貼り付け</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="mirrativUrl">ミラティブURL（任意）</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="player-form-row">
                         <input type="text" id="mirrativUrl" name="mirrativUrl" placeholder="ミラティブURL"
-                            style="margin-bottom: 0;">
-                        <button type="button" class="btn" id="pasteMirrativUrlButton"
-                            style="margin: 0; white-space: nowrap;">貼り付け</button>
+                            class="player-form-inline-input">
+                        <button type="button" class="btn player-form-inline-button"
+                            id="pasteMirrativUrlButton">貼り付け</button>
                     </div>
                 </div>
                 <button type="submit" class="btn">プレイヤーを作成</button>
-                <div id="playerMessage" class="message" style="display: none;"></div>
+                <div id="playerMessage" class="message hidden"></div>
             </form>
         </div>
     </main>
