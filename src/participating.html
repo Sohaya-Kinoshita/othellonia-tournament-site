@@ -61,7 +61,7 @@
     <script>
         (function () {
             var t = Date.now();
-            var scripts = ['./js/layout.js', './js/participating-teams-data.js', './js/participating-players-data.js'];
+            var scripts = ['./js/layout.js', './js/participating-teams-data.js'];
             function load(i) {
                 if (i >= scripts.length) { if (window.__participatingInit) window.__participatingInit(); return; }
                 var s = document.createElement('script');
@@ -72,6 +72,15 @@
             }
 
             /* Modal logic */
+            function escapeModalHtml(value) {
+                return String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
             window.renderTeamModal = function (teamName) {
                 const titleEl = document.getElementById('teamModalTitle');
                 const bodyEl = document.getElementById('teamModalBody');
@@ -79,18 +88,18 @@
                 const teams = Array.isArray(window.participatingTeams) ? window.participatingTeams : [];
                 const players = Array.isArray(window.participatingPlayers) ? window.participatingPlayers : [];
                 const team = teams.find((t) => t.team_name === teamName) || { team_name: teamName };
+                const teamImage = team.image || './images/teamLists/demo1.png';
                 titleEl.textContent = team.team_name || teamName;
                 // default: show title; if no members we'll hide title to maximize image area
                 titleEl.style.display = '';
                 const members = players.filter((p) => p.team_name_1 === teamName || p.team_name_2 === teamName);
                 if (members.length === 0) {
-                    // hide title to give more room to image
                     titleEl.style.display = 'none';
                     const modalEl = document.getElementById('teamModal');
                     if (modalEl) modalEl.classList.add('modal-full');
                     bodyEl.innerHTML = `
                                             <div class="modal-inner" style="padding:0;margin:0;width:100%;">
-                                                <img src="./images/teamList/demo1.png" alt="メンバー画像" style="display:block;">
+                                                <img src="${teamImage}" alt="${escapeModalHtml(team.team_name || teamName)}" style="display:block;">
                                             </div>
                                         `;
                     return;
@@ -100,8 +109,8 @@
                 const modalEl = document.getElementById('teamModal');
                 if (modalEl) modalEl.classList.remove('modal-full');
                 bodyEl.innerHTML = members.map((m) => {
-                    const img = m.image || './images/teamList/demo1.png';
-                    return `\n                        <div class="team-member-item">\n                            <img src="${img}" alt="${escapeHtml(m.player_name)}" class="team-member-thumb" loading="lazy">\n                            <div class="team-member-name">${escapeHtml(m.player_name)}</div>\n                        </div>\n                    `;
+                    const img = m.image || teamImage;
+                    return `\n                        <div class="team-member-item">\n                            <img src="${img}" alt="${escapeModalHtml(m.player_name)}" class="team-member-thumb" loading="lazy">\n                            <div class="team-member-name">${escapeModalHtml(m.player_name)}</div>\n                        </div>\n                    `;
                 }).join('');
             }
 
@@ -125,14 +134,14 @@
             // modal event handlers
             document.addEventListener('click', function (ev) {
                 const backdrop = document.getElementById('teamModalBackdrop');
-                if (backdrop && ev.target === backdrop) closeTeamModal();
+                if (backdrop && ev.target === backdrop) window.closeTeamModal();
             });
             document.addEventListener('keydown', function (ev) {
-                if (ev.key === 'Escape') closeTeamModal();
+                if (ev.key === 'Escape') window.closeTeamModal();
             });
             document.addEventListener('click', function (ev) {
                 const closeBtn = document.getElementById('teamModalClose');
-                if (closeBtn && ev.target === closeBtn) closeTeamModal();
+                if (closeBtn && ev.target === closeBtn) window.closeTeamModal();
             });
             load(0);
         })();
@@ -167,7 +176,7 @@
                 if (container) container.classList.remove("is-hidden");
 
                 cardsEl.innerHTML = teams.map((team) => {
-                    const imgSrc = team.image || './images/teamList/demo1_thumbnail.png';
+                    const imgSrc = team.thumbnail || './images/teamLists/thumbnails/demo1.png';
                     return `\n                    <article class="team-card" data-team-name="${escapeHtml(team.team_name)}">\n                        <img class="team-card-img" src="${imgSrc}" alt="${escapeHtml(team.team_name || 'チーム')}" loading="lazy">\n                        <div class="team-card-meta">\n                            <div class="team-card-leaders">リーダー: ${escapeHtml(team.leader_name || '(未設定)')} / サブ: ${escapeHtml(team.subleader_name || '(未設定)')}</div>\n                        </div>\n                    </article>\n                `;
                 }).join("");
 
@@ -175,7 +184,7 @@
                 cardsEl.querySelectorAll('.team-card').forEach(function (el) {
                     el.addEventListener('click', function () {
                         const teamName = el.getAttribute('data-team-name') || '';
-                        openTeamModal(teamName);
+                        window.openTeamModal(teamName);
                     });
                 });
             }
