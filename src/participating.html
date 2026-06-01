@@ -20,12 +20,10 @@
     <main class="container">
         <div class="card">
             <h1>参加チーム・メンバー</h1>
-            <p>本大会に参加しているチームとメンバーを、1ページで確認できます。</p>
         </div>
 
         <div class="card public-list-card">
             <h2>参加チーム一覧</h2>
-            <p>本大会に参加しているチームの一覧です。</p>
             <div class="public-stats">
                 <div class="public-stat-box">
                     <div class="public-stat-label">登録チーム数</div>
@@ -39,51 +37,24 @@
             </div>
 
 
-            <div class="public-table-wrap public-list-card is-hidden" id="teamListCard">
-                <table class="public-table public-team-table">
-                    <thead>
-                        <tr>
-                            <th class="col-team-name">チーム名</th>
-                            <th class="col-team-leader">チームリーダー</th>
-                            <th class="col-team-subleader">サブリーダー</th>
-                        </tr>
-                    </thead>
-                    <tbody id="teamTableBody"></tbody>
-                </table>
+            <div class="public-table-wrap public-list-card is-hidden" id="teamCardsContainer">
+                <div id="teamCards" class="team-cards" aria-live="polite"></div>
             </div>
             <p id="noTeamsMessage" class="public-empty-message">該当するチームがありません</p>
         </div>
 
-        <div class="card public-list-card">
-            <h2>参加メンバー一覧</h2>
-            <p>本大会に参加しているメンバーの一覧です。</p>
-            <div class="public-stats">
-                <div class="public-stat-box">
-                    <div class="public-stat-label">登録メンバー数</div>
-                    <div id="playerCount" class="public-stat-value">0</div>
-                </div>
-            </div>
-            <div class="public-search-row">
-                <input type="text" id="memberSearchInput" class="public-search-input" placeholder="プレイヤー名や所属チームで検索">
-                <button type="button" class="btn" id="memberSearchButton">検索</button>
-                <button type="button" class="btn" id="memberClearButton">クリア</button>
-            </div>
-
-
-            <div class="public-table-wrap public-list-card is-hidden" id="memberListCard">
-                <table class="public-table public-member-table">
-                    <thead>
-                        <tr>
-                            <th class="col-player-name">プレイヤー名</th>
-                            <th class="col-player-teams">所属チーム</th>
-                        </tr>
-                    </thead>
-                    <tbody id="memberTableBody"></tbody>
-                </table>
-            </div>
-            <p id="noMembersMessage" class="public-empty-message">該当するメンバーがありません</p>
-        </div>
+        <!-- 参加メンバー一覧は非表示にしました -->
     </main>
+
+    <!-- Team modal (hidden by default) -->
+    <div id="teamModal" class="modal is-hidden" aria-hidden="true">
+        <div class="modal-backdrop" id="teamModalBackdrop"></div>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
+            <button class="modal-close" id="teamModalClose" aria-label="閉じる">×</button>
+            <h3 id="teamModalTitle"></h3>
+            <div id="teamModalBody" class="team-modal-body"></div>
+        </div>
+    </div>
 
     <div id="footerSlot"></div>
 
@@ -99,6 +70,70 @@
                 s.onerror = function () { load(i + 1); };
                 document.head.appendChild(s);
             }
+
+            /* Modal logic */
+            window.renderTeamModal = function (teamName) {
+                const titleEl = document.getElementById('teamModalTitle');
+                const bodyEl = document.getElementById('teamModalBody');
+                if (!bodyEl || !titleEl) return;
+                const teams = Array.isArray(window.participatingTeams) ? window.participatingTeams : [];
+                const players = Array.isArray(window.participatingPlayers) ? window.participatingPlayers : [];
+                const team = teams.find((t) => t.team_name === teamName) || { team_name: teamName };
+                titleEl.textContent = team.team_name || teamName;
+                // default: show title; if no members we'll hide title to maximize image area
+                titleEl.style.display = '';
+                const members = players.filter((p) => p.team_name_1 === teamName || p.team_name_2 === teamName);
+                if (members.length === 0) {
+                    // hide title to give more room to image
+                    titleEl.style.display = 'none';
+                    const modalEl = document.getElementById('teamModal');
+                    if (modalEl) modalEl.classList.add('modal-full');
+                    bodyEl.innerHTML = `
+                                            <div class="modal-inner" style="padding:0;margin:0;width:100%;">
+                                                <img src="./images/teamList/demo1.png" alt="メンバー画像" style="display:block;">
+                                            </div>
+                                        `;
+                    return;
+                }
+                // ensure title is visible when rendering members
+                titleEl.style.display = '';
+                const modalEl = document.getElementById('teamModal');
+                if (modalEl) modalEl.classList.remove('modal-full');
+                bodyEl.innerHTML = members.map((m) => {
+                    const img = m.image || './images/teamList/demo1.png';
+                    return `\n                        <div class="team-member-item">\n                            <img src="${img}" alt="${escapeHtml(m.player_name)}" class="team-member-thumb" loading="lazy">\n                            <div class="team-member-name">${escapeHtml(m.player_name)}</div>\n                        </div>\n                    `;
+                }).join('');
+            }
+
+            window.openTeamModal = function (teamName) {
+                window.renderTeamModal(teamName);
+                const modal = document.getElementById('teamModal');
+                if (!modal) return;
+                modal.classList.remove('is-hidden');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('no-scroll');
+            }
+
+            window.closeTeamModal = function () {
+                const modal = document.getElementById('teamModal');
+                if (!modal) return;
+                modal.classList.add('is-hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('no-scroll');
+            }
+
+            // modal event handlers
+            document.addEventListener('click', function (ev) {
+                const backdrop = document.getElementById('teamModalBackdrop');
+                if (backdrop && ev.target === backdrop) closeTeamModal();
+            });
+            document.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Escape') closeTeamModal();
+            });
+            document.addEventListener('click', function (ev) {
+                const closeBtn = document.getElementById('teamModalClose');
+                if (closeBtn && ev.target === closeBtn) closeTeamModal();
+            });
             load(0);
         })();
     </script>
@@ -118,28 +153,33 @@
             }
 
             function renderTeams(teams) {
-                const teamTableBody = document.getElementById("teamTableBody");
+                const container = document.getElementById("teamCardsContainer");
+                const cardsEl = document.getElementById("teamCards");
                 const noTeamsMessage = document.getElementById("noTeamsMessage");
-                if (!teamTableBody) return;
-                if (teams.length === 0) { teamTableBody.innerHTML = ""; if (noTeamsMessage) noTeamsMessage.style.display = "block"; return; }
+                if (!cardsEl) return;
+                if (!Array.isArray(teams) || teams.length === 0) {
+                    cardsEl.innerHTML = "";
+                    if (container) container.classList.add("is-hidden");
+                    if (noTeamsMessage) noTeamsMessage.style.display = "block";
+                    return;
+                }
                 if (noTeamsMessage) noTeamsMessage.style.display = "none";
-                teamTableBody.innerHTML = teams.map((team) => `\n                <tr>\n                    <td class="col-team-name">${escapeHtml(team.team_name)}</td>\n                    <td class="col-team-leader">${escapeHtml(team.leader_name || "(未設定)")}</td>\n                    <td class="col-team-subleader">${escapeHtml(team.subleader_name || "(未設定)")}</td>\n                </tr>\n            `).join("");
+                if (container) container.classList.remove("is-hidden");
+
+                cardsEl.innerHTML = teams.map((team) => {
+                    const imgSrc = team.image || './images/teamList/demo1_thumbnail.png';
+                    return `\n                    <article class="team-card" data-team-name="${escapeHtml(team.team_name)}">\n                        <img class="team-card-img" src="${imgSrc}" alt="${escapeHtml(team.team_name || 'チーム')}" loading="lazy">\n                        <div class="team-card-meta">\n                            <div class="team-card-leaders">リーダー: ${escapeHtml(team.leader_name || '(未設定)')} / サブ: ${escapeHtml(team.subleader_name || '(未設定)')}</div>\n                        </div>\n                    </article>\n                `;
+                }).join("");
+
+                // attach click handlers to open modal
+                cardsEl.querySelectorAll('.team-card').forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        const teamName = el.getAttribute('data-team-name') || '';
+                        openTeamModal(teamName);
+                    });
+                });
             }
 
-            function renderPlayers(players) {
-                const playerTableBody = document.getElementById("memberTableBody");
-                const noMembersMessage = document.getElementById("noMembersMessage");
-                if (!playerTableBody) return;
-                if (players.length === 0) { playerTableBody.innerHTML = ""; if (noMembersMessage) noMembersMessage.style.display = "block"; return; }
-                if (noMembersMessage) noMembersMessage.style.display = "none";
-                playerTableBody.innerHTML = players.map((player) => {
-                    const teamNames = [player.team_name_1, player.team_name_2]
-                        .map((value) => String(value || "").trim())
-                        .filter(Boolean)
-                        .join(" / ") || "(未所属)";
-                    return `\n                    <tr>\n                        <td class="col-player-name">${escapeHtml(player.player_name)}</td>\n                        <td class="col-player-teams">${escapeHtml(teamNames)}</td>\n                    </tr>\n                `;
-                }).join("");
-            }
 
             function filterTeams() {
                 const el = document.getElementById("teamSearchInput");
@@ -151,31 +191,15 @@
                 });
             }
 
-            function filterPlayers() {
-                const el = document.getElementById("memberSearchInput");
-                const keyword = el ? el.value.trim().toLowerCase() : "";
-                return allPlayers.filter((player) => {
-                    if (!keyword) return true;
-                    return [player.player_name, player.team_name_1, player.team_name_2]
-                        .some((value) => String(value || "").toLowerCase().includes(keyword));
-                });
-            }
 
             function showStaticData() {
-                const teamListCard = document.getElementById("teamListCard");
-                const memberListCard = document.getElementById("memberListCard");
+                const teamCardsContainer = document.getElementById("teamCardsContainer");
                 const teamStatusMessage = document.getElementById("teamStatusMessage");
-                const memberStatusMessage = document.getElementById("memberStatusMessage");
                 const teamCount = document.getElementById("teamCount");
-                const playerCount = document.getElementById("playerCount");
                 if (teamStatusMessage) teamStatusMessage.style.display = "none";
-                if (memberStatusMessage) memberStatusMessage.style.display = "none";
-                if (teamListCard) teamListCard.classList.remove("is-hidden");
-                if (memberListCard) memberListCard.classList.remove("is-hidden");
+                if (teamCardsContainer) teamCardsContainer.classList.remove("is-hidden");
                 if (teamCount) teamCount.textContent = String(allTeams.length);
-                if (playerCount) playerCount.textContent = String(allPlayers.length);
                 renderTeams(filterTeams());
-                renderPlayers(filterPlayers());
             }
 
             function attachHandlers() {
@@ -185,12 +209,7 @@
                 if (teamClearButton) teamClearButton.addEventListener("click", () => { const el = document.getElementById("teamSearchInput"); if (el) el.value = ""; renderTeams(filterTeams()); });
                 const teamSearchInput = document.getElementById("teamSearchInput");
                 if (teamSearchInput) teamSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") renderTeams(filterTeams()); });
-                const memberSearchButton = document.getElementById("memberSearchButton");
-                if (memberSearchButton) memberSearchButton.addEventListener("click", () => renderPlayers(filterPlayers()));
-                const memberClearButton = document.getElementById("memberClearButton");
-                if (memberClearButton) memberClearButton.addEventListener("click", () => { const el = document.getElementById("memberSearchInput"); if (el) el.value = ""; renderPlayers(filterPlayers()); });
-                const memberSearchInput = document.getElementById("memberSearchInput");
-                if (memberSearchInput) memberSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") renderPlayers(filterPlayers()); });
+                // メンバー一覧は削除済みのため、関連ハンドラはなし
             }
 
             function init() { attachHandlers(); showStaticData(); }

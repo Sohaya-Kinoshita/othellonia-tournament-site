@@ -20,3 +20,8 @@ window.participatingTeams = [
     subleader_name: "愛瑠",
   },
 ];
+
+// デフォルト画像を割り当て（個別画像未指定時に使用）
+window.participatingTeams.forEach(function (t) {
+  if (!t.image) t.image = "./images/teamList/demo1_thumbnail.png";
+});
