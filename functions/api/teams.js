@@ -15,7 +15,9 @@ export async function onRequest(context) {
           SELECT 
             t.team_id, 
             t.team_name, 
+            l.player_id AS leader_player_id,
             lp.player_name AS leader_name, 
+            sl.player_id AS subleader_player_id,
             sp.player_name AS subleader_name
           FROM teams t
           LEFT JOIN leaders l ON t.team_id = l.team_id AND l.leader_role = 'leader'
@@ -42,7 +44,9 @@ export async function onRequest(context) {
           JSON.stringify({
             team_id: result.team_id,
             team_name: result.team_name,
+            leader_player_id: result.leader_player_id,
             leader_name: result.leader_name,
+            subleader_player_id: result.subleader_player_id,
             subleader_name: result.subleader_name,
           }),
           {
@@ -100,6 +104,255 @@ export async function onRequest(context) {
       console.error("Team fetch error:", error);
       return new Response(
         JSON.stringify({ message: "チーム取得処理でエラーが発生しました" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
+  if (context.request.method === "PUT") {
+    try {
+      const cookies = context.request.headers.get("cookie") || "";
+      const sessionId = cookies
+        .split("; ")
+        .find((c) => c.startsWith("sessionId="))
+        ?.split("=")[1];
+
+      if (!sessionId) {
+        return new Response(JSON.stringify({ message: "認証が必要です" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        const decoded = atob(sessionId);
+        const [type] = decoded.split(":");
+
+        if (type !== "admin") {
+          return new Response(
+            JSON.stringify({ message: "管理者権限が必要です" }),
+            {
+              status: 403,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      } catch (e) {
+        return new Response(JSON.stringify({ message: "認証エラー" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const { teamId, teamName, leaderPlayerId, subleaderPlayerId } =
+        await context.request.json();
+
+      const normalizedTeamId = String(teamId || "").trim();
+      const normalizedTeamName = String(teamName || "").trim();
+      const normalizedLeaderPlayerId = String(leaderPlayerId || "").trim();
+      const normalizedSubleaderPlayerId = String(
+        subleaderPlayerId || "",
+      ).trim();
+
+      if (
+        !normalizedTeamId ||
+        !normalizedTeamName ||
+        !normalizedLeaderPlayerId
+      ) {
+        return new Response(
+          JSON.stringify({
+            message: "チームID、チーム名、リーダーのプレイヤーIDが必要です",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (normalizedTeamName.length > 15) {
+        return new Response(
+          JSON.stringify({ message: "チーム名は15文字以下で入力してください" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (normalizedLeaderPlayerId.length !== 12) {
+        return new Response(
+          JSON.stringify({
+            message: "リーダーのプレイヤーIDは12文字ちょうどで入力してください",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const hasSubleader = Boolean(normalizedSubleaderPlayerId);
+      if (hasSubleader && normalizedSubleaderPlayerId.length !== 12) {
+        return new Response(
+          JSON.stringify({
+            message:
+              "サブリーダーのプレイヤーIDは12文字ちょうどで入力してください",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (
+        hasSubleader &&
+        normalizedSubleaderPlayerId === normalizedLeaderPlayerId
+      ) {
+        return new Response(
+          JSON.stringify({
+            message: "リーダーとサブリーダーに同じプレイヤーIDは設定できません",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const db = context.env.DB;
+      const existingTeam = await db
+        .prepare("SELECT team_id FROM teams WHERE team_id = ?")
+        .bind(normalizedTeamId)
+        .first();
+
+      if (!existingTeam) {
+        return new Response(
+          JSON.stringify({ message: "チームが見つかりません" }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const leaderPlayer = await db
+        .prepare("SELECT player_id FROM players WHERE player_id = ?")
+        .bind(normalizedLeaderPlayerId)
+        .first();
+
+      if (!leaderPlayer) {
+        return new Response(
+          JSON.stringify({
+            message: "指定されたリーダーのプレイヤーIDが見つかりません",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (hasSubleader) {
+        const subleaderPlayer = await db
+          .prepare("SELECT player_id FROM players WHERE player_id = ?")
+          .bind(normalizedSubleaderPlayerId)
+          .first();
+
+        if (!subleaderPlayer) {
+          return new Response(
+            JSON.stringify({
+              message: "指定されたサブリーダーのプレイヤーIDが見つかりません",
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        }
+      }
+
+      await db
+        .prepare("UPDATE teams SET team_name = ? WHERE team_id = ?")
+        .bind(normalizedTeamName, normalizedTeamId)
+        .run();
+
+      const leaderRow = await db
+        .prepare(
+          "SELECT leader_id FROM leaders WHERE team_id = ? AND leader_role = 'leader'",
+        )
+        .bind(normalizedTeamId)
+        .first();
+
+      if (leaderRow) {
+        await db
+          .prepare("UPDATE leaders SET player_id = ? WHERE leader_id = ?")
+          .bind(normalizedLeaderPlayerId, leaderRow.leader_id)
+          .run();
+      } else {
+        await db
+          .prepare(
+            "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass) VALUES (?, ?, ?, ?, ?)",
+          )
+          .bind(
+            `L${normalizedTeamId}00001`,
+            normalizedTeamId,
+            normalizedLeaderPlayerId,
+            "leader",
+            "",
+          )
+          .run();
+      }
+
+      const subleaderRow = await db
+        .prepare(
+          "SELECT leader_id FROM leaders WHERE team_id = ? AND leader_role = 'subleader'",
+        )
+        .bind(normalizedTeamId)
+        .first();
+
+      if (hasSubleader) {
+        if (subleaderRow) {
+          await db
+            .prepare("UPDATE leaders SET player_id = ? WHERE leader_id = ?")
+            .bind(normalizedSubleaderPlayerId, subleaderRow.leader_id)
+            .run();
+        } else {
+          await db
+            .prepare(
+              "INSERT INTO leaders (leader_id, team_id, player_id, leader_role, pass) VALUES (?, ?, ?, ?, ?)",
+            )
+            .bind(
+              `L${normalizedTeamId}00002`,
+              normalizedTeamId,
+              normalizedSubleaderPlayerId,
+              "subleader",
+              "",
+            )
+            .run();
+        }
+      } else if (subleaderRow) {
+        await db
+          .prepare("DELETE FROM leaders WHERE leader_id = ?")
+          .bind(subleaderRow.leader_id)
+          .run();
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "チーム情報を更新しました" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      console.error("Team update error:", error);
+      return new Response(
+        JSON.stringify({ message: "チーム更新処理でエラーが発生しました" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },

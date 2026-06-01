@@ -289,7 +289,7 @@
             if (selectedTeam) {
                 document.getElementById("teamIdDisplay").value = selectedTeam.team_id;
                 document.getElementById("teamNameEdit").value = selectedTeam.team_name;
-                document.getElementById("leaderPlayerIdEdit").value = selectedTeam.player_id || "";
+                document.getElementById("leaderPlayerIdEdit").value = selectedTeam.leader_player_id || "";
                 document.getElementById("subleaderPlayerIdEdit").value = selectedTeam.subleader_player_id || "";
                 teamEditForm.style.display = "block";
                 setupEditForm();
@@ -553,6 +553,13 @@
                 const teamName = teamNameInput.value.trim();
                 const leaderPlayerId = leaderPlayerIdInput.value.trim();
                 const subleaderPlayerId = subleaderPlayerIdInput.value.trim();
+
+                if (!leaderPlayerId) {
+                    messageDiv.textContent = "リーダーのプレイヤーIDを入力してください";
+                    messageDiv.className = "message error";
+                    messageDiv.style.display = "block";
+                    return;
+                }
 
                 // リーダーのプレイヤーIDが入力されている場合は12文字チェック
                 if (leaderPlayerId && leaderPlayerId.length !== 12) {
