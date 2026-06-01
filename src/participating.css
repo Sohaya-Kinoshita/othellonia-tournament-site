@@ -311,12 +311,21 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.92);
 }
+.modal.modal-full .team-modal-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
 /* inner wrapper centers the image */
 .modal.modal-full .modal-inner {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 100%;
 }
 .modal.modal-full .modal-inner img {
   width: auto !important;
