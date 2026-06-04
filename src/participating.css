@@ -403,10 +403,14 @@
   .public-stats {
     gap: 8px;
     margin: 12px 0;
+    /* allow items to shrink to fit the viewport so no horizontal scroll */
+    flex-wrap: nowrap;
   }
 
   .public-stat-box {
-    flex: 1 1 100%;
+    /* flexible boxes that can shrink to avoid overflow */
+    flex: 1 1 0;
+    min-width: 0;
     padding: 10px 12px;
   }
 

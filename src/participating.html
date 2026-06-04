@@ -11,7 +11,7 @@
     <link rel="icon" href="./images/Logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" sizes="180x180" href="./images/Logo.jpg">
     <link rel="manifest" href="./manifest.json">
-    <title>参加チーム・メンバー | 隊抗戦</title>
+    <title>参加チーム | 隊抗戦</title>
 </head>
 
 <body>
@@ -19,15 +19,18 @@
 
     <main class="container">
         <div class="card">
-            <h1>参加チーム・メンバー</h1>
+            <h1>参加チーム</h1>
         </div>
 
         <div class="card public-list-card">
-            <h2>参加チーム一覧</h2>
             <div class="public-stats">
                 <div class="public-stat-box">
-                    <div class="public-stat-label">登録チーム数</div>
+                    <div class="public-stat-label">参加チーム数</div>
                     <div id="teamCount" class="public-stat-value">0</div>
+                </div>
+                <div class="public-stat-box">
+                    <div class="public-stat-label">参加メンバー数</div>
+                    <div id="memberCount" class="public-stat-value">129</div>
                 </div>
             </div>
             <div class="public-search-row">
@@ -35,6 +38,8 @@
                 <button type="button" class="btn" id="teamSearchButton">検索</button>
                 <button type="button" class="btn" id="teamClearButton">クリア</button>
             </div>
+
+            <p class="public-note">サムネイルをクリックするとチームメンバーが表示されます。</p>
 
 
             <div class="public-table-wrap public-list-card is-hidden" id="teamCardsContainer">
