@@ -7,24 +7,99 @@ window.participatingTeams = [
     image: "./images/teamLists/OP.png",
   },
   {
-    team_name: "塩麺極道",
-    leader_name: "れおん",
-    subleader_name: "Nの人",
+    team_name: "シズマは朝ごはん",
+    leader_name: "まみと",
+    subleader_name: "セントス",
+    thumbnail: "./images/teamLists/thumbnails/シズマは朝ごはん.png",
+    image: "./images/teamLists/シズマは朝ごはん.png",
   },
   {
-    team_name: "醤油しか勝たん",
-    leader_name: "しの@志天",
+    team_name: "わん隊",
+    leader_name: "わんた",
+    subleader_name: "こいし",
+    thumbnail: "./images/teamLists/thumbnails/わん隊.png",
+    image: "./images/teamLists/わん隊.png",
+  },
+  {
+    team_name: "舐めプ",
+    leader_name: "じゃん",
+    subleader_name: "あきつー@いろは",
+    thumbnail: "./images/teamLists/thumbnails/舐めプ.png",
+    image: "./images/teamLists/舐めプ.png",
+  },
+  {
+    team_name: "ふひ隊",
+    leader_name: "ぱん",
+    subleader_name: "あっくん",
+    thumbnail: "./images/teamLists/thumbnails/ふひ隊.png",
+    image: "./images/teamLists/ふひ隊.png",
+  },
+  {
+    team_name: "アタマ無い",
+    leader_name: "ココロ",
+    subleader_name: "卍圭卍",
+    thumbnail: "./images/teamLists/thumbnails/アタマ無い.png",
+    image: "./images/teamLists/アタマ無い.png",
+  },
+  {
+    team_name: "宴樂隊",
+    leader_name: "Labi",
+    thumbnail: "./images/teamLists/thumbnails/宴樂隊.png",
+    image: "./images/teamLists/宴樂隊.png",
+  },
+  {
+    team_name: "盤覇隊",
+    leader_name: "アール@盤覇隊",
+    subleader_name: "ぽんた",
+    thumbnail: "./images/teamLists/thumbnails/盤覇隊.png",
+    image: "./images/teamLists/盤覇隊.png",
+  },
+  {
+    team_name: "Prana",
+    leader_name: "わら",
+    subleader_name: "速攻元気",
+    thumbnail: "./images/teamLists/thumbnails/Prana.png",
+    image: "./images/teamLists/Prana.png",
+  },
+  {
+    team_name: "頻脈隊",
+    leader_name: "≪未送信≫",
+    subleader_name: "るちぇ@頻脈隊",
+    thumbnail: "./images/teamLists/thumbnails/頻脈隊.png",
+    image: "./images/teamLists/頻脈隊.png",
+  },
+  {
+    team_name: "今宵隊",
+    leader_name: "ゆーり@今宵隊",
+    subleader_name: "むやぴ",
+    thumbnail: "./images/teamLists/thumbnails/今宵隊.png",
+    image: "./images/teamLists/今宵隊.png",
+  },
+  {
+    team_name: "心晴",
+    leader_name: "ここあ＠心晴",
+    subleader_name: "まこぴー",
+    thumbnail: "./images/teamLists/thumbnails/心晴.png",
+    image: "./images/teamLists/心晴.png",
+  },
+  {
+    team_name: "ΛNIMΘ隊",
+    leader_name: "かるぼ",
+    thumbnail: "./images/teamLists/thumbnails/ΛNIMΘ隊.png",
+    image: "./images/teamLists/ΛNIMΘ隊.png",
+  },
+  {
+    team_name: "志天KCS",
+    leader_name: "愛瑠",
     subleader_name: "LITO",
+    thumbnail: "./images/teamLists/thumbnails/志天KCS.png",
+    image: "./images/teamLists/志天KCS.png",
   },
   {
-    team_name: "愛瑠くん以外バリカタ",
-    leader_name: "たらちゃん",
-    subleader_name: "愛瑠",
+    team_name: "志天NFG",
+    leader_name: "しの@志天",
+    subleader_name: "たらちゃん",
+    thumbnail: "./images/teamLists/thumbnails/志天NFG.png",
+    image: "./images/teamLists/志天NFG.png",
   },
 ];
-
-// デフォルト画像を割り当て（個別画像未指定時に使用）
-window.participatingTeams.forEach(function (t) {
-  if (!t.thumbnail) t.thumbnail = "./images/teamLists/thumbnails/demo1.png";
-  if (!t.image) t.image = "./images/teamLists/demo1.png";
-});
