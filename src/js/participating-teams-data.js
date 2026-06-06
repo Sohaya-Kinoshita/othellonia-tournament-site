@@ -64,7 +64,7 @@ window.participatingTeams = [
   },
   {
     team_name: "頻脈隊",
-    leader_name: "≪未送信≫",
+    leader_name: "乃ノ亜@頻脈隊",
     subleader_name: "るちぇ@頻脈隊",
     thumbnail: "./images/teamLists/thumbnails/頻脈隊.png",
     image: "./images/teamLists/頻脈隊.png",
