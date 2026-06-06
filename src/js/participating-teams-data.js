@@ -44,6 +44,7 @@ window.participatingTeams = [
   {
     team_name: "宴樂隊",
     leader_name: "Labi",
+    subleader_name: "sh0m4@宴樂",
     thumbnail: "./images/teamLists/thumbnails/宴樂隊.png",
     image: "./images/teamLists/宴樂隊.png",
   },
