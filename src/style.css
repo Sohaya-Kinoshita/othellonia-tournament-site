@@ -1188,6 +1188,25 @@ th {
   margin-top: 0;
 }
 
+.league-standings-section {
+  margin-top: 16px;
+}
+
+.league-standings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.league-standings-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .match-section-header-row {
   display: flex;
   align-items: center;
