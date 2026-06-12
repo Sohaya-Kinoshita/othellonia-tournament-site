@@ -86,6 +86,7 @@ window.participatingTeams = [
   {
     team_name: "ΛNIMΘ隊",
     leader_name: "かるぼ",
+    subleader_name: "こーだゐ",
     thumbnail: "./images/teamLists/thumbnails/ΛNIMΘ隊.png",
     image: "./images/teamLists/ΛNIMΘ隊.png",
   },
