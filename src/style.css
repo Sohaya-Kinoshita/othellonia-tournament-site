@@ -70,6 +70,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-padding-top: calc(var(--header-height) + 32px);
+}
+
 body {
   margin: 0;
   padding-top: var(--header-height);
@@ -286,7 +290,7 @@ body.no-scroll {
 }
 
 section[id] {
-  scroll-margin-top: calc(var(--header-height) + 16px);
+  scroll-margin-top: calc(var(--header-height) + 32px);
 }
 
 @media (max-width: 640px) {
