@@ -28,25 +28,35 @@
         <div class="card announcement-tool-card" id="announcementSettingsCard">
             <h2>選手用設定</h2>
             <div class="announcement-tool-settings">
+
+                <!--
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">役職</span>
                     <select id="roleSelect" class="announcement-tool-select"></select>
                 </label>
+                -->
+
+                <!--
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">戦目</span>
                     <select id="battleSelect" class="announcement-tool-select"></select>
                 </label>
+                -->
+
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">デッキ</span>
                     <select id="deckSelect" class="announcement-tool-select"></select>
                 </label>
+
                 <label class="announcement-tool-setting announcement-tool-setting-inline">
                     <span class="announcement-tool-setting-label">結果</span>
                     <select id="resultSelect" class="announcement-tool-select"></select>
                 </label>
+
                 <div style="margin-top:8px">
                     <button id="copyCurrent" class="btn">コピー</button>
                 </div>
+
                 <div class="announcement-tool-status-row" style="margin-top:12px">
                     <div id="preview" class="announcement-tool-preview-line">-- プレビュー --</div>
                 </div>
@@ -58,18 +68,31 @@
     <div id="footerSlot"></div>
     <div id="copyToast" class="announcement-copy-toast" aria-live="polite"></div>
     <script src="./js/layout.js"></script>
-    <script>
-        const roles = ['先鋒', '次鋒', '中堅', '副将', '大将'];
-        const battles = [1, 2, 3];
-        const decks = ['神', '魔', '竜', '混合'];
-        const results = [{ key: 'win', label: '勝ちました。' }, { key: 'lose', label: '負けました。' }];
 
+    <script>
+        // const roles = ['先鋒', '次鋒', '中堅', '副将', '大将'];
+        // const battles = [1, 2, 3];
+
+        const decks = ['神', '魔', '竜', '混合'];
+        const results = [
+            { key: 'win', label: '勝ちました。' },
+            { key: 'lose', label: '負けました。' }
+        ];
+
+        /*
         function toFullWidth(n) {
             return String(n).replace(/[0-9]/g, c => String.fromCharCode(0xFF10 + (c.charCodeAt(0) - 48)));
         }
+        */
 
+        /*
         function buildSentence(role, battle, deck, resultLabel) {
             return `${role}、${toFullWidth(battle)}戦目${deck}デッキを使用し、${resultLabel}`;
+        }
+        */
+
+        function buildSentence(deck, resultLabel) {
+            return `${deck}デッキを使用し、${resultLabel}`;
         }
 
         function populate(selectEl, items, getLabel) {
@@ -83,13 +106,20 @@
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(text);
             } else {
-                const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
             }
         }
 
         let copyStatusTimerId = null;
+
         function showCopyStatus(message) {
             let copyToast = document.getElementById('copyToast');
+
             if (!copyToast) {
                 copyToast = document.createElement('div');
                 copyToast.id = 'copyToast';
@@ -102,6 +132,7 @@
             copyToast.classList.add('is-visible');
 
             if (copyStatusTimerId) window.clearTimeout(copyStatusTimerId);
+
             copyStatusTimerId = window.setTimeout(() => {
                 copyToast.textContent = '';
                 copyToast.classList.remove('is-visible');
@@ -109,30 +140,44 @@
         }
 
         function updatePreview() {
-            const role = decodeURIComponent(document.getElementById('roleSelect').value);
-            const battle = Number(decodeURIComponent(document.getElementById('battleSelect').value));
+            // const role = decodeURIComponent(document.getElementById('roleSelect').value);
+            // const battle = Number(decodeURIComponent(document.getElementById('battleSelect').value));
+
             const deck = decodeURIComponent(document.getElementById('deckSelect').value);
             const resultLabel = results.find(r => r.key === document.getElementById('resultSelect').value).label;
-            const sentence = buildSentence(role, battle, deck, resultLabel);
+
+            const sentence = buildSentence(deck, resultLabel);
+
             document.getElementById('preview').textContent = sentence;
             return sentence;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            populate(document.getElementById('roleSelect'), roles, r => r);
-            populate(document.getElementById('battleSelect'), battles, b => `${b}戦目`);
-            populate(document.getElementById('deckSelect'), decks, d => d);
-            populate(document.getElementById('resultSelect'), results.map(r => r.key), k => results.find(r => r.key === k).label);
+            // populate(document.getElementById('roleSelect'), roles, r => r);
+            // populate(document.getElementById('battleSelect'), battles, b => `${b}戦目`);
 
-            document.getElementById('roleSelect').addEventListener('change', updatePreview);
-            document.getElementById('battleSelect').addEventListener('change', updatePreview);
+            populate(document.getElementById('deckSelect'), decks, d => d);
+            populate(
+                document.getElementById('resultSelect'),
+                results.map(r => r.key),
+                k => results.find(r => r.key === k).label
+            );
+
+            // document.getElementById('roleSelect').addEventListener('change', updatePreview);
+            // document.getElementById('battleSelect').addEventListener('change', updatePreview);
+
             document.getElementById('deckSelect').addEventListener('change', updatePreview);
             document.getElementById('resultSelect').addEventListener('change', updatePreview);
 
             document.getElementById('copyCurrent').addEventListener('click', async () => {
                 const s = updatePreview();
-                try { await copyText(s); showCopyStatus('コピーしました'); }
-                catch (e) { alert('コピーに失敗しました'); }
+
+                try {
+                    await copyText(s);
+                    showCopyStatus('コピーしました');
+                } catch (e) {
+                    alert('コピーに失敗しました');
+                }
             });
 
             updatePreview();

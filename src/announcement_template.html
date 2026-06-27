@@ -206,11 +206,13 @@
                 buildPlainText: (state) => [
                     `${state.teamAName}${state.teamAWins}勝、${state.teamBName}${state.teamBWins}勝で、${getWinningTeamName(state)}の勝利となりました。`,
                     "WEBサイトで対戦結果を表示しています。",
+                    "https://taikousen.com/match",
                     "ご確認の上、相違が無ければ対戦結果を確定します。",
                 ],
                 buildPreviewLines: (state) => [
                     `${highlightValue(state.teamAName)}${highlightValue(state.teamAWins)}勝、${highlightValue(state.teamBName)}${highlightValue(state.teamBWins)}勝で、${highlightValue(getWinningTeamName(state))}の勝利となりました。`,
                     "WEBサイトで対戦結果を表示しています。",
+                    "https://taikousen.com/match",
                     "ご確認の上、相違が無ければ対戦結果を確定します。",
                 ],
             },
