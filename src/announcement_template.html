@@ -196,8 +196,24 @@
             {
                 id: "startBattle",
                 timingLabel: "1〜5戦目の開始連絡",
-                buildPlainText: (state) => [`では、${state.role}は${state.battleNumber}戦目の対戦を開始してください。`, "対戦終了後、対戦結果と、使用したデッキの属性を報告してください。"],
-                buildPreviewLines: (state) => [`では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。対戦終了後、対戦結果と、使用したデッキの属性を報告してください。`],
+                buildPlainText: (state) => {
+                    const lines = [`では、${state.role}は${state.battleNumber}戦目の対戦を開始してください。`, "対戦終了後、対戦結果と、使用したデッキの属性を報告してください。"];
+
+                    if (state.battleNumber === "1" && state.role === "先鋒") {
+                        lines.push("報告の際は、以下サイトにテンプレートがございますので、そちらもご活用ください。", "https://taikousen.com/player_template");
+                    }
+
+                    return lines;
+                },
+                buildPreviewLines: (state) => {
+                    const lines = [`では、${highlightValue(state.role)}は${highlightValue(`${state.battleNumber}戦目`)}の対戦を開始してください。対戦終了後、対戦結果と、使用したデッキの属性を報告してください。`];
+
+                    if (state.battleNumber === "1" && state.role === "先鋒") {
+                        lines.push("報告の際は、以下サイトにテンプレートがございますので、そちらもご活用ください。", "https://taikousen.com/player_template");
+                    }
+
+                    return lines;
+                },
             },
             { id: "confirmResults", timingLabel: "対戦結果確認", buildPlainText: () => ["対戦結果に相違がないため、対戦結果を確定します。"], buildPreviewLines: () => ["対戦結果に相違がないため、対戦結果を確定します。"] },
             {
