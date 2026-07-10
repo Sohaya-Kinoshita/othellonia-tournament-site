@@ -380,7 +380,6 @@
                         if (cardResponse.ok) {
                             matchCardSection.style.display = "block";
                             matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId);
-                            /*
                             const saveBtn = document.createElement("button");
                             saveBtn.type = "button";
                             saveBtn.textContent = "画像として保存";
@@ -394,7 +393,6 @@
                                 exportCardAsImage(`matchCard_${matchId}`, `対戦カード_${matchId}`, this, { targetWidth: 430, exportMetaText });
                             });
                             matchCardDiv.insertAdjacentElement("afterend", saveBtn);
-                            */
                         }
                     } catch (cardError) {
                         console.error("Match card load error:", cardError);
@@ -773,7 +771,6 @@
                                     const cardData = await cardResponse.json();
                                     if (cardResponse.ok) {
                                         matchCardDiv.innerHTML = generateMatchCardHTML(cardData, match, teamId, true);
-                                        /*
                                         const saveBtn = document.createElement("button");
                                         saveBtn.type = "button";
                                         saveBtn.textContent = "画像として保存";
@@ -787,7 +784,6 @@
                                             exportCardAsImage(`matchCard_${match.match_id}`, `対戦カード_${match.match_id}`, this, { targetWidth: 430, exportMetaText });
                                         });
                                         matchCardDiv.insertAdjacentElement("afterend", saveBtn);
-                                        */
                                     } else {
                                         matchCardDiv.textContent = "対戦カードがありません";
                                     }
