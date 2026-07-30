@@ -109,6 +109,10 @@
                 <div class="announcement-tool-status-row">
                     <span class="announcement-tool-status-text">1〜5戦目の結果に使う項目です</span>
                 </div>
+                <label class="announcement-tool-setting announcement-tool-setting-inline">
+                    <span class="announcement-tool-setting-label">リーグ</span>
+                    <select id="leagueSelect" class="announcement-tool-select"></select>
+                </label>
                 <div class="announcement-tool-status-row">
                     <span id="teamLoadStatus" class="announcement-tool-status-text">チーム読み込み状態: 未読み込み</span>
                 </div>
@@ -166,6 +170,7 @@
         const announcementTemplateState = {
             teamAName: "Aチーム",
             teamBName: "Bチーム",
+            leagueName: "A",
             role: "先鋒",
             battleNumber: "1",
             preparationHour: "10",
@@ -217,6 +222,32 @@
             },
             { id: "confirmResults", timingLabel: "対戦結果確認", buildPlainText: () => ["対戦結果に相違がないため、対戦結果を確定します。"], buildPreviewLines: () => ["対戦結果に相違がないため、対戦結果を確定します。"] },
             {
+                id: "leagueStartAnnouncement",
+                timingLabel: "リーグ開始告知",
+                buildPlainText: (state) => [
+                    `🏆リーグ${state.leagueName}`,
+                    "",
+                    `${state.teamAName} vs ${state.teamBName} の対戦がスタートしました！`,
+                    "",
+                    "対戦結果は随時更新されますので、以下のリンクよりご確認ください。",
+                    "▷ https://taikousen.com/match",
+                    "",
+                    "#オセロニア",
+                    "#オセロニアンの隊抗戦",
+                ],
+                buildPreviewLines: (state) => [
+                    `🏆リーグ${highlightValue(state.leagueName)}`,
+                    "",
+                    `${highlightValue(state.teamAName)} vs ${highlightValue(state.teamBName)} の対戦がスタートしました！`,
+                    "",
+                    "対戦結果は随時更新されますので、以下のリンクよりご確認ください。",
+                    "▷ https://taikousen.com/match",
+                    "",
+                    "#オセロニア",
+                    "#オセロニアンの隊抗戦",
+                ],
+            },
+            {
                 id: "finalizeResults",
                 timingLabel: "最終結果確定連絡",
                 buildPlainText: (state) => [
@@ -235,6 +266,36 @@
                 ],
             },
             { id: "closing", timingLabel: "最終挨拶", buildPlainText: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"], buildPreviewLines: () => ["それでは対戦結果を確定しました。", "両チーム対戦お疲れさまでした。"] },
+            {
+                id: "matchResultAnnouncement",
+                timingLabel: "試合終了告知",
+                buildPlainText: (state) => [
+                    "🏁 試合終了",
+                    "",
+                    `リーグ${state.leagueName}`,
+                    `${state.teamAName}vs${state.teamBName}`,
+                    "",
+                    "結果",
+                    `${state.teamAName} ${toFullWidthDigits(state.teamAWins)} - ${toFullWidthDigits(state.teamBWins)} ${state.teamBName}`,
+                    "▷ https://taikousen.com/result",
+                    "",
+                    "#オセロニア",
+                    "#オセロニアンの隊抗戦",
+                ],
+                buildPreviewLines: (state) => [
+                    "🏁 試合終了",
+                    "",
+                    `リーグ${highlightValue(state.leagueName)}`,
+                    `${highlightValue(state.teamAName)}vs${highlightValue(state.teamBName)}`,
+                    "",
+                    "結果",
+                    `${highlightValue(state.teamAName)} ${highlightValue(toFullWidthDigits(state.teamAWins))} - ${highlightValue(toFullWidthDigits(state.teamBWins))} ${highlightValue(state.teamBName)}`,
+                    "▷ https://taikousen.com/result",
+                    "",
+                    "#オセロニア",
+                    "#オセロニアンの隊抗戦",
+                ],
+            },
         ];
 
         function escapeHtml(value) {
@@ -248,6 +309,10 @@
 
         function highlightValue(value) {
             return `<span class="announcement-tool-variable">${escapeHtml(value)}</span>`;
+        }
+
+        function toFullWidthDigits(value) {
+            return String(value ?? "").replace(/[0-9]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) + 0xFEE0));
         }
 
         function formatAnnouncementTime(state) {
@@ -281,6 +346,7 @@
             return {
                 teamAName: getInputValue("teamANameInput", announcementTemplateState.teamAName).trim() || "Aチーム",
                 teamBName: getInputValue("teamBNameInput", announcementTemplateState.teamBName).trim() || "Bチーム",
+                leagueName: getInputValue("leagueSelect", announcementTemplateState.leagueName),
                 role: getInputValue("roleSelect", announcementTemplateState.role),
                 battleNumber: getInputValue("battleNumberSelect", announcementTemplateState.battleNumber),
                 preparationHour: getInputValue("preparationHourSelect", announcementTemplateState.preparationHour),
@@ -332,6 +398,24 @@
 
         function buildPreviewHtmlFromTemplate(definition, state) {
             return definition.buildPreviewLines(state).map((line) => `<div class="announcement-tool-preview-line">${line}</div>`).join("");
+        }
+
+        function isTweetableTemplate(templateId) {
+            return templateId === "leagueStartAnnouncement" || templateId === "matchResultAnnouncement";
+        }
+
+        function buildTweetIntentUrl(text) {
+            return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        }
+
+        function openTweetForTemplate(templateId) {
+            const currentState = getCurrentAnnouncementState();
+            const templateDefinition = announcementTemplateDefinitions.find((definition) => definition.id === templateId);
+            if (!templateDefinition) return;
+
+            const text = buildPlainTextFromTemplate(templateDefinition, currentState);
+            const tweetUrl = buildTweetIntentUrl(text);
+            window.open(tweetUrl, "_blank", "noopener,noreferrer");
         }
 
         function populateSelectOptions(selectElement, values, formatLabel) {
@@ -408,7 +492,7 @@
             const state = getCurrentAnnouncementState();
             const topIds = ["oneHourBefore", "tenMinutesBefore", "startTime"];
             const beforeResultIds = ["preparationNotice", "startBattle", "confirmResults"];
-            const afterResultIds = ["finalizeResults", "closing"];
+            const afterResultIds = ["leagueStartAnnouncement", "finalizeResults", "closing", "matchResultAnnouncement"];
             const topParts = [];
             const beforeResultParts = [];
             const afterResultParts = [];
@@ -448,7 +532,10 @@
                     <tr>
                         <td class="announcement-tool-cell-timing">
                             <div class="announcement-tool-timing-label">${escapeHtml(definition.timingLabel)}</div>
-                            <div><button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button></div>
+                            <div class="announcement-tool-template-actions">
+                                <button type="button" class="btn announcement-tool-copy-button" data-template-id="${definition.id}">コピー</button>
+                                ${isTweetableTemplate(definition.id) ? `<button type="button" class="btn announcement-tool-copy-button" data-tweet-template-id="${definition.id}">ツイートする</button>` : ""}
+                            </div>
                         </td>
                         <td class="announcement-tool-cell-template">${buildPreviewHtmlFromTemplate(definition, state)}</td>
                     </tr>
@@ -513,6 +600,7 @@
         function initializeAnnouncementTemplateTool() {
             const roleSelect = document.getElementById("roleSelect");
             const battleNumberSelect = document.getElementById("battleNumberSelect");
+            const leagueSelect = document.getElementById("leagueSelect");
             const preparationHourSelect = document.getElementById("preparationHourSelect");
             const preparationMinuteSelect = document.getElementById("preparationMinuteSelect");
             const teamANameInput = document.getElementById("teamANameInput");
@@ -520,6 +608,7 @@
 
             populateSelectOptions(roleSelect, ["先鋒", "次鋒", "中堅", "副将", "大将"]);
             populateSelectOptions(battleNumberSelect, ["1", "2", "3"], (value) => `${value}戦目`);
+            populateSelectOptions(leagueSelect, ["A", "B", "C"], (value) => `リーグ${value}`);
             populateSelectOptions(preparationHourSelect, Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0")));
             populateSelectOptions(preparationMinuteSelect, Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0")));
 
@@ -527,6 +616,7 @@
             if (teamBNameInput) teamBNameInput.value = announcementTemplateState.teamBName;
             if (roleSelect) roleSelect.value = announcementTemplateState.role;
             if (battleNumberSelect) battleNumberSelect.value = announcementTemplateState.battleNumber;
+            if (leagueSelect) leagueSelect.value = announcementTemplateState.leagueName;
 
             const nextRoleButton = document.getElementById("nextRoleButton");
             if (nextRoleButton) {
@@ -666,7 +756,7 @@
                 // ignore
             });
 
-            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect"];
+            const inputs = ["teamASelect", "teamBSelect", "teamANameInput", "teamBNameInput", "leagueSelect", "roleSelect", "battleNumberSelect", "preparationHourSelect", "preparationMinuteSelect", "teamAWinsSelect"];
             for (const inputId of inputs) {
                 const element = document.getElementById(inputId);
                 if (!element) continue;
@@ -680,11 +770,19 @@
             const beforeResultBodyEl = document.getElementById("announcementTemplateTableBodyBeforeResult");
             const afterResultBodyEl = document.getElementById("announcementTemplateTableBodyAfterResult");
             const tableClickHandler = (event) => {
+                const tweetButton = event.target.closest("button[data-tweet-template-id]");
+                if (tweetButton) {
+                    openTweetForTemplate(tweetButton.dataset.tweetTemplateId);
+                    return;
+                }
+
                 const copyButton = event.target.closest("button[data-template-id]");
-                if (!copyButton) return;
-                copyTemplateById(copyButton.dataset.templateId).catch(() => {
-                    // ignore
-                });
+                if (copyButton) {
+                    copyTemplateById(copyButton.dataset.templateId).catch(() => {
+                        // ignore
+                    });
+                    return;
+                }
             };
 
             if (topBodyEl) topBodyEl.addEventListener("click", tableClickHandler);
