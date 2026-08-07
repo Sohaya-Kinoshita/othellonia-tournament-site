@@ -1,22 +1,15 @@
 // /api/match-card-upcoming - 今後の対戦カード一覧取得API
-// scheduled_atが「翌日4:00(JST)以降」のマッチを全て返す
+// scheduled_atが「次の4:00(JST)以降」のマッチを全て返す
 
-function getTomorrowJst4amIso() {
+function getNextJst4amIso() {
   // 現在時刻（UTC）を取得
   const now = new Date();
   // JSTはUTC+9
   const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  // 今日の4:00(JST)
-  const jstYear = jstNow.getFullYear();
-  const jstMonth = String(jstNow.getMonth() + 1).padStart(2, "0");
-  const jstDate = String(jstNow.getDate()).padStart(2, "0");
-  const today4 = `${jstYear}-${jstMonth}-${jstDate} 04:00:00`;
-  // 翌日の4:00(JST)
-  const nextDay = new Date(jstNow.getTime() + 24 * 60 * 60 * 1000);
-  const nextYear = nextDay.getFullYear();
-  const nextMonth = String(nextDay.getMonth() + 1).padStart(2, "0");
-  const nextDate = String(nextDay.getDate()).padStart(2, "0");
-  return `${nextYear}-${nextMonth}-${nextDate} 04:00:00`;
+  // 4:00未満は前営業日として扱うため、4時間戻してから日付境界を取る
+  const operationalDay = new Date(jstNow.getTime() - 4 * 60 * 60 * 1000);
+  const nextDay = new Date(operationalDay.getTime() + 24 * 60 * 60 * 1000);
+  return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, "0")}-${String(nextDay.getDate()).padStart(2, "0")} 04:00:00`;
 }
 
 export async function onRequest(context) {
@@ -25,8 +18,8 @@ export async function onRequest(context) {
     await ensureOrdersConfirmedAtColumn(db);
     await ensureMatchesStartedAtColumn(db);
     await ensureMatchesStatusColumn(db);
-    const next4 = getTomorrowJst4amIso();
-    // scheduled_atが「翌日JST4:00以降」のマッチを取得
+    const next4 = getNextJst4amIso();
+    // scheduled_atが「次の4:00(JST)以降」のマッチを取得
     const matchesResult = await db
       .prepare(
         `
